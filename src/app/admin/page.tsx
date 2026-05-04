@@ -201,4 +201,49 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginTop: 12, fontSize: 13, color: '#555' }}>
+                  <div>📧 <a href={`mailto:${sol.email}`} style={{ color: '#1a3a5c' }}>{sol.email}</a></div>
+                  <div>📱 <a href={`https://wa.me/54${sol.whatsapp.replace(/\D/g,'')}`} style={{ color: '#25d366' }}>{sol.whatsapp}</a></div>
+                  {sol.cuit && <div>🪪 {sol.cuit}</div>}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+                  {!sol.aprobado && sol.email_verificado && (
+                    <button
+                      onClick={() => accion(sol.id, 'aprobar')}
+                      style={{ padding: '8px 20px', background: '#27ae60', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                    >
+                      ✅ Aprobar y notificar
+                    </button>
+                  )}
+                  {!sol.aprobado && (
+                    <button
+                      onClick={() => accion(sol.id, 'rechazar')}
+                      style={{ padding: '8px 20px', background: '#fff', color: '#c0392b', border: '2px solid #c0392b', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                    >
+                      ❌ Rechazar
+                    </button>
+                  )}
+                  <button
+                    onClick={() => accion(sol.id, 'borrar')}
+                    style={{ padding: '8px 20px', background: '#fff', color: '#999', border: '2px solid #ddd', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                  >
+                    🗑 Borrar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const s: Record<string, React.CSSProperties> = {
+  wrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', background: '#f5f5f0' },
+  card: { background: '#fff', borderRadius: 16, padding: '40px 36px', maxWidth: 640, width: '100%', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' },
+  titulo: { fontSize: 22, fontWeight: 700, color: '#1a3a5c', marginBottom: 20, textAlign: 'center' },
+  input: { width: '100%', padding: '10px 12px', border: '1.5px solid #ddd', borderRadius: 8, fontSize: 14, marginBottom: 12, boxSizing: 'border-box' as const },
+  boton: { width: '100%', padding: '12px', background: '#1a3a5c', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' },
+}
