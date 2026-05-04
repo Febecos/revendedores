@@ -174,18 +174,24 @@ export default function Admin() {
 
                 {!sol.aprobado && sol.email_verificado && (
                   <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                    <button
+                  <button
                       onClick={() => accion(sol.id, 'aprobar')}
                       style={{ padding: '8px 20px', background: '#27ae60', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
-                    >
-                      ✅ Aprobar y notificar
-                    </button>
-                    <button
-                      onClick={() => accion(sol.id, 'rechazar')}
-                      style={{ padding: '8px 20px', background: '#fff', color: '#c0392b', border: '2px solid #c0392b', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
-                    >
-                      ❌ Rechazar
-                    </button>
+                      >
+                        ✅ Aprobar y notificar
+                      </button>
+                      <button
+                        onClick={() => accion(sol.id, 'rechazar')}
+                        style={{ padding: '8px 20px', background: '#fff', color: '#c0392b', border: '2px solid #c0392b', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                      >
+                        ❌ Rechazar
+                        </button>
+                        <button
+                            onClick={() => accion(sol.id, 'borrar')}
+                            style={{ padding: '8px 20px', background: '#fff', color: '#999', border: '2px solid #ddd', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                        >
+                          🗑 Borrar
+                      </button>  
                   </div>
                 )}
               </div>
