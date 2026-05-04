@@ -19,7 +19,7 @@ export default function Home() {
     }
     setEstado('loading')
     try {
-      const res = await fetch('/api/solicitud', {
+      const res = await fetch('/api/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
