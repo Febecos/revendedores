@@ -28,6 +28,7 @@ const TIPO_LABELS: Record<string, string> = {
 
 export default function Admin() {
   const [pass, setPass] = useState('')
+  const [usuario, setUsuario] = useState('')
   const [autenticado, setAutenticado] = useState(false)
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [loading, setLoading] = useState(false)
@@ -35,11 +36,11 @@ export default function Admin() {
   const [mensaje, setMensaje] = useState('')
 
   const login = () => {
-    if (pass === 'febecos2024admin') {
+    if (usuario === 'admin@febecos.com' && pass === 'febecos2024admin') {
       setAutenticado(true)
       cargar()
     } else {
-      alert('Contraseña incorrecta')
+      alert('Usuario o contraseña incorrectos')
     }
   }
 
@@ -76,6 +77,14 @@ export default function Admin() {
     <div style={s.wrap}>
       <div style={{ ...s.card, maxWidth: 360 }}>
         <h2 style={s.titulo}>Admin Revendedores</h2>
+       <input
+          style={s.input}
+          type="email"
+          placeholder="Email"
+          value={usuario}
+          onChange={e => setUsuario(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && login()}
+        />
         <input
           style={s.input}
           type="password"
