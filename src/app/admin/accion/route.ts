@@ -25,21 +25,50 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
     }
 
-    const { data: sol, error: fetchError } = await supabase
-      .from('solicitudes_revendedor')
-      .select('*')
-      .eq('id', id)
-      .single()
+    if (tipo === 'borrar') {
+      const { error } = await supabase
+        .from('solicitudes_revendedor')
+        .delete()
+        .eq('id', id)
+      if (error) {
+        console.error('Error al borrar:', error)
+        return NextResponse.json({ error: 'Error al borrar' }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true })
+    }
 
-    if (fetchError || !sol) {
-      return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 })
+    if (tipo === 'rechazar') {
+      const { error } = await supabase
+        .from('solicitudes_revendedor')
+        .update({ estado: 'rechazado', aprobado: false })
+        .eq('id', id)
+      if (error) {
+        console.error('Error al rechazar:', error)
+        return NextResponse.json({ error: 'Error al rechazar' }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true })
     }
 
     if (tipo === 'aprobar') {
-      await supabase
+      const { data: sol, error: fetchError } = await supabase
+        .from('solicitudes_revendedor')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (fetchError || !sol) {
+        return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 })
+      }
+
+      const { error: updateError } = await supabase
         .from('solicitudes_revendedor')
         .update({ aprobado: true, estado: 'aprobado' })
         .eq('id', id)
+
+      if (updateError) {
+        console.error('Error al aprobar:', updateError)
+        return NextResponse.json({ error: 'Error al aprobar' }, { status: 500 })
+      }
 
       await transporter.sendMail({
         from: `Febecos <${process.env.SMTP_FROM}>`,
@@ -47,7 +76,6 @@ export async function POST(req: NextRequest) {
         subject: '¡Tu acceso al Portal Revendedores Febecos está listo!',
         html: `
           <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px">
-            <img src="https://febecos.com/cdn/shop/files/logo-febecos.png" alt="Febecos" style="height:40px;margin-bottom:24px" />
             <h2 style="color:#1a3a5c;margin-bottom:8px">¡Hola ${sol.nombre}, tu acceso está aprobado!</h2>
             <p style="color:#555;line-height:1.7">
               Tu solicitud para el Portal de Revendedores Febecos fue aprobada.<br/>
@@ -64,20 +92,16 @@ export async function POST(req: NextRequest) {
               Nuestro equipo te va a guiar para configurar tu perfil con tu logo y datos de contacto.
             </p>
             <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
-            <p style="color:#aaa;font-size:12px">Febecos · cotiza@febecos.com · +54 9 11 2739-9430</p>
+            <p style="color:#aaa;font-size:12px">Febecos · cotiza@febecos.com · +54 9 11 2575-0323</p>
           </div>
         `,
       })
+
+      return NextResponse.json({ ok: true })
     }
 
-    if (tipo === 'rechazar') {
-      await supabase
-        .from('solicitudes_revendedor')
-        .update({ estado: 'rechazado' })
-        .eq('id', id)
-    }
+    return NextResponse.json({ error: 'Tipo no válido' }, { status: 400 })
 
-    return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('Error en accion admin:', err)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
