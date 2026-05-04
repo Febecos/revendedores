@@ -1,12 +1,31 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 
 const TIPOS = [
-  { id: 'pocero', label: '🔩 Soy pocero / perforista' },
-  { id: 'ferreteria', label: '🏪 Tengo ferretería agropecuaria' },
-  { id: 'instalador', label: '⚡ Hago instalaciones solares' },
-  { id: 'pocero_instalador', label: '🔩⚡ Soy pocero e instalador' },
+  { id: 'pocero', label: '🔩 Pocero / perforista' },
+  { id: 'ferreteria', label: '🏪 Ferretería agropecuaria' },
+  { id: 'instalador', label: '⚡ Instalador solar' },
+  { id: 'distribuidor', label: '🚛 Distribuidor' },
   { id: 'otro', label: '📋 Otro' },
+]
+
+const EXPERIENCIA_ANOS = [
+  { id: 'menos1', label: 'Menos de 1 año' },
+  { id: '1a3', label: '1 a 3 años' },
+  { id: '3a5', label: '3 a 5 años' },
+  { id: 'mas5', label: 'Más de 5 años' },
+]
+
+const EXPERIENCIA_SOLAR = [
+  { id: 'si', label: '✅ Sí, tengo experiencia' },
+  { id: 'no', label: '🌱 Estoy empezando' },
+]
+
+const EQUIPOS_MES = [
+  { id: '1a2', label: '1 a 2' },
+  { id: '3a5', label: '3 a 5' },
+  { id: '6a10', label: '6 a 10' },
+  { id: 'mas10', label: 'Más de 10' },
 ]
 
 const PROVINCIAS = [
@@ -16,35 +35,16 @@ const PROVINCIAS = [
   'Santiago del Estero','Tierra del Fuego','Tucumán'
 ]
 
-declare global {
-  interface Window { turnstile: { render: (el: HTMLElement, opts: object) => void } }
-}
-
 export default function Home() {
   const [form, setForm] = useState({
     nombre: '', apellido: '', email: '', whatsapp: '',
     empresa: '', provincia: '', localidad: '', cuit: ''
   })
   const [tipos, setTipos] = useState<string[]>([])
+  const [expAnos, setExpAnos] = useState('')
+  const [expSolar, setExpSolar] = useState('')
+  const [equiposMes, setEquiposMes] = useState('')
   const [estado, setEstado] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
-  const [turnstileToken, setTurnstileToken] = useState('')
-  const turnstileRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
-    script.async = true
-    script.defer = true
-    script.onload = () => {
-      if (turnstileRef.current && window.turnstile) {
-        window.turnstile.render(turnstileRef.current, {
-          sitekey: '0x4AAAAAADIqnVW-TocMScvY',
-          callback: (token: string) => setTurnstileToken(token),
-        })
-      }
-    }
-    document.head.appendChild(script)
-  }, [])
 
   const toggleTipo = (id: string) => {
     setTipos(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
@@ -60,11 +60,7 @@ export default function Home() {
       return
     }
     if (tipos.length === 0) {
-      alert('Seleccioná al menos un tipo de revendedor.')
-      return
-    }
-    if (!turnstileToken) {
-      alert('Completá la verificación de seguridad.')
+      alert('Seleccioná al menos un rol.')
       return
     }
     setEstado('loading')
@@ -72,7 +68,13 @@ export default function Home() {
       const res = await fetch('/api/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, tipo_revendedor: tipos, turnstileToken })
+        body: JSON.stringify({
+          ...form,
+          tipo_revendedor: tipos,
+          experiencia_anos: expAnos,
+          experiencia_solar: expSolar,
+          equipos_mes: equiposMes,
+        })
       })
       if (res.ok) setEstado('ok')
       else setEstado('error')
@@ -91,6 +93,10 @@ export default function Home() {
           Hacé clic en el link del email para completar el registro.<br /><br />
           Una vez verificado, Guillermo revisa tu solicitud y te da acceso en 24 horas hábiles.
         </p>
+        <a href="https://wa.me/5491125750323"
+          style={{ display: 'block', textAlign: 'center', marginTop: 24, padding: '12px 24px', background: '#25d366', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700 }}>
+          Escribinos por WhatsApp
+        </a>
       </div>
     </div>
   )
@@ -103,25 +109,92 @@ export default function Home() {
           Accedé al catálogo mayorista, herramientas de cotización con tu marca y precios diferenciados.
         </p>
 
+        {/* ROL */}
         <div style={s.seccion}>
           <label style={s.labelGrande}>¿Qué rol tenés? *</label>
           <p style={s.hint}>Podés elegir más de una opción</p>
-          <div style={s.tiposGrid}>
+          <div style={s.grid2btn}>
             {TIPOS.map(t => (
               <button
                 key={t.id}
                 onClick={() => toggleTipo(t.id)}
                 style={{
-                  ...s.tipoBtnBase,
-                  ...(tipos.includes(t.id) ? s.tipoBtnActivo : s.tipoBtnInactivo)
+                  ...s.btn,
+                  background: tipos.includes(t.id) ? '#1a3a5c' : '#fff',
+                  color: tipos.includes(t.id) ? '#fff' : '#333',
+                  borderColor: tipos.includes(t.id) ? '#1a3a5c' : '#ddd',
                 }}
               >
-                {t.label}
+                {tipos.includes(t.id) ? '✓ ' : ''}{t.label}
               </button>
             ))}
           </div>
         </div>
 
+        {/* EXPERIENCIA AÑOS */}
+        <div style={s.seccion}>
+          <label style={s.labelGrande}>¿Cuántos años trabajás en el rubro?</label>
+          <div style={s.grid2btn}>
+            {EXPERIENCIA_ANOS.map(e => (
+              <button
+                key={e.id}
+                onClick={() => setExpAnos(e.id)}
+                style={{
+                  ...s.btn,
+                  background: expAnos === e.id ? '#1a3a5c' : '#fff',
+                  color: expAnos === e.id ? '#fff' : '#333',
+                  borderColor: expAnos === e.id ? '#1a3a5c' : '#ddd',
+                }}
+              >
+                {expAnos === e.id ? '✓ ' : ''}{e.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* EXPERIENCIA SOLAR */}
+        <div style={s.seccion}>
+          <label style={s.labelGrande}>¿Ya trabajaste con equipos solares?</label>
+          <div style={s.grid2btn}>
+            {EXPERIENCIA_SOLAR.map(e => (
+              <button
+                key={e.id}
+                onClick={() => setExpSolar(e.id)}
+                style={{
+                  ...s.btn,
+                  background: expSolar === e.id ? '#1a3a5c' : '#fff',
+                  color: expSolar === e.id ? '#fff' : '#333',
+                  borderColor: expSolar === e.id ? '#1a3a5c' : '#ddd',
+                }}
+              >
+                {expSolar === e.id ? '✓ ' : ''}{e.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* EQUIPOS POR MES */}
+        <div style={s.seccion}>
+          <label style={s.labelGrande}>¿Cuántos equipos por mes estimás manejar?</label>
+          <div style={s.grid2btn}>
+            {EQUIPOS_MES.map(e => (
+              <button
+                key={e.id}
+                onClick={() => setEquiposMes(e.id)}
+                style={{
+                  ...s.btn,
+                  background: equiposMes === e.id ? '#1a3a5c' : '#fff',
+                  color: equiposMes === e.id ? '#fff' : '#333',
+                  borderColor: equiposMes === e.id ? '#1a3a5c' : '#ddd',
+                }}
+              >
+                {equiposMes === e.id ? '✓ ' : ''}{e.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* DATOS PERSONALES */}
         <div style={s.grid2}>
           <div style={s.campo}>
             <label style={s.label}>Nombre *</label>
@@ -169,10 +242,6 @@ export default function Home() {
           </div>
         </div>
 
-        <div style={{ marginBottom: 20 }}>
-          <div ref={turnstileRef} />
-        </div>
-
         {estado === 'error' && (
           <p style={{ color: '#c0392b', fontSize: 14, marginBottom: 12 }}>
             Hubo un error al enviar. Intentá de nuevo o escribinos al{' '}
@@ -204,11 +273,9 @@ const s: Record<string, React.CSSProperties> = {
   subtitulo: { color: '#666', lineHeight: 1.6, marginBottom: 28, textAlign: 'center', fontSize: 15 },
   seccion: { marginBottom: 24 },
   labelGrande: { display: 'block', fontSize: 14, fontWeight: 700, color: '#222', marginBottom: 4 },
-  hint: { fontSize: 12, color: '#999', margin: '0 0 12px' },
-  tiposGrid: { display: 'flex', flexDirection: 'column', gap: 8 },
-  tipoBtnBase: { padding: '12px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', border: '2px solid' },
-  tipoBtnActivo: { background: '#1a3a5c', color: '#fff', borderColor: '#1a3a5c' },
-  tipoBtnInactivo: { background: '#fff', color: '#333', borderColor: '#ddd' },
+  hint: { fontSize: 12, color: '#999', margin: '0 0 10px' },
+  grid2btn: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 },
+  btn: { padding: '11px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'center', border: '2px solid', transition: 'all 0.15s' },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 },
   campo: { marginBottom: 16 },
   label: { display: 'block', fontSize: 13, fontWeight: 600, color: '#333', marginBottom: 6 },
