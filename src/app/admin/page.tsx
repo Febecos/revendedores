@@ -22,13 +22,14 @@ const TIPO_LABELS: Record<string, string> = {
   pocero: '🔩 Pocero',
   ferreteria: '🏪 Ferretería',
   instalador: '⚡ Instalador',
+  distribuidor: '🚛 Distribuidor',
   pocero_instalador: '🔩⚡ Pocero+Inst.',
   otro: '📋 Otro',
 }
 
 export default function Admin() {
-  const [pass, setPass] = useState('')
   const [usuario, setUsuario] = useState('')
+  const [pass, setPass] = useState('')
   const [autenticado, setAutenticado] = useState(false)
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [loading, setLoading] = useState(false)
@@ -52,14 +53,19 @@ export default function Admin() {
     setLoading(false)
   }
 
-  const accion = async (id: number, tipo: 'aprobar' | 'rechazar') => {
+  const accion = async (id: number, tipo: 'aprobar' | 'rechazar' | 'borrar') => {
+    if (tipo === 'borrar' && !confirm('¿Seguro que querés borrar este registro?')) return
     const res = await fetch('/api/admin/accion', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, tipo })
     })
     if (res.ok) {
-      setMensaje(tipo === 'aprobar' ? '✅ Aprobado y notificado por email' : '❌ Rechazado')
+      setMensaje(
+        tipo === 'aprobar' ? '✅ Aprobado y notificado por email' :
+        tipo === 'rechazar' ? '❌ Rechazado' :
+        '🗑 Registro borrado'
+      )
       setTimeout(() => setMensaje(''), 3000)
       cargar()
     }
@@ -68,7 +74,7 @@ export default function Admin() {
   const filtradas = solicitudes.filter(s => {
     if (filtro === 'todos') return true
     if (filtro === 'pendientes') return !s.aprobado && s.email_verificado
-    if (filtro === 'verificados') return s.email_verificado
+    if (filtro === 'verificados') return s.email_verificado && !s.aprobado
     if (filtro === 'aprobados') return s.aprobado
     return true
   })
@@ -77,7 +83,7 @@ export default function Admin() {
     <div style={s.wrap}>
       <div style={{ ...s.card, maxWidth: 360 }}>
         <h2 style={s.titulo}>Admin Revendedores</h2>
-       <input
+        <input
           style={s.input}
           type="email"
           placeholder="Email"
@@ -115,19 +121,23 @@ export default function Admin() {
         )}
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-          {['todos', 'pendientes', 'verificados', 'aprobados'].map(f => (
+          {[
+            { id: 'todos', label: `Todos (${solicitudes.length})` },
+            { id: 'pendientes', label: `Pendientes (${solicitudes.filter(s => !s.aprobado && s.email_verificado).length})` },
+            { id: 'verificados', label: `Verificados (${solicitudes.filter(s => s.email_verificado && !s.aprobado).length})` },
+            { id: 'aprobados', label: `Aprobados (${solicitudes.filter(s => s.aprobado).length})` },
+          ].map(f => (
             <button
-              key={f}
-              onClick={() => setFiltro(f)}
+              key={f.id}
+              onClick={() => setFiltro(f.id)}
               style={{
-                padding: '8px 16px', borderRadius: 20, border: '2px solid',
-                background: filtro === f ? '#1a3a5c' : '#fff',
-                color: filtro === f ? '#fff' : '#1a3a5c',
-                borderColor: '#1a3a5c', cursor: 'pointer', fontWeight: 600, fontSize: 13,
-                textTransform: 'capitalize'
+                padding: '8px 16px', borderRadius: 20, border: '2px solid #1a3a5c',
+                background: filtro === f.id ? '#1a3a5c' : '#fff',
+                color: filtro === f.id ? '#fff' : '#1a3a5c',
+                cursor: 'pointer', fontWeight: 600, fontSize: 13,
               }}
             >
-              {f} {f === 'todos' ? `(${solicitudes.length})` : f === 'pendientes' ? `(${solicitudes.filter(s => !s.aprobado && s.email_verificado).length})` : f === 'verificados' ? `(${solicitudes.filter(s => s.email_verificado).length})` : `(${solicitudes.filter(s => s.aprobado).length})`}
+              {f.label}
             </button>
           ))}
         </div>
@@ -181,28 +191,30 @@ export default function Admin() {
                   {sol.cuit && <div>🪪 {sol.cuit}</div>}
                 </div>
 
-                {!sol.aprobado && sol.email_verificado && (
-                  <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                  <button
+                <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+                  {!sol.aprobado && sol.email_verificado && (
+                    <button
                       onClick={() => accion(sol.id, 'aprobar')}
                       style={{ padding: '8px 20px', background: '#27ae60', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
-                      >
-                        ✅ Aprobar y notificar
-                      </button>
-                      <button
-                        onClick={() => accion(sol.id, 'rechazar')}
-                        style={{ padding: '8px 20px', background: '#fff', color: '#c0392b', border: '2px solid #c0392b', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
-                      >
-                        ❌ Rechazar
-                        </button>
-                        <button
-                            onClick={() => accion(sol.id, 'borrar')}
-                            style={{ padding: '8px 20px', background: '#fff', color: '#999', border: '2px solid #ddd', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
-                        >
-                          🗑 Borrar
-                      </button>  
-                  </div>
-                )}
+                    >
+                      ✅ Aprobar y notificar
+                    </button>
+                  )}
+                  {!sol.aprobado && (
+                    <button
+                      onClick={() => accion(sol.id, 'rechazar')}
+                      style={{ padding: '8px 20px', background: '#fff', color: '#c0392b', border: '2px solid #c0392b', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                    >
+                      ❌ Rechazar
+                    </button>
+                  )}
+                  <button
+                    onClick={() => accion(sol.id, 'borrar')}
+                    style={{ padding: '8px 20px', background: '#fff', color: '#999', border: '2px solid #ddd', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                  >
+                    🗑 Borrar
+                  </button>
+                </div>
               </div>
             ))}
           </div>
