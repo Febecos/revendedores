@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 type Solicitud = {
   id: number
@@ -47,27 +47,43 @@ export default function Admin() {
 
   const cargar = async () => {
     setLoading(true)
-    const res = await fetch('/api/admin/solicitudes')
-    const data = await res.json()
-    setSolicitudes(data.solicitudes || [])
+    try {
+      const res = await fetch('/api/admin/solicitudes')
+      const data = await res.json()
+      setSolicitudes(data.solicitudes || [])
+    } catch {
+      alert('Error al cargar solicitudes')
+    }
     setLoading(false)
   }
 
   const accion = async (id: number, tipo: 'aprobar' | 'rechazar' | 'borrar') => {
     if (tipo === 'borrar' && !confirm('¿Seguro que querés borrar este registro?')) return
-    const res = await fetch('/api/admin/accion', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, tipo })
-    })
-    if (res.ok) {
-      setMensaje(
-        tipo === 'aprobar' ? '✅ Aprobado y notificado por email' :
-        tipo === 'rechazar' ? '❌ Rechazado' :
-        '🗑 Registro borrado'
-      )
-      setTimeout(() => setMensaje(''), 3000)
-      cargar()
+    try {
+      const res = await fetch('/api/admin/accion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, tipo })
+      })
+      if (res.ok) {
+        setMensaje(
+          tipo === 'aprobar' ? '✅ Aprobado y notificado por email' :
+          tipo === 'rechazar' ? '❌ Rechazado' :
+          '🗑 Registro borrado'
+        )
+        setTimeout(() => setMensaje(''), 3000)
+        if (tipo === 'borrar') {
+          setSolicitudes(prev => prev.filter(s => s.id !== id))
+        } else if (tipo === 'rechazar') {
+          setSolicitudes(prev => prev.map(s => s.id === id ? { ...s, estado: 'rechazado', aprobado: false } : s))
+        } else if (tipo === 'aprobar') {
+          setSolicitudes(prev => prev.map(s => s.id === id ? { ...s, estado: 'aprobado', aprobado: true } : s))
+        }
+      } else {
+        alert('Error al procesar la acción')
+      }
+    } catch {
+      alert('Error de conexión')
     }
   }
 
