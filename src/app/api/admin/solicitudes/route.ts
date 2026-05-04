@@ -16,6 +16,8 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ solicitudes: data })
+  return NextResponse.json(
+    { solicitudes: data },
+    { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+  )
 }
-
