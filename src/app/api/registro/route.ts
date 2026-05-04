@@ -21,36 +21,27 @@ const transporter = nodemailer.createTransport({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { nombre, apellido, email, whatsapp, empresa, provincia, localidad, cuit, tipo_revendedor, turnstileToken } = body
+    const {
+      nombre, apellido, email, whatsapp, empresa,
+      provincia, localidad, cuit, tipo_revendedor,
+      experiencia_anos, experiencia_solar, equipos_mes
+    } = body
 
     if (!nombre || !email || !whatsapp || !provincia) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
     }
 
-    // Verificar Turnstile
-    const tsRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        secret: process.env.TURNSTILE_SECRET,
-        response: turnstileToken,
-      }),
-    })
-    const tsData = await tsRes.json()
-    if (!tsData.success) {
-      return NextResponse.json({ error: 'Verificación de seguridad fallida' }, { status: 400 })
-    }
-
-    // Generar token de verificación
     const token = randomBytes(32).toString('hex')
 
-    // Guardar en Supabase
     const { error: dbError } = await supabase
       .from('solicitudes_revendedor')
       .insert([{
         nombre, apellido, email, whatsapp, empresa,
         provincia, localidad, cuit,
         tipo_revendedor,
+        experiencia_anos,
+        experiencia_solar,
+        equipos_mes,
         estado: 'pendiente',
         email_verificado: false,
         token_verificacion: token,
@@ -62,7 +53,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Error al guardar' }, { status: 500 })
     }
 
-    // Determinar URL base
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://revendedores.febecos.com'
 
     // Email de verificación al solicitante
@@ -72,7 +62,6 @@ export async function POST(req: NextRequest) {
       subject: 'Verificá tu email — Portal Revendedores Febecos',
       html: `
         <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px">
-          <img src="https://febecos.com/cdn/shop/files/logo-febecos.png" alt="Febecos" style="height:40px;margin-bottom:24px" />
           <h2 style="color:#1a3a5c;margin-bottom:8px">Hola ${nombre}, verificá tu email</h2>
           <p style="color:#555;line-height:1.7">
             Recibimos tu solicitud para acceder al Portal de Revendedores Febecos.<br/>
@@ -104,7 +93,8 @@ export async function POST(req: NextRequest) {
           <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Nombre</td><td style="padding:8px;border:1px solid #ddd">${nombre} ${apellido || ''}</td></tr>
           <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Email</td><td style="padding:8px;border:1px solid #ddd">${email}</td></tr>
           <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">WhatsApp</td><td style="padding:8px;border:1px solid #ddd"><a href="https://wa.me/54${whatsapp.replace(/\D/g,'')}">${whatsapp}</a></td></tr>
-          <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Tipo</td><td style="padding:8px;border:1px solid #ddd">${tiposLabel || '—'}</td></tr>
+          <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Rol</td><td style="padding:8px;border:1px solid #ddd">${tiposLabel || '—'}</td></tr>
+          <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Experiencia</td><td style="padding:8px;border:1px solid #ddd">${experiencia_anos || '—'} · Solar: ${experiencia_solar || '—'} · Equipos/mes: ${equipos_mes || '—'}</td></tr>
           <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Empresa</td><td style="padding:8px;border:1px solid #ddd">${empresa || '—'}</td></tr>
           <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">CUIT</td><td style="padding:8px;border:1px solid #ddd">${cuit || '—'}</td></tr>
           <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Provincia</td><td style="padding:8px;border:1px solid #ddd">${provincia}</td></tr>
