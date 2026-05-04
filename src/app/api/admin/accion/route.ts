@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
               Nuestro equipo te va a guiar para configurar tu perfil con tu logo y datos de contacto.
             </p>
             <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
-            <p style="color:#aaa;font-size:12px">Febecos · cotiza@febecos.com · +54 9 11 2739-9430</p>
+            <p style="color:#aaa;font-size:12px">Febecos · cotiza@febecos.com · +54 9 11 2575-0323</p>
           </div>
         `,
       })
