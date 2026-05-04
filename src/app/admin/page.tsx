@@ -35,7 +35,7 @@ export default function Admin() {
   const [mensaje, setMensaje] = useState('')
 
   const login = () => {
-    if (pass === process.env.NEXT_PUBLIC_ADMIN_PASS || pass === 'febecos2024admin') {
+    if (pass === 'febecos2024admin') {
       setAutenticado(true)
       cargar()
     } else {
