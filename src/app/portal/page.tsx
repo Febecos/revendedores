@@ -382,12 +382,26 @@ export default function Portal() {
           </div>
         )}
 
-        <div style={s.toggleWrap}>
-          <span style={{ fontSize: 13, color: '#7a9ab5' }}>Ver precios:</span>
-          <div style={s.toggleBtns}>
-            <button onClick={() => setMostrarPublico(false)} style={{ ...s.toggleBtn, ...(mostrarPublico ? {} : s.toggleBtnActive) }}>Mayorista ({rev.descuento_pct}% OFF)</button>
-            <button onClick={() => setMostrarPublico(true)} style={{ ...s.toggleBtn, ...(mostrarPublico ? s.toggleBtnActive : {}) }}>Precio público</button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap' as const, gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 13, color: '#7a9ab5' }}>Ver precios:</span>
+            <div style={s.toggleBtns}>
+              <button onClick={() => setMostrarPublico(false)} style={{ ...s.toggleBtn, ...(mostrarPublico ? {} : s.toggleBtnActive) }}>Mayorista ({rev.descuento_pct}% OFF)</button>
+              <button onClick={() => setMostrarPublico(true)} style={{ ...s.toggleBtn, ...(mostrarPublico ? s.toggleBtnActive : {}) }}>Precio público</button>
+            </div>
           </div>
+          <button
+            onClick={() => verCatalogo ? setVerCatalogo(false) : cargarCatalogo()}
+            style={{
+              padding: '7px 16px', background: verCatalogo ? '#1e3248' : 'rgba(232,104,26,0.12)',
+              border: `1px solid ${verCatalogo ? '#2a4a6a' : '#e8681a'}`,
+              borderRadius: 8, color: verCatalogo ? '#7a9ab5' : '#e8681a',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' as const,
+              display: 'flex', alignItems: 'center', gap: 6
+            }}
+          >
+            {cargandoCatalogo ? '⏳ Cargando...' : verCatalogo ? '✕ Ocultar catálogo' : '📋 Ver catálogo de bombas'}
+          </button>
         </div>
 
         {/* CALCULADORA */}
@@ -419,14 +433,6 @@ export default function Portal() {
             </div>
           </div>
           {errCalc && <p style={s.errorTxt}>{errCalc}</p>}
-          <div style={{ marginTop: 12, borderTop: '1px solid #1e3248', paddingTop: 12 }}>
-            <button
-              onClick={() => verCatalogo ? setVerCatalogo(false) : cargarCatalogo()}
-              style={{ width: '100%', padding: '10px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-            >
-              {cargandoCatalogo ? '⏳ Cargando catálogo...' : verCatalogo ? '▲ Ocultar catálogo' : '📋 Ver catálogo completo de bombas'}
-            </button>
-          </div>
         </div>
 
         {/* RESULTADO BÚSQUEDA */}
