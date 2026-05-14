@@ -337,7 +337,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
           {bomba.stock > 0 ? `Stock: ${bomba.stock}` : 'Sin stock'}
         </span>
       </div>
-      {caudal && !compact && (
+      {caudal && (
         <div style={s.caudalRow}>
           <div style={s.caudalItem}><span style={s.caudalLbl}>Verano</span><span style={s.caudalVal}>{caudal.verano?.toLocaleString('es-AR')} L/día</span></div>
           <div style={s.caudalItem}><span style={s.caudalLbl}>Promedio</span><span style={s.caudalVal}>{caudal.promedio?.toLocaleString('es-AR')} L/día</span></div>
