@@ -9,6 +9,7 @@ const API_DETALLE = 'https://simulador-roi-seven.vercel.app/api/pump-detail'
 interface Revendedor {
   id: number; nombre: string; apellido: string; empresa: string
   provincia: string; descuento_pct: number; token_acceso: string
+  tipo_usuario?: string
 }
 interface ResultadoBomba {
   sugerencia: any; caudal_a_altura: any; es_fallback: boolean; nota: string; opciones: any[]
@@ -287,7 +288,7 @@ export default function Portal() {
   async function verificarToken(t: string) {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/solicitudes_revendedor?token_acceso=eq.${t}&token_acceso_activo=eq.true&select=id,nombre,apellido,empresa,provincia,descuento_pct,token_acceso`,
+        `${SUPABASE_URL}/rest/v1/solicitudes_revendedor?token_acceso=eq.${t}&token_acceso_activo=eq.true&select=id,nombre,apellido,empresa,provincia,descuento_pct,token_acceso,tipo_usuario`,
         { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
       )
       const data = await res.json()
@@ -299,8 +300,10 @@ export default function Portal() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const t = params.get('token')
+    const t = params.get('token') || localStorage.getItem('febecos-token')
     if (!t) { setError('no_token'); setLoading(false); return }
+    // Si vino por URL, guardarlo para próximas veces
+    if (params.get('token')) localStorage.setItem('febecos-token', params.get('token')!)
     setToken(t)
     const h = params.get('height'), l = params.get('liters'), d = params.get('diameter'), auto = params.get('auto')
     if (h) setAltura(h); if (l) setLitros(l); if (d) setDiametro(d)
@@ -357,7 +360,7 @@ export default function Portal() {
               </div>
             </div>
             <div style={s.descuentoBadge}>{rev.descuento_pct}% OFF</div>
-            <button onClick={() => { window.location.href = 'https://revendedores-six.vercel.app' }} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', fontSize: 12, cursor: 'pointer' }}>
+            <button onClick={() => { localStorage.removeItem('febecos-token'); window.location.href = 'https://revendedores-six.vercel.app' }} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', fontSize: 12, cursor: 'pointer' }}>
               Salir
             </button>
           </div>
@@ -550,7 +553,14 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
         <div>
           <div style={s.precioLabel}>{mostrarPublico ? 'Precio público' : `Precio mayorista (${descuento}% OFF)`}</div>
           <div style={s.precioVal}>{fmt(precio)}</div>
-          {!mostrarPublico && (<div style={{ fontSize: 11, color: '#7a9ab5' }}>Público: {fmt(precioPublico)} · Ahorrás {fmt(precioPublico - precio)}</div>)}
+          {!mostrarPublico && (
+            <div style={{ marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: '#7a9ab5' }}>Precio público: {fmt(precioPublico)}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#4ade80', marginTop: 3 }}>
+                {rev?.tipo_usuario === 'interno' ? '💼 Tu comisión:' : '💰 Tu ganancia:'} {fmt(precioPublico - precio)}
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, alignItems: 'flex-end' }}>
           <button onClick={() => onVerDetalle(bomba.codigo)} style={{ padding: '8px 14px', background: '#1e3248', border: '1px solid #2a4a6a', borderRadius: 8, color: '#e8f0f8', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
