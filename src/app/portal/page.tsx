@@ -4,42 +4,169 @@ import { useState, useEffect } from 'react'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wlcmpqwmqwugjwrssatj.supabase.co'
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const API_BOMBAS = 'https://simulador-roi-seven.vercel.app/api/suggest-pump'
+const API_DETALLE = 'https://simulador-roi-seven.vercel.app/api/pump-detail'
 
 interface Revendedor {
-  id: number
-  nombre: string
-  apellido: string
-  empresa: string
-  provincia: string
-  descuento_pct: number
-  token_acceso: string
+  id: number; nombre: string; apellido: string; empresa: string
+  provincia: string; descuento_pct: number; token_acceso: string
 }
-
 interface ResultadoBomba {
-  sugerencia: any
-  caudal_a_altura: { verano: number; invierno: number; promedio: number }
-  es_fallback: boolean
-  nota: string
-  opciones: any[]
+  sugerencia: any; caudal_a_altura: any; es_fallback: boolean; nota: string; opciones: any[]
 }
-
 interface BombaCatalogo {
-  codigo: string
-  marca: string
-  watts: number
-  diam_bomba: string
-  diam_perf: string
-  cant_paneles: number
-  stock: number
-  precio_full: number
+  codigo: string; marca: string; watts: number; diam_bomba: string
+  diam_perf: string; cant_paneles: number; stock: number; precio_full: number
 }
 
 function precioMayorista(precio: number, descuento: number) {
   return Math.round(precio * (1 - descuento / 100))
 }
-
 function fmt(n: number) {
   return '$' + n.toLocaleString('es-AR', { maximumFractionDigits: 0 })
+}
+
+// ── MODAL DETALLE ──
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`${API_DETALLE}?codigo=${encodeURIComponent(codigo)}`)
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [codigo])
+
+  const precio = data?.bomba?.precio_full
+    ? (mostrarPublico ? data.bomba.precio_full : precioMayorista(data.bomba.precio_full, descuento))
+    : null
+
+  const familias: Record<string, any[]> = {}
+  if (data?.kit) {
+    for (const item of data.kit) {
+      const f = item.familia || 'otro'
+      if (!familias[f]) familias[f] = []
+      familias[f].push(item)
+    }
+  }
+
+  const nombreFamilia: Record<string, string> = {
+    panel: '☀️ Paneles solares', soporte: '🔩 Soportes', cable: '🔌 Cables',
+    bomba: '⬇️ Bomba', caja: '📦 Controlador', accesorio: '🔧 Accesorios', otro: '📋 Otros'
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div style={{ background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto' }}>
+
+        {/* Header modal */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #1e3248', position: 'sticky', top: 0, background: '#0d1a2a', zIndex: 1 }}>
+          <div>
+            <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: '#e8681a' }}>{codigo}</div>
+            <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 2 }}>Detalle del equipo — datos en tiempo real desde Neon</div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+        </div>
+
+        <div style={{ padding: '20px 22px' }}>
+          {loading && <div style={{ textAlign: 'center', padding: 40, color: '#7a9ab5' }}>⏳ Cargando datos...</div>}
+          {!loading && !data?.ok && <div style={{ color: '#f87171', textAlign: 'center', padding: 24 }}>No se pudo cargar el detalle.</div>}
+          {!loading && data?.ok && (
+            <>
+              {/* Specs técnicas */}
+              <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>Especificaciones técnicas</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px' }}>
+                  {[
+                    ['Marca', data.bomba.marca],
+                    ['Tipo', data.bomba.tipo],
+                    ['Energía', data.bomba.energia],
+                    ['Impulsor', data.bomba.impulsor],
+                    ['Potencia', `${data.bomba.watts}W`],
+                    ['Voltaje', data.bomba.voltaje],
+                    ['Diám. bomba', `${data.bomba.diam_bomba}"`],
+                    ['Diám. perforación', data.bomba.diam_perf],
+                    ['Paneles solares', `${data.bomba.cant_paneles} panel${data.bomba.cant_paneles > 1 ? 'es' : ''}`],
+                    ['Stock', data.bomba.stock > 0 ? `✅ ${data.bomba.stock} unidades` : '❌ Sin stock'],
+                  ].map(([k, v]) => (
+                    <div key={k}>
+                      <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{k}</div>
+                      <div style={{ fontSize: 13, color: '#e8f0f8', fontWeight: 600 }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Precio */}
+              {precio && (
+                <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Precio</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: '#4ade80' }}>{fmt(precio)}</div>
+                  {!mostrarPublico && data.bomba.precio_full && (
+                    <div style={{ fontSize: 12, color: '#7a9ab5', marginTop: 4 }}>
+                      Precio público: {fmt(data.bomba.precio_full)} · Ahorrás {fmt(data.bomba.precio_full - precio)}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Curvas de rendimiento */}
+              {data.curvas?.length > 0 && (
+                <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>Curvas de rendimiento</div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #1e3248' }}>
+                          {['Altura (m)', '☀️ Verano', '📅 Promedio', '❄️ Invierno', 'L/hora'].map(h => (
+                            <th key={h} style={{ padding: '6px 10px', textAlign: 'right', color: '#3a5a7a', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.curvas.map((c: any) => (
+                          <tr key={c.altura_m} style={{ borderBottom: '1px solid #162030' }}>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', color: '#e8681a', fontWeight: 700, fontFamily: 'monospace' }}>{c.altura_m}m</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', color: '#4ade80', fontFamily: 'monospace' }}>{c.litros_verano.toLocaleString('es-AR')}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', color: '#e8f0f8', fontFamily: 'monospace' }}>{c.litros_promedio.toLocaleString('es-AR')}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', color: '#60a5fa', fontFamily: 'monospace' }}>{c.litros_invierno.toLocaleString('es-AR')}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', color: '#7a9ab5', fontFamily: 'monospace' }}>{c.litros_hora.toLocaleString('es-AR')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Kit completo */}
+              {data.kit?.length > 0 && (
+                <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>Kit completo incluido</div>
+                  {Object.entries(familias).map(([familia, items]) => (
+                    <div key={familia} style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, color: '#3a5a7a', fontWeight: 600, marginBottom: 6 }}>
+                        {nombreFamilia[familia] || familia}
+                      </div>
+                      {items.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #162030' }}>
+                          <div>
+                            <span style={{ fontSize: 13, color: '#e8f0f8' }}>{item.nombre}</span>
+                            {item.notas && <span style={{ fontSize: 11, color: '#3a5a7a', marginLeft: 8 }}>({item.notas})</span>}
+                          </div>
+                          <span style={{ fontSize: 12, color: '#7a9ab5', fontFamily: 'monospace' }}>×{item.cantidad}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function Portal() {
@@ -59,21 +186,17 @@ export default function Portal() {
   const [verCatalogo, setVerCatalogo] = useState(false)
   const [cargandoCatalogo, setCargandoCatalogo] = useState(false)
   const [soloConStock, setSoloConStock] = useState(false)
+  const [modalCodigo, setModalCodigo] = useState<string | null>(null)
 
   async function buscarBombaConParams(h: string, l: string, d: string) {
-    setBuscando(true)
-    setResultado(null)
-    setErrCalc(null)
+    setBuscando(true); setResultado(null); setErrCalc(null)
     try {
       const res = await fetch(`${API_BOMBAS}?height=${h}&liters=${l}&diameter=${d}&season=verano`)
       const data = await res.json()
       if (data.ok) setResultado(data)
       else setErrCalc(data.error || 'No se encontró bomba')
-    } catch {
-      setErrCalc('Error de red al buscar bomba.')
-    } finally {
-      setBuscando(false)
-    }
+    } catch { setErrCalc('Error de red al buscar bomba.') }
+    finally { setBuscando(false) }
   }
 
   async function cargarCatalogo() {
@@ -97,11 +220,8 @@ export default function Portal() {
       const data = await res.json()
       if (!data || data.length === 0) { setError('token_invalido'); return }
       setRev(data[0])
-    } catch {
-      setError('error_red')
-    } finally {
-      setLoading(false)
-    }
+    } catch { setError('error_red') }
+    finally { setLoading(false) }
   }
 
   useEffect(() => {
@@ -109,18 +229,11 @@ export default function Portal() {
     const t = params.get('token')
     if (!t) { setError('no_token'); setLoading(false); return }
     setToken(t)
-    const h = params.get('height')
-    const l = params.get('liters')
-    const d = params.get('diameter')
-    const auto = params.get('auto')
-    if (h) setAltura(h)
-    if (l) setLitros(l)
-    if (d) setDiametro(d)
+    const h = params.get('height'), l = params.get('liters'), d = params.get('diameter'), auto = params.get('auto')
+    if (h) setAltura(h); if (l) setLitros(l); if (d) setDiametro(d)
     if (auto === '1') setVieneDeMCA(true)
     verificarToken(t).then(() => {
-      if (auto === '1' && h && l && d) {
-        setTimeout(() => buscarBombaConParams(h, l, d), 600)
-      }
+      if (auto === '1' && h && l && d) setTimeout(() => buscarBombaConParams(h, l, d), 600)
     }).catch(() => {})
   }, [])
 
@@ -135,35 +248,27 @@ export default function Portal() {
   }
 
   if (loading) return <Pantalla emoji="⏳" titulo="Verificando acceso..." sub="" />
-  if (error === 'no_token') return (
-    <Pantalla emoji="🔒" titulo="Acceso restringido"
-      sub="Este portal requiere un link de acceso personalizado. Registrate o escribinos por WhatsApp."
-      cta={{ label: 'Registrarme', href: 'https://revendedores-six.vercel.app' }}
-      cta2={{ label: 'WhatsApp', href: 'https://wa.me/5491125750323' }}
-    />
-  )
-  if (error === 'token_invalido') return (
-    <Pantalla emoji="❌" titulo="Link inválido o desactivado"
-      sub="Este link de acceso no es válido o fue desactivado. Escribinos para obtener uno nuevo."
-      cta={{ label: 'Escribinos por WhatsApp', href: 'https://wa.me/5491125750323' }}
-    />
-  )
-  if (error || !rev) return (
-    <Pantalla emoji="⚠️" titulo="Error de conexión" sub="No pudimos verificar tu acceso. Intentá recargar la página." />
-  )
+  if (error === 'no_token') return <Pantalla emoji="🔒" titulo="Acceso restringido" sub="Este portal requiere un link de acceso personalizado." cta={{ label: 'Registrarme', href: 'https://revendedores-six.vercel.app' }} cta2={{ label: 'WhatsApp', href: 'https://wa.me/5491125750323' }} />
+  if (error === 'token_invalido') return <Pantalla emoji="❌" titulo="Link inválido o desactivado" sub="Este link no es válido o fue desactivado." cta={{ label: 'Escribinos por WhatsApp', href: 'https://wa.me/5491125750323' }} />
+  if (error || !rev) return <Pantalla emoji="⚠️" titulo="Error de conexión" sub="No pudimos verificar tu acceso. Intentá recargar." />
 
   const catalogoFiltrado = soloConStock ? catalogo.filter(b => (b.stock || 0) > 0) : catalogo
 
   return (
     <div style={s.wrap}>
+      {modalCodigo && (
+        <ModalDetalle
+          codigo={modalCodigo}
+          descuento={rev.descuento_pct}
+          mostrarPublico={mostrarPublico}
+          onClose={() => setModalCodigo(null)}
+        />
+      )}
+
       <div style={s.header}>
         <div style={s.headerInner}>
           <div>
-            <img
-              src="https://dcdn-us.mitiendanube.com/stores/007/467/093/themes/common/logo-6209403414584676726-1775575296-91ab6514e309ebf33862eadc64bcbe161775575296-480-0.webp"
-              alt="Febecos"
-              style={{ height: 32, objectFit: 'contain' as const }}
-            />
+            <img src="https://dcdn-us.mitiendanube.com/stores/007/467/093/themes/common/logo-6209403414584676726-1775575296-91ab6514e309ebf33862eadc64bcbe161775575296-480-0.webp" alt="Febecos" style={{ height: 32, objectFit: 'contain' as const }} />
             <div style={s.headerSub}>Portal de Revendedores</div>
           </div>
           <div style={s.headerRight}>
@@ -175,10 +280,7 @@ export default function Portal() {
               </div>
             </div>
             <div style={s.descuentoBadge}>{rev.descuento_pct}% OFF</div>
-            <button
-              onClick={() => { window.location.href = 'https://revendedores-six.vercel.app' }}
-              style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', fontSize: 12, cursor: 'pointer' }}
-            >
+            <button onClick={() => { window.location.href = 'https://revendedores-six.vercel.app' }} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', fontSize: 12, cursor: 'pointer' }}>
               Salir
             </button>
           </div>
@@ -193,9 +295,7 @@ export default function Portal() {
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>🔢 ¿Necesitás calcular la MCA primero?</div>
               <div style={{ fontSize: 13, color: '#7a9ab5' }}>Usá la calculadora hidráulica completa para instalaciones complejas</div>
             </div>
-            <a href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`} style={s.btnMCA} target="_blank" rel="noopener noreferrer">
-              Ir a Calculadora MCA →
-            </a>
+            <a href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`} style={s.btnMCA} target="_blank" rel="noopener noreferrer">Ir a Calculadora MCA →</a>
           </div>
         )}
 
@@ -205,22 +305,15 @@ export default function Portal() {
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: '#4ade80' }}>✅ Datos cargados desde la Calculadora MCA</div>
               <div style={{ fontSize: 13, color: '#7a9ab5' }}>Altura: {altura}m · Litros: {parseInt(litros).toLocaleString('es-AR')} L/día · Diámetro: {diametro}"</div>
             </div>
-            <a href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`} style={{ ...s.btnMCA, background: 'transparent', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}>
-              ← Volver a MCA
-            </a>
+            <a href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`} style={{ ...s.btnMCA, background: 'transparent', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}>← Volver a MCA</a>
           </div>
         )}
 
-        {/* TOGGLE PRECIO */}
         <div style={s.toggleWrap}>
           <span style={{ fontSize: 13, color: '#7a9ab5' }}>Ver precios:</span>
           <div style={s.toggleBtns}>
-            <button onClick={() => setMostrarPublico(false)} style={{ ...s.toggleBtn, ...(mostrarPublico ? {} : s.toggleBtnActive) }}>
-              Mayorista ({rev.descuento_pct}% OFF)
-            </button>
-            <button onClick={() => setMostrarPublico(true)} style={{ ...s.toggleBtn, ...(mostrarPublico ? s.toggleBtnActive : {}) }}>
-              Precio público
-            </button>
+            <button onClick={() => setMostrarPublico(false)} style={{ ...s.toggleBtn, ...(mostrarPublico ? {} : s.toggleBtnActive) }}>Mayorista ({rev.descuento_pct}% OFF)</button>
+            <button onClick={() => setMostrarPublico(true)} style={{ ...s.toggleBtn, ...(mostrarPublico ? s.toggleBtnActive : {}) }}>Precio público</button>
           </div>
         </div>
 
@@ -253,17 +346,10 @@ export default function Portal() {
             </div>
           </div>
           {errCalc && <p style={s.errorTxt}>{errCalc}</p>}
-
-          {/* BOTÓN VER CATÁLOGO — dentro de la card de calculadora */}
           <div style={{ marginTop: 12, borderTop: '1px solid #1e3248', paddingTop: 12 }}>
             <button
               onClick={() => verCatalogo ? setVerCatalogo(false) : cargarCatalogo()}
-              style={{
-                width: '100%', padding: '10px', background: 'transparent',
-                border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5',
-                fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-              }}
+              style={{ width: '100%', padding: '10px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             >
               {cargandoCatalogo ? '⏳ Cargando catálogo...' : verCatalogo ? '▲ Ocultar catálogo' : '📋 Ver catálogo completo de bombas'}
             </button>
@@ -273,101 +359,62 @@ export default function Portal() {
         {/* RESULTADO BÚSQUEDA */}
         {resultado && (
           <div style={s.card}>
-            <div style={s.cardTitle}>
-              {resultado.es_fallback ? '⚠️ Opción más cercana' : '✅ Bomba recomendada'}
-            </div>
-            <BombaCard
-              bomba={resultado.sugerencia}
-              caudal={resultado.caudal_a_altura}
-              nota={resultado.nota}
-              descuento={rev.descuento_pct}
-              mostrarPublico={mostrarPublico}
-              precioMostrar={precioMostrar}
-              wa={rev}
-              litros={Number(litros)}
-              altura={Number(altura)}
-            />
+            <div style={s.cardTitle}>{resultado.es_fallback ? '⚠️ Opción más cercana' : '✅ Bomba recomendada'}</div>
+            <BombaCard bomba={resultado.sugerencia} caudal={resultado.caudal_a_altura} nota={resultado.nota} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} />
             {resultado.opciones && resultado.opciones.length > 1 && (
               <>
                 <div style={{ ...s.cardTitle, marginTop: 20, fontSize: 12 }}>Otras opciones válidas</div>
                 {resultado.opciones.slice(1).map((b: any, i: number) => (
-                  <BombaCard
-                    key={i}
-                    bomba={b}
-                    caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: b.caudal_promedio || Math.round((b.caudal_verano + b.caudal_invierno) / 2) }}
-                    descuento={rev.descuento_pct}
-                    mostrarPublico={mostrarPublico}
-                    precioMostrar={precioMostrar}
-                    wa={rev}
-                    litros={Number(litros)}
-                    altura={Number(altura)}
-                    compact
-                  />
+                  <BombaCard key={i} bomba={b} caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: b.caudal_promedio || Math.round((b.caudal_verano + b.caudal_invierno) / 2) }} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} compact onVerDetalle={setModalCodigo} />
                 ))}
               </>
             )}
           </div>
         )}
 
-        {/* CATÁLOGO — solo cuando verCatalogo=true */}
+        {/* CATÁLOGO */}
         {verCatalogo && catalogo.length > 0 && (
           <div style={s.card}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ ...s.cardTitle, marginBottom: 0 }}>🔋 Catálogo de bombas</div>
               <div style={s.toggleBtns}>
-                <button onClick={() => setSoloConStock(false)} style={{ ...s.toggleBtn, ...(soloConStock ? {} : s.toggleBtnActive) }}>
-                  Todos ({catalogo.length})
-                </button>
-                <button onClick={() => setSoloConStock(true)} style={{ ...s.toggleBtn, ...(soloConStock ? s.toggleBtnActive : {}) }}>
-                  ✅ Con stock ({catalogo.filter(b => (b.stock || 0) > 0).length})
-                </button>
+                <button onClick={() => setSoloConStock(false)} style={{ ...s.toggleBtn, ...(soloConStock ? {} : s.toggleBtnActive) }}>Todos ({catalogo.length})</button>
+                <button onClick={() => setSoloConStock(true)} style={{ ...s.toggleBtn, ...(soloConStock ? s.toggleBtnActive : {}) }}>✅ Con stock ({catalogo.filter(b => (b.stock || 0) > 0).length})</button>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
               {catalogoFiltrado.map((b) => {
                 const conStock = (b.stock || 0) > 0
-                const precio = b.precio_full ? precioMostrar(b.precio_full) : null
-                const msg = encodeURIComponent(
-                  `Hola Febecos! Soy revendedor (${rev.nombre} ${rev.apellido || ''}).\n` +
-                  `Consulto disponibilidad de *${b.codigo}*${precio ? ` — precio mayorista: ${fmt(precio)}` : ''}.`
-                )
+                const precio = b.precio_full ? (mostrarPublico ? b.precio_full : precioMayorista(b.precio_full, rev.descuento_pct)) : null
+                const msg = encodeURIComponent(`Hola Febecos! Soy revendedor (${rev.nombre} ${rev.apellido || ''}).\nConsulto disponibilidad de *${b.codigo}*${precio ? ` — precio mayorista: ${fmt(precio)}` : ''}.`)
                 return (
-                  <div key={b.codigo} style={{
-                    ...s.bombaCard, padding: '14px 16px',
-                    opacity: conStock ? 1 : 0.65,
-                    borderColor: conStock ? '#1e3248' : '#162030',
-                  }}>
-                    <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: conStock ? '#e8681a' : '#7a9ab5', marginBottom: 6 }}>
-                      {b.codigo}
-                    </div>
+                  <div key={b.codigo} style={{ ...s.bombaCard, padding: '14px 16px', opacity: conStock ? 1 : 0.65, borderColor: conStock ? '#1e3248' : '#162030' }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: conStock ? '#e8681a' : '#7a9ab5', marginBottom: 6 }}>{b.codigo}</div>
                     <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#7a9ab5', flexWrap: 'wrap' as const, marginBottom: 10 }}>
                       <span>{b.watts}W</span><span>·</span>
                       <span>{b.cant_paneles} panel{b.cant_paneles > 1 ? 'es' : ''}</span><span>·</span>
                       <span>Bomba {b.diam_bomba}"</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                       <div>
                         {precio ? (
                           <>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: conStock ? '#4ade80' : '#7a9ab5' }}>{fmt(precio)}</div>
-                            {!mostrarPublico && b.precio_full && (
-                              <div style={{ fontSize: 10, color: '#3a5a7a' }}>Público: {fmt(b.precio_full)}</div>
-                            )}
+                            <div style={{ fontSize: 15, fontWeight: 800, color: conStock ? '#4ade80' : '#7a9ab5' }}>{fmt(precio)}</div>
+                            {!mostrarPublico && b.precio_full && <div style={{ fontSize: 10, color: '#3a5a7a' }}>Público: {fmt(b.precio_full)}</div>}
                           </>
-                        ) : (
-                          <div style={{ fontSize: 12, color: '#3a5a7a' }}>Precio a confirmar</div>
-                        )}
+                        ) : <div style={{ fontSize: 12, color: '#3a5a7a' }}>Precio a confirmar</div>}
                         <div style={{ fontSize: 11, fontWeight: 600, color: conStock ? '#22c55e' : '#ef4444', marginTop: 4 }}>
                           {conStock ? `✅ Stock: ${b.stock}` : '❌ Sin stock'}
                         </div>
                       </div>
-                      <a
-                        href={`https://wa.me/5491125750323?text=${msg}`}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{ padding: '7px 12px', background: '#25d366', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 11, whiteSpace: 'nowrap' as const }}
-                      >
-                        Consultar →
-                      </a>
+                      <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+                        <button onClick={() => setModalCodigo(b.codigo)} style={{ padding: '6px 10px', background: '#1e3248', border: '1px solid #2a4a6a', borderRadius: 7, color: '#e8f0f8', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+                          Ver detalle →
+                        </button>
+                        <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 10px', background: '#25d366', color: '#fff', borderRadius: 7, textDecoration: 'none', fontWeight: 700, fontSize: 11, textAlign: 'center' as const, whiteSpace: 'nowrap' as const }}>
+                          Consultar →
+                        </a>
+                      </div>
                     </div>
                   </div>
                 )
@@ -378,33 +425,10 @@ export default function Portal() {
 
         {/* INFO CARDS */}
         <div style={s.infoGrid}>
-          <div style={s.infoCard}>
-            <div style={s.infoEmoji}>💰</div>
-            <div style={s.infoTitulo}>Tu descuento</div>
-            <div style={s.infoVal}>{rev.descuento_pct}%</div>
-            <div style={s.infoSub}>sobre precio de lista en todos los equipos</div>
-          </div>
-          <div style={s.infoCard}>
-            <div style={s.infoEmoji}>🔢</div>
-            <div style={s.infoTitulo}>Calculadora MCA</div>
-            <div style={s.infoSub}>
-              <a href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`} style={{ color: '#e8681a', fontWeight: 700 }} target="_blank" rel="noopener noreferrer">
-                Abrir calculadora →
-              </a>
-            </div>
-          </div>
-          <div style={s.infoCard}>
-            <div style={s.infoEmoji}>🤝</div>
-            <div style={s.infoTitulo}>Soporte técnico</div>
-            <div style={s.infoSub}>
-              <a href="https://wa.me/5491125750323" style={{ color: '#e8681a', fontWeight: 700 }}>WhatsApp directo →</a>
-            </div>
-          </div>
-          <div style={s.infoCard}>
-            <div style={s.infoEmoji}>📦</div>
-            <div style={s.infoTitulo}>Stock en tiempo real</div>
-            <div style={s.infoSub}>Precios y disponibilidad actualizados automáticamente</div>
-          </div>
+          <div style={s.infoCard}><div style={s.infoEmoji}>💰</div><div style={s.infoTitulo}>Tu descuento</div><div style={s.infoVal}>{rev.descuento_pct}%</div><div style={s.infoSub}>sobre precio de lista en todos los equipos</div></div>
+          <div style={s.infoCard}><div style={s.infoEmoji}>🔢</div><div style={s.infoTitulo}>Calculadora MCA</div><div style={s.infoSub}><a href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`} style={{ color: '#e8681a', fontWeight: 700 }} target="_blank" rel="noopener noreferrer">Abrir calculadora →</a></div></div>
+          <div style={s.infoCard}><div style={s.infoEmoji}>🤝</div><div style={s.infoTitulo}>Soporte técnico</div><div style={s.infoSub}><a href="https://wa.me/5491125750323" style={{ color: '#e8681a', fontWeight: 700 }}>WhatsApp directo →</a></div></div>
+          <div style={s.infoCard}><div style={s.infoEmoji}>📦</div><div style={s.infoTitulo}>Stock en tiempo real</div><div style={s.infoSub}>Precios y disponibilidad actualizados automáticamente</div></div>
         </div>
 
       </div>
@@ -412,7 +436,7 @@ export default function Portal() {
   )
 }
 
-function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostrar, wa, litros, altura, compact = false }: any) {
+function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostrar, wa, litros, altura, compact = false, onVerDetalle }: any) {
   const precio = precioMostrar(bomba.precio_full)
   const precioPublico = bomba.precio_full
   const msg = encodeURIComponent(
@@ -442,22 +466,23 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
         <div>
           <div style={s.precioLabel}>{mostrarPublico ? 'Precio público' : `Precio mayorista (${descuento}% OFF)`}</div>
           <div style={s.precioVal}>{fmt(precio)}</div>
-          {!mostrarPublico && (
-            <div style={{ fontSize: 11, color: '#7a9ab5' }}>
-              Público: {fmt(precioPublico)} · Ahorrás {fmt(precioPublico - precio)}
-            </div>
-          )}
+          {!mostrarPublico && (<div style={{ fontSize: 11, color: '#7a9ab5' }}>Público: {fmt(precioPublico)} · Ahorrás {fmt(precioPublico - precio)}</div>)}
         </div>
-        <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={s.btnWA}>
-          Consultar stock →
-        </a>
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, alignItems: 'flex-end' }}>
+          <button onClick={() => onVerDetalle(bomba.codigo)} style={{ padding: '8px 14px', background: '#1e3248', border: '1px solid #2a4a6a', borderRadius: 8, color: '#e8f0f8', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+            Ver detalle del equipo →
+          </button>
+          <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={s.btnWA}>
+            Consultar stock →
+          </a>
+        </div>
       </div>
       {nota && !compact && <div style={s.notaTxt}>{nota}</div>}
     </div>
   )
 }
 
-function Pantalla({ emoji, titulo, sub, cta, cta2 }: { emoji: string, titulo: string, sub: string, cta?: { label: string, href: string }, cta2?: { label: string, href: string } }) {
+function Pantalla({ emoji, titulo, sub, cta, cta2 }: any) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d1a2a', padding: 24 }}>
       <div style={{ background: '#132233', border: '1px solid #1e3248', borderRadius: 16, padding: '48px 40px', maxWidth: 440, width: '100%', textAlign: 'center' }}>
@@ -505,7 +530,7 @@ const s: Record<string, React.CSSProperties> = {
   precioRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' as const },
   precioLabel: { fontSize: 11, color: '#7a9ab5', marginBottom: 4 },
   precioVal: { fontSize: 24, fontWeight: 800, color: '#4ade80' },
-  btnWA: { display: 'inline-block', padding: '10px 18px', background: '#25d366', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' as const },
+  btnWA: { display: 'inline-block', padding: '8px 14px', background: '#25d366', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' as const },
   notaTxt: { fontSize: 12, color: '#7a9ab5', marginTop: 12, padding: '8px 12px', background: '#132233', borderRadius: 6 },
   infoGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginTop: 8 },
   infoCard: { background: '#132233', border: '1px solid #1e3248', borderRadius: 10, padding: '16px 18px' },
