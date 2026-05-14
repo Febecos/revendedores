@@ -272,9 +272,7 @@ export default function Portal() {
             {resultado.opciones && resultado.opciones.length > 1 && (
               <>
                 <div style={{ ...s.cardTitle, marginTop: 20, fontSize: 12 }}>Otras opciones válidas</div>
-                {resultado.opciones.slice(1).map((b, i) => (
-                  <BombaCard key={i} bomba={b as any} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} compact />
-                ))}
+               {resultado.opciones.slice(1).map((b, i) => (
               </>
             )}
           </div>
