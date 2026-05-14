@@ -15,25 +15,12 @@ interface Revendedor {
   token_acceso: string
 }
 
-interface Bomba {
-  codigo: string
-  marca: string
-  watts: number
-  precio_full: number
-  precio_6cuotas: number | null
-  cuota_mensual: number | null
-  stock: number
-  diam_bomba: string
-  diam_perf: string
-  cant_paneles: number
-}
-
 interface ResultadoBomba {
-  sugerencia: Bomba
+  sugerencia: any
   caudal_a_altura: { verano: number; invierno: number; promedio: number }
   es_fallback: boolean
   nota: string
-  opciones: Bomba[]
+  opciones: any[]
 }
 
 function precioMayorista(precio: number, descuento: number) {
@@ -49,7 +36,6 @@ export default function Portal() {
   const [rev, setRev] = useState<Revendedor | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
   const [altura, setAltura] = useState('')
   const [litros, setLitros] = useState('')
   const [diametro, setDiametro] = useState('3')
@@ -64,8 +50,7 @@ export default function Portal() {
     setResultado(null)
     setErrCalc(null)
     try {
-      const url = `${API_BOMBAS}?height=${h}&liters=${l}&diameter=${d}&season=verano`
-      const res = await fetch(url)
+      const res = await fetch(`${API_BOMBAS}?height=${h}&liters=${l}&diameter=${d}&season=verano`)
       const data = await res.json()
       if (data.ok) setResultado(data)
       else setErrCalc(data.error || 'No se encontró bomba')
@@ -97,23 +82,19 @@ export default function Portal() {
     const t = params.get('token')
     if (!t) { setError('no_token'); setLoading(false); return }
     setToken(t)
-
-    // Parámetros de calculadora MCA
     const h = params.get('height')
     const l = params.get('liters')
     const d = params.get('diameter')
     const auto = params.get('auto')
-
     if (h) setAltura(h)
     if (l) setLitros(l)
     if (d) setDiametro(d)
     if (auto === '1') setVieneDeMCA(true)
-
     verificarToken(t).then(() => {
       if (auto === '1' && h && l && d) {
         setTimeout(() => buscarBombaConParams(h, l, d), 600)
       }
-    })
+    }).catch(() => {})
   }, [])
 
   async function buscarBomba() {
@@ -149,15 +130,14 @@ export default function Portal() {
 
   return (
     <div style={s.wrap}>
-      {/* HEADER */}
       <div style={s.header}>
         <div style={s.headerInner}>
           <div>
-            <img 
-  src="https://dcdn-us.mitiendanube.com/stores/007/467/093/themes/common/logo-6209403414584676726-1775575296-91ab6514e309ebf33862eadc64bcbe161775575296-480-0.webp" 
-  alt="Febecos" 
-  style={{ height: 32, objectFit: 'contain' as const }} 
-/>
+            <img
+              src="https://dcdn-us.mitiendanube.com/stores/007/467/093/themes/common/logo-6209403414584676726-1775575296-91ab6514e309ebf33862eadc64bcbe161775575296-480-0.webp"
+              alt="Febecos"
+              style={{ height: 32, objectFit: 'contain' as const }}
+            />
             <div style={s.headerSub}>Portal de Revendedores</div>
           </div>
           <div style={s.headerRight}>
@@ -169,25 +149,25 @@ export default function Portal() {
               </div>
             </div>
             <div style={s.descuentoBadge}>{rev.descuento_pct}% OFF</div>
+            <button
+              onClick={() => { window.location.href = 'https://revendedores-six.vercel.app' }}
+              style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', fontSize: 12, cursor: 'pointer' }}
+            >
+              Salir
+            </button>
           </div>
         </div>
       </div>
 
       <div style={s.content}>
 
-        {/* BANNER CALCULADORA MCA */}
         {!vieneDeMCA && (
           <div style={s.bannerMCA}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>🔢 ¿Necesitás calcular la MCA primero?</div>
               <div style={{ fontSize: 13, color: '#7a9ab5' }}>Usá la calculadora hidráulica completa para instalaciones complejas</div>
             </div>
-            <a
-              href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`}
-              style={s.btnMCA}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`} style={s.btnMCA} target="_blank" rel="noopener noreferrer">
               Ir a Calculadora MCA →
             </a>
           </div>
@@ -199,16 +179,12 @@ export default function Portal() {
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: '#4ade80' }}>✅ Datos cargados desde la Calculadora MCA</div>
               <div style={{ fontSize: 13, color: '#7a9ab5' }}>Altura: {altura}m · Litros: {parseInt(litros).toLocaleString('es-AR')} L/día · Diámetro: {diametro}"</div>
             </div>
-            <a
-              href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`}
-              style={{ ...s.btnMCA, background: 'transparent', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
-            >
+            <a href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`} style={{ ...s.btnMCA, background: 'transparent', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}>
               ← Volver a MCA
             </a>
           </div>
         )}
 
-        {/* TOGGLE PRECIO */}
         <div style={s.toggleWrap}>
           <span style={{ fontSize: 13, color: '#7a9ab5' }}>Ver precios:</span>
           <div style={s.toggleBtns}>
@@ -221,7 +197,6 @@ export default function Portal() {
           </div>
         </div>
 
-        {/* CALCULADORA */}
         <div style={s.card}>
           <div style={s.cardTitle}>🔍 Buscar bomba para tu cliente</div>
           <div style={s.calcGrid}>
@@ -252,7 +227,6 @@ export default function Portal() {
           {errCalc && <p style={s.errorTxt}>{errCalc}</p>}
         </div>
 
-        {/* RESULTADO */}
         {resultado && (
           <div style={s.card}>
             <div style={s.cardTitle}>
@@ -272,13 +246,25 @@ export default function Portal() {
             {resultado.opciones && resultado.opciones.length > 1 && (
               <>
                 <div style={{ ...s.cardTitle, marginTop: 20, fontSize: 12 }}>Otras opciones válidas</div>
-               {resultado.opciones.slice(1).map((b, i) => (
+                {resultado.opciones.slice(1).map((b: any, i: number) => (
+                  <BombaCard
+                    key={i}
+                    bomba={b}
+                    caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: Math.round((b.caudal_verano + b.caudal_invierno) / 2) }}
+                    descuento={rev.descuento_pct}
+                    mostrarPublico={mostrarPublico}
+                    precioMostrar={precioMostrar}
+                    wa={rev}
+                    litros={Number(litros)}
+                    altura={Number(altura)}
+                    compact
+                  />
+                ))}
               </>
             )}
           </div>
         )}
 
-        {/* INFO PORTAL */}
         <div style={s.infoGrid}>
           <div style={s.infoCard}>
             <div style={s.infoEmoji}>💰</div>
@@ -339,9 +325,9 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
       </div>
       {caudal && (
         <div style={s.caudalRow}>
-          <div style={s.caudalItem}><span style={s.caudalLbl}>Verano</span><span style={s.caudalVal}>{caudal.verano?.toLocaleString('es-AR')} L/día</span></div>
-          <div style={s.caudalItem}><span style={s.caudalLbl}>Promedio</span><span style={s.caudalVal}>{caudal.promedio?.toLocaleString('es-AR')} L/día</span></div>
-          <div style={s.caudalItem}><span style={s.caudalLbl}>Invierno</span><span style={s.caudalVal}>{caudal.invierno?.toLocaleString('es-AR')} L/día</span></div>
+          <div style={s.caudalItem}><span style={s.caudalLbl}>Verano</span><span style={s.caudalVal}>{(caudal.verano || 0).toLocaleString('es-AR')} L/día</span></div>
+          <div style={s.caudalItem}><span style={s.caudalLbl}>Promedio</span><span style={s.caudalVal}>{(caudal.promedio || 0).toLocaleString('es-AR')} L/día</span></div>
+          <div style={s.caudalItem}><span style={s.caudalLbl}>Invierno</span><span style={s.caudalVal}>{(caudal.invierno || 0).toLocaleString('es-AR')} L/día</span></div>
         </div>
       )}
       <div style={s.precioRow}>
@@ -353,7 +339,6 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
               Público: {fmt(precioPublico)} · Ahorrás {fmt(precioPublico - precio)}
             </div>
           )}
-
         </div>
         <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={s.btnWA}>
           Consultar stock →
@@ -382,7 +367,6 @@ const s: Record<string, React.CSSProperties> = {
   wrap: { minHeight: '100vh', background: '#0d1a2a', color: '#e8f0f8', fontFamily: "'DM Sans', sans-serif" },
   header: { background: '#0a1520', borderBottom: '1px solid #1e3248', padding: '0 24px' },
   headerInner: { maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0' },
-  brand: { fontSize: 13, fontWeight: 800, letterSpacing: '0.15em', color: '#e8681a' },
   headerSub: { fontSize: 11, color: '#7a9ab5', marginTop: 2 },
   headerRight: { display: 'flex', alignItems: 'center', gap: 12 },
   revendedorBadge: { display: 'flex', alignItems: 'center', gap: 8, background: '#132233', border: '1px solid #1e3248', borderRadius: 8, padding: '8px 12px' },
