@@ -108,7 +108,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
     : data?.bomba?.cant_paneles ? `${data.bomba.cant_paneles} panel${data.bomba.cant_paneles > 1 ? 'es' : ''} solar${data.bomba.cant_paneles > 1 ? 'es' : ''}` : null
 
   // HSP (horas solares pico) usadas para el cálculo
-  const HSP = { verano: 8, promedio: 6, invierno: 4 }
+  const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
 
   const nombreFamilia: Record<string, string> = {
     panel: '☀️ Paneles solares', soporte: '🔩 Soportes', cable: '🔌 Cables',
