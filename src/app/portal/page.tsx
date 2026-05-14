@@ -25,6 +25,56 @@ function fmt(n: number) {
   return '$' + n.toLocaleString('es-AR', { maximumFractionDigits: 0 })
 }
 
+// ── CURVA SVG ──
+function CurvaGrafico({ curvas }: { curvas: any[] }) {
+  if (!curvas || curvas.length < 2) return null
+  const W = 560, H = 160, PL = 40, PR = 16, PT = 12, PB = 28
+  const cw = W - PL - PR, ch = H - PT - PB
+  const alturas = curvas.map(c => c.altura_m)
+  const maxAlt = Math.max(...alturas), minAlt = Math.min(...alturas)
+  const maxL = Math.max(...curvas.map(c => c.litros_verano))
+  const x = (alt: number) => PL + ((alt - minAlt) / (maxAlt - minAlt || 1)) * cw
+  const y = (l: number) => PT + ch - (l / (maxL || 1)) * ch
+  const polyline = (vals: number[], color: string) => {
+    const pts = curvas.map((c, i) => `${x(c.altura_m).toFixed(1)},${y(vals[i]).toFixed(1)}`).join(' ')
+    return <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+  }
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(p => Math.round(maxL * p))
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+      {/* Grid */}
+      {yTicks.map(v => (
+        <g key={v}>
+          <line x1={PL} y1={y(v)} x2={W - PR} y2={y(v)} stroke="#1e3248" strokeWidth="1" />
+          <text x={PL - 4} y={y(v) + 4} textAnchor="end" fontSize="9" fill="#3a5a7a">{(v / 1000).toFixed(1)}k</text>
+        </g>
+      ))}
+      {alturas.map(a => (
+        <g key={a}>
+          <line x1={x(a)} y1={PT} x2={x(a)} y2={PT + ch} stroke="#1e3248" strokeWidth="1" strokeDasharray="3,3" />
+          <text x={x(a)} y={H - 4} textAnchor="middle" fontSize="9" fill="#3a5a7a">{a}m</text>
+        </g>
+      ))}
+      {/* Líneas */}
+      {polyline(curvas.map(c => c.litros_verano), '#4ade80')}
+      {polyline(curvas.map(c => c.litros_promedio), '#e8f0f8')}
+      {polyline(curvas.map(c => c.litros_invierno), '#60a5fa')}
+      {/* Puntos verano */}
+      {curvas.map(c => <circle key={c.altura_m} cx={x(c.altura_m)} cy={y(c.litros_verano)} r="3" fill="#4ade80" />)}
+      {/* Leyenda */}
+      <g transform={`translate(${PL + 8}, ${PT + 8})`}>
+        <rect width="80" height="42" fill="#0d1a2a" fillOpacity="0.8" rx="4" />
+        {[['#4ade80', '☀️ Verano'], ['#e8f0f8', '📅 Promedio'], ['#60a5fa', '❄️ Invierno']].map(([color, label], i) => (
+          <g key={label} transform={`translate(6, ${i * 13 + 8})`}>
+            <line x1="0" y1="0" x2="12" y2="0" stroke={color as string} strokeWidth="2" />
+            <text x="16" y="4" fontSize="9" fill={color as string}>{label}</text>
+          </g>
+        ))}
+      </g>
+    </svg>
+  )
+}
+
 // ── MODAL DETALLE ──
 function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
   const [data, setData] = useState<any>(null)
@@ -41,6 +91,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
     ? (mostrarPublico ? data.bomba.precio_full : precioMayorista(data.bomba.precio_full, descuento))
     : null
 
+  // Agrupar kit por familia
   const familias: Record<string, any[]> = {}
   if (data?.kit) {
     for (const item of data.kit) {
@@ -50,20 +101,29 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
     }
   }
 
+  // Panel solar del kit
+  const panelKit = data?.kit?.find((i: any) => i.familia === 'panel')
+  const panelDesc = panelKit
+    ? `${panelKit.nombre}${panelKit.potencia_w ? ` — ${panelKit.potencia_w}W` : ''} × ${data?.bomba?.cant_paneles || panelKit.cantidad}`
+    : data?.bomba?.cant_paneles ? `${data.bomba.cant_paneles} panel${data.bomba.cant_paneles > 1 ? 'es' : ''} solar${data.bomba.cant_paneles > 1 ? 'es' : ''}` : null
+
+  // HSP (horas solares pico) usadas para el cálculo
+  const HSP = { verano: 8, promedio: 6, invierno: 4 }
+
   const nombreFamilia: Record<string, string> = {
     panel: '☀️ Paneles solares', soporte: '🔩 Soportes', cable: '🔌 Cables',
     bomba: '⬇️ Bomba', caja: '📦 Controlador', accesorio: '🔧 Accesorios', otro: '📋 Otros'
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={{ background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div style={{ background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '92vh', overflowY: 'auto' }}>
 
-        {/* Header modal */}
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #1e3248', position: 'sticky', top: 0, background: '#0d1a2a', zIndex: 1 }}>
           <div>
             <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: '#e8681a' }}>{codigo}</div>
-            <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 2 }}>Detalle del equipo — datos en tiempo real desde Neon</div>
+            <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 2 }}>Detalle del equipo — datos en tiempo real desde Febecos</div>
           </div>
           <button onClick={onClose} style={{ width: 32, height: 32, background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
         </div>
@@ -75,22 +135,22 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
             <>
               {/* Specs técnicas */}
               <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>Especificaciones técnicas</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 12 }}>Especificaciones técnicas</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px' }}>
                   {[
                     ['Marca', data.bomba.marca],
                     ['Tipo', data.bomba.tipo],
                     ['Energía', data.bomba.energia],
                     ['Impulsor', data.bomba.impulsor],
-                    ['Potencia', `${data.bomba.watts}W`],
+                    ['Potencia bomba', `${data.bomba.watts}W`],
                     ['Voltaje', data.bomba.voltaje],
-                    ['Diám. bomba', `${data.bomba.diam_bomba}"`],
-                    ['Diám. perforación', data.bomba.diam_perf],
-                    ['Paneles solares', `${data.bomba.cant_paneles} panel${data.bomba.cant_paneles > 1 ? 'es' : ''}`],
-                    ['Stock', data.bomba.stock > 0 ? `✅ ${data.bomba.stock} unidades` : '❌ Sin stock'],
+                    ['Diámetro bomba', `${data.bomba.diam_bomba}"`],
+                    ['Diám. perforación mín.', data.bomba.diam_perf],
+                    ['Panel solar', panelDesc || `${data.bomba.cant_paneles} panel${data.bomba.cant_paneles > 1 ? 'es' : ''}`],
+                    ['Stock disponible', data.bomba.stock > 0 ? `✅ ${data.bomba.stock} unidades` : '❌ Sin stock'],
                   ].map(([k, v]) => (
                     <div key={k}>
-                      <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{k}</div>
+                      <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 2 }}>{k}</div>
                       <div style={{ fontSize: 13, color: '#e8f0f8', fontWeight: 600 }}>{v}</div>
                     </div>
                   ))}
@@ -100,27 +160,39 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
               {/* Precio */}
               {precio && (
                 <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Precio</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 8 }}>
+                    {mostrarPublico ? 'Precio público' : `Precio mayorista (${descuento}% OFF)`}
+                  </div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: '#4ade80' }}>{fmt(precio)}</div>
-                  {!mostrarPublico && data.bomba.precio_full && (
-                    <div style={{ fontSize: 12, color: '#7a9ab5', marginTop: 4 }}>
-                      Precio público: {fmt(data.bomba.precio_full)} · Ahorrás {fmt(data.bomba.precio_full - precio)}
-                    </div>
-                  )}
                 </div>
               )}
 
               {/* Curvas de rendimiento */}
               {data.curvas?.length > 0 && (
                 <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>Curvas de rendimiento</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
+                    Rendimiento (L/día por altura)
+                  </div>
+                  {/* Subtítulo HSP */}
+                  <div style={{ fontSize: 11, color: '#3a5a7a', marginBottom: 12 }}>
+                    Calculado con horas solares pico: ☀️ Verano {HSP.verano}h · 📅 Promedio {HSP.promedio}h · ❄️ Invierno {HSP.invierno}h
+                  </div>
+
+                  {/* Gráfico SVG */}
+                  <div style={{ marginBottom: 16, background: '#0d1a2a', borderRadius: 8, padding: '8px 4px' }}>
+                    <CurvaGrafico curvas={data.curvas} />
+                  </div>
+
+                  {/* Tabla */}
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #1e3248' }}>
-                          {['Altura (m)', '☀️ Verano', '📅 Promedio', '❄️ Invierno', 'L/hora'].map(h => (
-                            <th key={h} style={{ padding: '6px 10px', textAlign: 'right', color: '#3a5a7a', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
-                          ))}
+                          <th style={{ padding: '6px 10px', textAlign: 'right', color: '#3a5a7a', fontWeight: 600 }}>Altura (m)</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'right', color: '#4ade80', fontWeight: 600 }}>☀️ Verano ({HSP.verano}h)</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'right', color: '#e8f0f8', fontWeight: 600 }}>📅 Promedio ({HSP.promedio}h)</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'right', color: '#60a5fa', fontWeight: 600 }}>❄️ Invierno ({HSP.invierno}h)</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'right', color: '#7a9ab5', fontWeight: 600 }}>L/hora</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -142,19 +214,20 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
               {/* Kit completo */}
               {data.kit?.length > 0 && (
                 <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>Kit completo incluido</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 12 }}>Kit completo incluido</div>
                   {Object.entries(familias).map(([familia, items]) => (
                     <div key={familia} style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 11, color: '#3a5a7a', fontWeight: 600, marginBottom: 6 }}>
+                      <div style={{ fontSize: 11, color: '#3a5a7a', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
                         {nombreFamilia[familia] || familia}
                       </div>
                       {items.map((item, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #162030' }}>
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #162030' }}>
                           <div>
                             <span style={{ fontSize: 13, color: '#e8f0f8' }}>{item.nombre}</span>
+                            {item.potencia_w && <span style={{ fontSize: 11, color: '#4ade80', marginLeft: 8 }}>{item.potencia_w}W</span>}
                             {item.notas && <span style={{ fontSize: 11, color: '#3a5a7a', marginLeft: 8 }}>({item.notas})</span>}
                           </div>
-                          <span style={{ fontSize: 12, color: '#7a9ab5', fontFamily: 'monospace' }}>×{item.cantidad}</span>
+                          <span style={{ fontSize: 12, color: '#7a9ab5', fontFamily: 'monospace', fontWeight: 600 }}>×{item.cantidad}</span>
                         </div>
                       ))}
                     </div>
