@@ -557,7 +557,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
             <div style={{ marginTop: 4 }}>
               <div style={{ fontSize: 11, color: '#7a9ab5' }}>Precio público: {fmt(precioPublico)}</div>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#4ade80', marginTop: 3 }}>
-                {rev?.tipo_usuario === 'interno' ? '💼 Tu comisión:' : '💰 Tu ganancia:'} {fmt(precioPublico - precio)}
+                {wa?.tipo_usuario === 'interno' ? '💼 Tu comisión:' : '💰 Tu ganancia:'} {fmt(precioPublico - precio)}
               </div>
             </div>
           )}
