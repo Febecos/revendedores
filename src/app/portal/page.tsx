@@ -153,7 +153,11 @@ export default function Portal() {
       <div style={s.header}>
         <div style={s.headerInner}>
           <div>
-            <div style={s.brand}>FEBECOS</div>
+            <img 
+  src="https://dcdn-us.mitiendanube.com/stores/007/467/093/themes/common/logo-6209403414584676726-1775575296-91ab6514e309ebf33862eadc64bcbe161775575296-480-0.webp" 
+  alt="Febecos" 
+  style={{ height: 32, objectFit: 'contain' as const }} 
+/>
             <div style={s.headerSub}>Portal de Revendedores</div>
           </div>
           <div style={s.headerRight}>
