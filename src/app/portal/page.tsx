@@ -56,6 +56,8 @@ export default function Portal() {
   const [mostrarPublico, setMostrarPublico] = useState(false)
   const [vieneDeMCA, setVieneDeMCA] = useState(false)
   const [catalogo, setCatalogo] = useState<BombaCatalogo[]>([])
+  const [verCatalogo, setVerCatalogo] = useState(false)
+  const [cargandoCatalogo, setCargandoCatalogo] = useState(false)
   const [soloConStock, setSoloConStock] = useState(false)
 
   async function buscarBombaConParams(h: string, l: string, d: string) {
@@ -75,11 +77,15 @@ export default function Portal() {
   }
 
   async function cargarCatalogo() {
+    if (catalogo.length > 0) { setVerCatalogo(true); return }
+    setCargandoCatalogo(true)
     try {
       const res = await fetch(`${API_BOMBAS}?catalog=1`)
       const data = await res.json()
       if (data.ok) setCatalogo(data.catalog || [])
     } catch {}
+    finally { setCargandoCatalogo(false) }
+    setVerCatalogo(true)
   }
 
   async function verificarToken(t: string) {
@@ -112,7 +118,6 @@ export default function Portal() {
     if (d) setDiametro(d)
     if (auto === '1') setVieneDeMCA(true)
     verificarToken(t).then(() => {
-      cargarCatalogo()
       if (auto === '1' && h && l && d) {
         setTimeout(() => buscarBombaConParams(h, l, d), 600)
       }
@@ -206,6 +211,7 @@ export default function Portal() {
           </div>
         )}
 
+        {/* TOGGLE PRECIO */}
         <div style={s.toggleWrap}>
           <span style={{ fontSize: 13, color: '#7a9ab5' }}>Ver precios:</span>
           <div style={s.toggleBtns}>
@@ -247,9 +253,24 @@ export default function Portal() {
             </div>
           </div>
           {errCalc && <p style={s.errorTxt}>{errCalc}</p>}
+
+          {/* BOTÓN VER CATÁLOGO — dentro de la card de calculadora */}
+          <div style={{ marginTop: 12, borderTop: '1px solid #1e3248', paddingTop: 12 }}>
+            <button
+              onClick={() => verCatalogo ? setVerCatalogo(false) : cargarCatalogo()}
+              style={{
+                width: '100%', padding: '10px', background: 'transparent',
+                border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+              }}
+            >
+              {cargandoCatalogo ? '⏳ Cargando catálogo...' : verCatalogo ? '▲ Ocultar catálogo' : '📋 Ver catálogo completo de bombas'}
+            </button>
+          </div>
         </div>
 
-        {/* RESULTADO */}
+        {/* RESULTADO BÚSQUEDA */}
         {resultado && (
           <div style={s.card}>
             <div style={s.cardTitle}>
@@ -288,11 +309,11 @@ export default function Portal() {
           </div>
         )}
 
-        {/* CATÁLOGO DE BOMBAS */}
-        {catalogo.length > 0 && (
+        {/* CATÁLOGO — solo cuando verCatalogo=true */}
+        {verCatalogo && catalogo.length > 0 && (
           <div style={s.card}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={s.cardTitle} >🔋 Catálogo de bombas</div>
+              <div style={{ ...s.cardTitle, marginBottom: 0 }}>🔋 Catálogo de bombas</div>
               <div style={s.toggleBtns}>
                 <button onClick={() => setSoloConStock(false)} style={{ ...s.toggleBtn, ...(soloConStock ? {} : s.toggleBtnActive) }}>
                   Todos ({catalogo.length})
@@ -312,8 +333,7 @@ export default function Portal() {
                 )
                 return (
                   <div key={b.codigo} style={{
-                    ...s.bombaCard,
-                    padding: '14px 16px',
+                    ...s.bombaCard, padding: '14px 16px',
                     opacity: conStock ? 1 : 0.65,
                     borderColor: conStock ? '#1e3248' : '#162030',
                   }}>
@@ -321,10 +341,8 @@ export default function Portal() {
                       {b.codigo}
                     </div>
                     <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#7a9ab5', flexWrap: 'wrap' as const, marginBottom: 10 }}>
-                      <span>{b.watts}W</span>
-                      <span>·</span>
-                      <span>{b.cant_paneles} panel{b.cant_paneles > 1 ? 'es' : ''}</span>
-                      <span>·</span>
+                      <span>{b.watts}W</span><span>·</span>
+                      <span>{b.cant_paneles} panel{b.cant_paneles > 1 ? 'es' : ''}</span><span>·</span>
                       <span>Bomba {b.diam_bomba}"</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -345,8 +363,7 @@ export default function Portal() {
                       </div>
                       <a
                         href={`https://wa.me/5491125750323?text=${msg}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        target="_blank" rel="noopener noreferrer"
                         style={{ padding: '7px 12px', background: '#25d366', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 11, whiteSpace: 'nowrap' as const }}
                       >
                         Consultar →
@@ -403,17 +420,13 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
     `Consulto por bomba *${bomba.codigo}* para cliente con ${litros} L/día a ${altura}m.\n` +
     `Precio mayorista: ${fmt(precioMayorista(precioPublico, descuento))}`
   )
-
   return (
     <div style={{ ...s.bombaCard, padding: compact ? '12px 16px' : '20px' }}>
       <div style={s.bombaCodigo}>{bomba.codigo}</div>
       <div style={s.bombaDetails}>
-        <span>{bomba.watts}W</span>
-        <span>·</span>
-        <span>{bomba.cant_paneles} panel{bomba.cant_paneles > 1 ? 'es' : ''}</span>
-        <span>·</span>
-        <span>Bomba {bomba.diam_bomba || bomba.diam_perf || '—'}"</span>
-        <span>·</span>
+        <span>{bomba.watts}W</span><span>·</span>
+        <span>{bomba.cant_paneles} panel{bomba.cant_paneles > 1 ? 'es' : ''}</span><span>·</span>
+        <span>Bomba {bomba.diam_bomba || bomba.diam_perf || '—'}"</span><span>·</span>
         <span style={{ color: bomba.stock > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
           {bomba.stock > 0 ? `Stock: ${bomba.stock}` : 'Sin stock'}
         </span>
@@ -474,7 +487,7 @@ const s: Record<string, React.CSSProperties> = {
   toggleBtn: { padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: 'transparent', color: '#7a9ab5', transition: 'all 0.15s' },
   toggleBtnActive: { background: '#1e3248', color: '#e8f0f8' },
   card: { background: '#132233', border: '1px solid #1e3248', borderRadius: 12, padding: '20px 24px', marginBottom: 16 },
-  cardTitle: { fontSize: 13, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 0 },
+  cardTitle: { fontSize: 13, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 16 },
   calcGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 },
   campo: { display: 'flex', flexDirection: 'column' as const, gap: 4 },
   label: { fontSize: 12, fontWeight: 600, color: '#7a9ab5' },
