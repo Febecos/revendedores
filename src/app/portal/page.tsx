@@ -329,7 +329,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
         <span>·</span>
         <span>{bomba.cant_paneles} panel{bomba.cant_paneles > 1 ? 'es' : ''}</span>
         <span>·</span>
-        <span>Bomba {bomba.diam_bomba}"</span>
+        <span>Bomba {bomba.diam_bomba || bomba.diam_perf || '—'}"</span>
         <span>·</span>
         <span style={{ color: bomba.stock > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
           {bomba.stock > 0 ? `Stock: ${bomba.stock}` : 'Sin stock'}
@@ -351,11 +351,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
               Público: {fmt(precioPublico)} · Ahorrás {fmt(precioPublico - precio)}
             </div>
           )}
-          {bomba.cuota_mensual && (
-            <div style={{ fontSize: 12, color: '#e8681a', marginTop: 4 }}>
-              6 cuotas de {fmt(mostrarPublico ? bomba.cuota_mensual : Math.round(bomba.cuota_mensual * (1 - descuento / 100)))}
-            </div>
-          )}
+
         </div>
         <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={s.btnWA}>
           Consultar stock →
