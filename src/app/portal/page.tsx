@@ -23,6 +23,17 @@ interface ResultadoBomba {
   opciones: any[]
 }
 
+interface BombaCatalogo {
+  codigo: string
+  marca: string
+  watts: number
+  diam_bomba: string
+  diam_perf: string
+  cant_paneles: number
+  stock: number
+  precio_full: number
+}
+
 function precioMayorista(precio: number, descuento: number) {
   return Math.round(precio * (1 - descuento / 100))
 }
@@ -44,6 +55,8 @@ export default function Portal() {
   const [errCalc, setErrCalc] = useState<string | null>(null)
   const [mostrarPublico, setMostrarPublico] = useState(false)
   const [vieneDeMCA, setVieneDeMCA] = useState(false)
+  const [catalogo, setCatalogo] = useState<BombaCatalogo[]>([])
+  const [soloConStock, setSoloConStock] = useState(false)
 
   async function buscarBombaConParams(h: string, l: string, d: string) {
     setBuscando(true)
@@ -59,6 +72,14 @@ export default function Portal() {
     } finally {
       setBuscando(false)
     }
+  }
+
+  async function cargarCatalogo() {
+    try {
+      const res = await fetch(`${API_BOMBAS}?catalog=1`)
+      const data = await res.json()
+      if (data.ok) setCatalogo(data.catalog || [])
+    } catch {}
   }
 
   async function verificarToken(t: string) {
@@ -91,6 +112,7 @@ export default function Portal() {
     if (d) setDiametro(d)
     if (auto === '1') setVieneDeMCA(true)
     verificarToken(t).then(() => {
+      cargarCatalogo()
       if (auto === '1' && h && l && d) {
         setTimeout(() => buscarBombaConParams(h, l, d), 600)
       }
@@ -108,7 +130,6 @@ export default function Portal() {
   }
 
   if (loading) return <Pantalla emoji="⏳" titulo="Verificando acceso..." sub="" />
-
   if (error === 'no_token') return (
     <Pantalla emoji="🔒" titulo="Acceso restringido"
       sub="Este portal requiere un link de acceso personalizado. Registrate o escribinos por WhatsApp."
@@ -116,17 +137,17 @@ export default function Portal() {
       cta2={{ label: 'WhatsApp', href: 'https://wa.me/5491125750323' }}
     />
   )
-
   if (error === 'token_invalido') return (
     <Pantalla emoji="❌" titulo="Link inválido o desactivado"
       sub="Este link de acceso no es válido o fue desactivado. Escribinos para obtener uno nuevo."
       cta={{ label: 'Escribinos por WhatsApp', href: 'https://wa.me/5491125750323' }}
     />
   )
-
   if (error || !rev) return (
     <Pantalla emoji="⚠️" titulo="Error de conexión" sub="No pudimos verificar tu acceso. Intentá recargar la página." />
   )
+
+  const catalogoFiltrado = soloConStock ? catalogo.filter(b => (b.stock || 0) > 0) : catalogo
 
   return (
     <div style={s.wrap}>
@@ -197,6 +218,7 @@ export default function Portal() {
           </div>
         </div>
 
+        {/* CALCULADORA */}
         <div style={s.card}>
           <div style={s.cardTitle}>🔍 Buscar bomba para tu cliente</div>
           <div style={s.calcGrid}>
@@ -227,6 +249,7 @@ export default function Portal() {
           {errCalc && <p style={s.errorTxt}>{errCalc}</p>}
         </div>
 
+        {/* RESULTADO */}
         {resultado && (
           <div style={s.card}>
             <div style={s.cardTitle}>
@@ -250,7 +273,7 @@ export default function Portal() {
                   <BombaCard
                     key={i}
                     bomba={b}
-                    caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: Math.round((b.caudal_verano + b.caudal_invierno) / 2) }}
+                    caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: b.caudal_promedio || Math.round((b.caudal_verano + b.caudal_invierno) / 2) }}
                     descuento={rev.descuento_pct}
                     mostrarPublico={mostrarPublico}
                     precioMostrar={precioMostrar}
@@ -265,6 +288,78 @@ export default function Portal() {
           </div>
         )}
 
+        {/* CATÁLOGO DE BOMBAS */}
+        {catalogo.length > 0 && (
+          <div style={s.card}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={s.cardTitle} >🔋 Catálogo de bombas</div>
+              <div style={s.toggleBtns}>
+                <button onClick={() => setSoloConStock(false)} style={{ ...s.toggleBtn, ...(soloConStock ? {} : s.toggleBtnActive) }}>
+                  Todos ({catalogo.length})
+                </button>
+                <button onClick={() => setSoloConStock(true)} style={{ ...s.toggleBtn, ...(soloConStock ? s.toggleBtnActive : {}) }}>
+                  ✅ Con stock ({catalogo.filter(b => (b.stock || 0) > 0).length})
+                </button>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+              {catalogoFiltrado.map((b) => {
+                const conStock = (b.stock || 0) > 0
+                const precio = b.precio_full ? precioMostrar(b.precio_full) : null
+                const msg = encodeURIComponent(
+                  `Hola Febecos! Soy revendedor (${rev.nombre} ${rev.apellido || ''}).\n` +
+                  `Consulto disponibilidad de *${b.codigo}*${precio ? ` — precio mayorista: ${fmt(precio)}` : ''}.`
+                )
+                return (
+                  <div key={b.codigo} style={{
+                    ...s.bombaCard,
+                    padding: '14px 16px',
+                    opacity: conStock ? 1 : 0.65,
+                    borderColor: conStock ? '#1e3248' : '#162030',
+                  }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: conStock ? '#e8681a' : '#7a9ab5', marginBottom: 6 }}>
+                      {b.codigo}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#7a9ab5', flexWrap: 'wrap' as const, marginBottom: 10 }}>
+                      <span>{b.watts}W</span>
+                      <span>·</span>
+                      <span>{b.cant_paneles} panel{b.cant_paneles > 1 ? 'es' : ''}</span>
+                      <span>·</span>
+                      <span>Bomba {b.diam_bomba}"</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        {precio ? (
+                          <>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: conStock ? '#4ade80' : '#7a9ab5' }}>{fmt(precio)}</div>
+                            {!mostrarPublico && b.precio_full && (
+                              <div style={{ fontSize: 10, color: '#3a5a7a' }}>Público: {fmt(b.precio_full)}</div>
+                            )}
+                          </>
+                        ) : (
+                          <div style={{ fontSize: 12, color: '#3a5a7a' }}>Precio a confirmar</div>
+                        )}
+                        <div style={{ fontSize: 11, fontWeight: 600, color: conStock ? '#22c55e' : '#ef4444', marginTop: 4 }}>
+                          {conStock ? `✅ Stock: ${b.stock}` : '❌ Sin stock'}
+                        </div>
+                      </div>
+                      <a
+                        href={`https://wa.me/5491125750323?text=${msg}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ padding: '7px 12px', background: '#25d366', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 11, whiteSpace: 'nowrap' as const }}
+                      >
+                        Consultar →
+                      </a>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* INFO CARDS */}
         <div style={s.infoGrid}>
           <div style={s.infoCard}>
             <div style={s.infoEmoji}>💰</div>
@@ -379,7 +474,7 @@ const s: Record<string, React.CSSProperties> = {
   toggleBtn: { padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: 'transparent', color: '#7a9ab5', transition: 'all 0.15s' },
   toggleBtnActive: { background: '#1e3248', color: '#e8f0f8' },
   card: { background: '#132233', border: '1px solid #1e3248', borderRadius: 12, padding: '20px 24px', marginBottom: 16 },
-  cardTitle: { fontSize: 13, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 16 },
+  cardTitle: { fontSize: 13, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 0 },
   calcGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 },
   campo: { display: 'flex', flexDirection: 'column' as const, gap: 4 },
   label: { fontSize: 12, fontWeight: 600, color: '#7a9ab5' },
