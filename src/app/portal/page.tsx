@@ -1,545 +1,426 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calculadora MCA — Febecos</title>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NQ8L4L1238"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-NQ8L4L1238');
-</script>
-<!-- Meta Pixel -->
-<script>
-!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init','1448768616162437');
-fbq('track','PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=1448768616162437&ev=PageView&noscript=1"/></noscript>
-<!-- End Meta Pixel -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg:#f7f6f2;--card:#ffffff;--border:#e2e0d8;--text:#1a1a18;--text-muted:#6b6b60;
-    --accent:#1a6b3c;--accent-light:#e8f5ee;--accent-hover:#155730;
-    --warn:#c45c00;--warn-light:#fff3e8;--error:#c0392b;
-    --result-bg:#0f3d22;--result-text:#ffffff;--mono:'DM Mono',monospace;
-  }
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px 60px;overflow-x:hidden}
-  .header{max-width:860px;margin:0 auto 32px;display:flex;align-items:center;gap:12px}
-  .header-badge{background:var(--accent);color:#fff;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:4px}
-  .header h1{font-size:18px;font-weight:600;color:var(--text)}
-  .header-sub{font-size:13px;color:var(--text-muted);margin-left:auto}
-  .layout{max-width:860px;width:100%;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;overflow:hidden}
-  @media(max-width:680px){.layout{grid-template-columns:1fr}.header-sub{display:none}}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;min-width:0}
-  .card-title{font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;display:flex;align-items:center;gap:8px}
-  .card-title::after{content:'';flex:1;height:1px;background:var(--border)}
-  .field{margin-bottom:14px}
-  .field:last-child{margin-bottom:0}
-  label{display:block;font-size:13px;font-weight:500;color:var(--text);margin-bottom:5px}
-  label .hint{font-weight:400;color:var(--text-muted);font-size:12px;margin-left:4px}
-  input[type="number"],select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:var(--bg);transition:border-color .15s,box-shadow .15s;appearance:none;-webkit-appearance:none}
-  input[type="number"]:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,107,60,.1);background:#fff}
-  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b60' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
-  .tipo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-  .tipo-btn{border:1.5px solid var(--border);border-radius:8px;padding:10px 6px;text-align:center;cursor:pointer;background:var(--bg);transition:all .15s;font-size:12px;font-weight:500;color:var(--text-muted);line-height:1.3}
-  .tipo-btn .icon{font-size:20px;display:block;margin-bottom:4px}
-  .tipo-btn:hover{border-color:var(--accent);color:var(--accent)}
-  .tipo-btn.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .alt-chip{background:var(--accent-light);border:1px solid #b8ddc8;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--accent);font-weight:500;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-  .alt-chip .val{font-family:var(--mono);font-size:16px;font-weight:600}
-  .warn-chip{background:var(--warn-light);border:1px solid #f5c99a;border-radius:8px;padding:9px 12px;font-size:12px;color:var(--warn);margin-top:8px;display:none}
-  .acc-section{margin-bottom:12px}
-  .acc-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
-  .acc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .acc-item{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 10px;gap:8px}
-  .acc-name{font-size:12px;color:var(--text);flex:1;line-height:1.3}
-  .acc-counter{display:flex;align-items:center;gap:0}
-  .acc-btn{width:24px;height:24px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-muted);transition:all .1s;font-weight:500}
-  .acc-btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
-  .acc-val{font-family:var(--mono);font-size:13px;font-weight:600;width:24px;text-align:center;color:var(--text)}
-  .calc-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:16px;transition:background .15s,transform .1s;letter-spacing:.01em}
-  .calc-btn:hover{background:var(--accent-hover)}
-  .calc-btn:active{transform:scale(.99)}
-  .resultado{background:var(--result-bg);border-radius:12px;padding:24px 20px;display:none;grid-column:1/-1;animation:slideIn .25s ease}
-  @keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-  .res-header{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:20px}
-  .res-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
-  @media(max-width:500px){.res-metrics{grid-template-columns:1fr 1fr}}
-  .res-metric{background:rgba(255,255,255,.07);border-radius:10px;padding:14px}
-  .res-metric-label{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;font-weight:500}
-  .res-metric-val{font-family:var(--mono);font-size:22px;font-weight:600;color:#fff}
-  .res-metric-unit{font-size:13px;color:rgba(255,255,255,.6);margin-left:3px}
-  .res-metric.highlight{background:rgba(255,255,255,.14)}
-  .res-metric.highlight .res-metric-val{color:#6ee49a}
-  .res-detalle{border-top:1px solid rgba(255,255,255,.1);padding-top:16px}
-  .res-detalle-title{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:12px}
-  .tramo-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);gap:12px}
-  .tramo-row:last-child{border-bottom:none}
-  .tramo-name{font-size:13px;color:rgba(255,255,255,.8);font-weight:500}
-  .tramo-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:3px}
-  .tramo-perdida{font-family:var(--mono);font-size:14px;color:rgba(255,255,255,.7);white-space:nowrap}
-  .acc-detail-list{font-size:11px;color:rgba(255,255,255,.35);margin-top:4px;line-height:1.8}
-  .tramos-list{display:flex;flex-direction:column;gap:10px}
-  .tramo-card{border:1.5px solid var(--border);border-radius:10px;padding:14px;background:var(--bg);position:relative;min-width:0;overflow:hidden}
-  .tramo-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .tramo-card-title{font-size:13px;font-weight:600;color:var(--text)}
-  .tramo-remove{width:22px;height:22px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text-muted);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .1s}
-  .tramo-remove:hover{background:#fee;border-color:#f5a;color:#c00}
-  .add-tramo-btn{width:100%;padding:9px;border:1.5px dashed var(--border);border-radius:8px;background:transparent;color:var(--text-muted);font-size:13px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;margin-top:8px}
-  .add-tramo-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
-  .tabs{max-width:860px;width:100%;margin:0 auto 16px;display:flex;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:4px;overflow:hidden}
-  .tab-btn{flex:1;padding:8px 12px;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s}
-  .tab-btn.active{background:var(--accent);color:#fff;font-weight:600}
-  .tab-content{display:none}
-  .tab-content.active{display:contents}
-  .radio-group{display:flex;gap:6px;margin-bottom:14px}
-  .radio-opt{flex:1;padding:7px 4px;border:1.5px solid var(--border);border-radius:7px;text-align:center;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-muted);transition:all .12s;user-select:none}
-  .radio-opt.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
-  .caudal-conv{font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-top:4px;height:16px}
-  hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0}
-  .solar-intro{background:linear-gradient(135deg,#0f3d22 0%,#1a6b3c 100%);border-radius:12px;padding:20px;color:#fff;margin-bottom:16px}
-  .solar-intro h3{font-size:16px;font-weight:600;margin-bottom:6px}
-  .solar-intro p{font-size:13px;color:rgba(255,255,255,.7);line-height:1.6}
-  .solar-form .card{margin-bottom:16px}
-  .provincia-select-wrap{position:relative}
-  .provincia-select-wrap select{width:100%;padding:9px 32px 9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:var(--bg);appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b60' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
-  .provincia-select-wrap select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,107,60,.1);background-color:#fff}
-  .diametro-perf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .diam-btn{border:1.5px solid var(--border);border-radius:8px;padding:9px 6px;text-align:center;cursor:pointer;background:var(--bg);font-size:12px;font-weight:500;color:var(--text-muted);transition:all .15s;line-height:1.3}
-  .diam-btn:hover{border-color:var(--accent);color:var(--accent)}
-  .diam-btn.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600}
-  .mca-previa{background:var(--accent-light);border:1px solid #b8ddc8;border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-  .mca-previa-item{text-align:center}
-  .mca-previa-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:2px}
-  .mca-previa-val{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent)}
-  .mca-previa-sep{width:1px;height:36px;background:#b8ddc8}
-  .mca-sin-calcular{background:var(--warn-light);border:1px solid #f5c99a;border-radius:10px;padding:12px 16px;font-size:13px;color:var(--warn);margin-bottom:16px}
-  .solar-resultado{display:none;animation:slideIn .25s ease}
-  .bomba-card-solar{background:linear-gradient(135deg,#0a2e18 0%,#0f3d22 60%,#1a5c30 100%);border-radius:14px;padding:22px;color:#fff;margin-bottom:14px;position:relative;overflow:hidden}
-  .bomba-card-solar::before{content:'☀️';position:absolute;right:16px;top:16px;font-size:32px;opacity:.2}
-  .bomba-card-solar .bc-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(168,198,27,.2);border:1px solid rgba(168,198,27,.5);color:#a8c61b;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 10px;border-radius:100px;margin-bottom:12px}
-  .bomba-card-solar .bc-codigo{font-size:12px;color:rgba(255,255,255,.5);font-family:var(--mono);margin-bottom:3px}
-  .bomba-card-solar .bc-nombre{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px}
-  .bomba-card-solar .bc-specs{font-size:13px;color:rgba(255,255,255,.65);margin-bottom:16px}
-  .caudal-estaciones{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-  @media(max-width:500px){.caudal-estaciones{grid-template-columns:1fr 1fr}}
-  .est-card{background:rgba(255,255,255,.07);border-radius:9px;padding:12px;text-align:center}
-  .est-card.critico{background:rgba(196,92,0,.2);border:1px solid rgba(196,92,0,.4)}
-  .est-card.ok{background:rgba(110,228,154,.1);border:1px solid rgba(110,228,154,.25)}
-  .est-label{font-size:10px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:block}
-  .est-val{font-family:var(--mono);font-size:17px;font-weight:700;color:#fff}
-  .est-val.critico-txt{color:#ffb347}
-  .est-val.ok-txt{color:#6ee49a}
-  .est-sub{font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;display:block}
-  .viabilidad-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:13px;color:rgba(255,255,255,.8)}
-  .viabilidad-row:last-child{border-bottom:none}
-  .vcheck{font-size:16px;flex-shrink:0}
-  .zona-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border-radius:6px;padding:5px 10px;font-size:12px;color:rgba(255,255,255,.6);margin-bottom:14px}
-  .panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-  .panel-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
-  .panel-item-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;display:block}
-  .panel-item-val{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text)}
-  .panel-item-sub{font-size:11px;color:var(--text-muted);margin-top:3px}
-  .panel-item.highlight-solar{border-color:#b8ddc8;background:var(--accent-light)}
-  .panel-item.highlight-solar .panel-item-val{color:var(--accent)}
-  .alerta-invierno{background:var(--warn-light);border:1.5px solid #f5c99a;border-radius:10px;padding:14px 16px;margin-top:12px;font-size:13px;color:var(--warn);line-height:1.6;display:none}
-  .alerta-ok{background:var(--accent-light);border:1.5px solid #b8ddc8;border-radius:10px;padding:14px 16px;margin-top:12px;font-size:13px;color:var(--accent);line-height:1.6;display:none}
-  .solar-loading{text-align:center;padding:32px 20px;display:none}
-  .solar-loading .spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .solar-loading p{font-size:13px;color:var(--text-muted)}
-  .solar-error{background:#fff0f0;border:1px solid #f5c5c5;border-radius:10px;padding:16px;font-size:13px;color:var(--error);display:none}
-  .kit-img-wrap{width:100%;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:#0a2e18;margin-bottom:14px;position:relative;max-height:220px}
-  .kit-img-wrap img{width:100%;height:100%;object-fit:cover;transition:transform .3s ease}
-  .kit-img-wrap:hover img{transform:scale(1.04)}
-  .kit-img-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:48px;opacity:.3}
-  .kit-product-link{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:10px;background:rgba(168,198,27,.15);border:1px solid rgba(168,198,27,.4);border-radius:8px;color:#a8c61b;font-size:13px;font-weight:600;text-decoration:none;transition:all .15s;margin-top:10px}
-  .kit-product-link:hover{background:rgba(168,198,27,.25)}
-</style>
-</head>
-<body>
-<div class="header">
-  <span class="header-badge">Herramienta técnica</span>
-  <h1>Calculadora MCA</h1>
-  <span class="header-sub">Motor: Tabla Rotorpump · v2.1</span>
-</div>
-<div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('simple')">Instalación simple</button>
-  <button class="tab-btn" onclick="switchTab('avanzado')">Múltiples tramos</button>
-  <button class="tab-btn" id="tab-btn-solar" onclick="switchTab('solar')">☀️ Análisis solar</button>
-</div>
-<!-- TAB SIMPLE -->
-<div class="layout" id="tab-simple">
-  <div>
-    <div class="card">
-      <div class="card-title">Tipo de instalación</div>
-      <div class="tipo-grid">
-        <div class="tipo-btn active" id="tipo-sumergible" onclick="setTipo('sumergible')"><span class="icon">⬇️</span>Bomba sumergible</div>
-        <div class="tipo-btn" id="tipo-superficial" onclick="setTipo('superficial')"><span class="icon">🔧</span>Bomba superficial</div>
-        <div class="tipo-btn" id="tipo-riego" onclick="setTipo('riego')"><span class="icon">💧</span>Riego</div>
-      </div>
-      <div id="geo-sumergible">
-        <div class="grid2">
-          <div class="field"><label>Nivel dinámico <span class="hint">(m)</span></label><input type="number" id="nivel-dinamico" value="10" min="0" step="0.5" oninput="updateAltGeo()"></div>
-          <div class="field"><label>Altura descarga <span class="hint">(m)</span></label><input type="number" id="altura-descarga" value="2" min="0" step="0.5" oninput="updateAltGeo()"></div>
-        </div>
-      </div>
-      <div id="geo-superficial" style="display:none">
-        <div class="grid2">
-          <div class="field"><label>Altura aspiración <span class="hint">(m)</span></label><input type="number" id="alt-asp-sup" value="3" min="0" max="7.5" step="0.5" oninput="updateAltGeo()"></div>
-          <div class="field"><label>Altura descarga <span class="hint">(m)</span></label><input type="number" id="alt-desc-sup" value="10" min="0" step="0.5" oninput="updateAltGeo()"></div>
-        </div>
-        <div class="warn-chip" id="warn-npsh">⚠️ Altura de aspiración supera los 7 m recomendados. Verificar NPSH.</div>
-      </div>
-      <div id="geo-riego" style="display:none">
-        <div class="field"><label>Diferencia de nivel <span class="hint">(m, puede ser negativo)</span></label><input type="number" id="alt-riego" value="5" step="0.5" oninput="updateAltGeo()"></div>
-      </div>
-      <div class="alt-chip" id="alt-chip">📐 Altura geométrica: <span class="val" id="alt-geo-val">12.0</span> m</div>
-      <div class="field"><label>Presión requerida en descarga <span class="hint">(m)</span></label><input type="number" id="presion-req" value="0" min="0" step="1"></div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <div class="card-title">Cañería</div>
-      <div class="radio-group" id="unidad-radio">
-        <div class="radio-opt active" onclick="setUnidad('m3h')">m³/h</div>
-        <div class="radio-opt" onclick="setUnidad('lh')">L/h</div>
-        <div class="radio-opt" onclick="setUnidad('lmin')">L/min</div>
-      </div>
-      <div class="field">
-        <label id="caudal-label">Caudal requerido <span class="hint">(m³/h)</span></label>
-        <input type="number" id="caudal-input" value="5" min="0.1" step="0.5" oninput="updateCaudalConv()">
-        <div class="caudal-conv" id="caudal-conv"></div>
-      </div>
-      <div class="grid2">
-        <div class="field"><label>Diámetro del caño</label>
-          <select id="diametro-select">
-            <option>3/4</option><option>1</option><option>1 1/4</option><option>1 1/2</option>
-            <option selected>2</option><option>2 1/2</option><option>3</option><option>4</option>
-            <option>5</option><option>6</option><option>8</option><option>10</option>
-            <option>12</option><option>14</option><option>16</option><option>18</option>
-          </select>
-        </div>
-        <div class="field"><label>Material</label>
-          <select id="material-select">
-            <option>Hierro nuevo</option><option>Hierro viejo</option><option>Acero laminado nuevo</option>
-            <option>Acero arrugado</option><option>Fibrocemento</option><option>Aluminio</option>
-            <option>PVC</option><option>Hidrobronz</option>
-          </select>
-        </div>
-      </div>
-      <div id="long-sumergible"><div class="field"><label>Longitud de impulsión <span class="hint">(m)</span></label><input type="number" id="long-imp-s" value="15" min="0" step="1"></div></div>
-      <div id="long-superficial" style="display:none">
-        <div class="grid2">
-          <div class="field"><label>Long. aspiración <span class="hint">(m)</span></label><input type="number" id="long-asp-s" value="6" min="0" step="1"></div>
-          <div class="field"><label>Long. impulsión <span class="hint">(m)</span></label><input type="number" id="long-imp-ss" value="15" min="0" step="1"></div>
-        </div>
-      </div>
-      <div id="long-riego" style="display:none"><div class="field"><label>Longitud total <span class="hint">(m)</span></label><input type="number" id="long-riego-s" value="100" min="0" step="1"></div></div>
-    </div>
-  </div>
-  <div>
-    <div class="card">
-      <div class="card-title">Accesorios</div>
-      <div id="acc-asp-section" style="display:none">
-        <div class="acc-section">
-          <div class="acc-label">Aspiración</div>
-          <div class="acc-grid">
-            <div class="acc-item"><span class="acc-name">Curvas 90°</span><div class="acc-counter"><button class="acc-btn" onclick="acc('curvas_asp',-1)">−</button><span class="acc-val" id="v-curvas_asp">0</span><button class="acc-btn" onclick="acc('curvas_asp',1)">+</button></div></div>
-            <div class="acc-item"><span class="acc-name">Codos 45°</span><div class="acc-counter"><button class="acc-btn" onclick="acc('codos_asp',-1)">−</button><span class="acc-val" id="v-codos_asp">0</span><button class="acc-btn" onclick="acc('codos_asp',1)">+</button></div></div>
-            <div class="acc-item"><span class="acc-name">Válv. retención</span><div class="acc-counter"><button class="acc-btn" onclick="acc('valv_ret_asp',-1)">−</button><span class="acc-val" id="v-valv_ret_asp">0</span><button class="acc-btn" onclick="acc('valv_ret_asp',1)">+</button></div></div>
-            <div class="acc-item"><span class="acc-name">Válv. esclusa</span><div class="acc-counter"><button class="acc-btn" onclick="acc('valv_esc_asp',-1)">−</button><span class="acc-val" id="v-valv_esc_asp">0</span><button class="acc-btn" onclick="acc('valv_esc_asp',1)">+</button></div></div>
-            <div class="acc-item"><span class="acc-name">Te normal</span><div class="acc-counter"><button class="acc-btn" onclick="acc('te_asp',-1)">−</button><span class="acc-val" id="v-te_asp">0</span><button class="acc-btn" onclick="acc('te_asp',1)">+</button></div></div>
-            <div class="acc-item"><span class="acc-name">Entrada ordinaria</span><div class="acc-counter"><button class="acc-btn" onclick="acc('ent_ord',-1)">−</button><span class="acc-val" id="v-ent_ord">1</span><button class="acc-btn" onclick="acc('ent_ord',1)">+</button></div></div>
-          </div>
-        </div>
-        <hr class="divider">
-      </div>
-      <div class="acc-section">
-        <div class="acc-label" id="acc-imp-label">Impulsión</div>
-        <div class="acc-grid">
-          <div class="acc-item"><span class="acc-name">Curvas 90°</span><div class="acc-counter"><button class="acc-btn" onclick="acc('curvas_imp',-1)">−</button><span class="acc-val" id="v-curvas_imp">0</span><button class="acc-btn" onclick="acc('curvas_imp',1)">+</button></div></div>
-          <div class="acc-item"><span class="acc-name">Codos 45°</span><div class="acc-counter"><button class="acc-btn" onclick="acc('codos_imp',-1)">−</button><span class="acc-val" id="v-codos_imp">0</span><button class="acc-btn" onclick="acc('codos_imp',1)">+</button></div></div>
-          <div class="acc-item"><span class="acc-name">Válv. retención</span><div class="acc-counter"><button class="acc-btn" onclick="acc('valv_ret_imp',-1)">−</button><span class="acc-val" id="v-valv_ret_imp">0</span><button class="acc-btn" onclick="acc('valv_ret_imp',1)">+</button></div></div>
-          <div class="acc-item"><span class="acc-name">Válv. esclusa</span><div class="acc-counter"><button class="acc-btn" onclick="acc('valv_esc_imp',-1)">−</button><span class="acc-val" id="v-valv_esc_imp">0</span><button class="acc-btn" onclick="acc('valv_esc_imp',1)">+</button></div></div>
-          <div class="acc-item"><span class="acc-name">Te normal</span><div class="acc-counter"><button class="acc-btn" onclick="acc('te_imp',-1)">−</button><span class="acc-val" id="v-te_imp">0</span><button class="acc-btn" onclick="acc('te_imp',1)">+</button></div></div>
-          <div class="acc-item"><span class="acc-name">Válv. globo</span><div class="acc-counter"><button class="acc-btn" onclick="acc('valv_glob_imp',-1)">−</button><span class="acc-val" id="v-valv_glob_imp">0</span><button class="acc-btn" onclick="acc('valv_glob_imp',1)">+</button></div></div>
-          <div class="acc-item"><span class="acc-name">Codo 180°</span><div class="acc-counter"><button class="acc-btn" onclick="acc('codo180_imp',-1)">−</button><span class="acc-val" id="v-codo180_imp">0</span><button class="acc-btn" onclick="acc('codo180_imp',1)">+</button></div></div>
-        </div>
-      </div>
-      <div class="warn-chip" id="warn-antirretorno" style="margin-top:10px">⚠️ En instalaciones largas, considerar válvulas antirretorno según topografía.</div>
-      <button class="calc-btn" onclick="calcularSimple()">Calcular MCA</button>
-    </div>
-  </div>
-  <div class="resultado" id="resultado-simple">
-    <div class="res-header">Resultado del cálculo</div>
-    <div class="res-metrics">
-      <div class="res-metric"><div class="res-metric-label">Altura geométrica</div><div class="res-metric-val"><span id="r-alt-geo">—</span><span class="res-metric-unit">m</span></div></div>
-      <div class="res-metric"><div class="res-metric-label">Pérdidas por fricción</div><div class="res-metric-val"><span id="r-friccion">—</span><span class="res-metric-unit">m</span></div></div>
-      <div class="res-metric highlight"><div class="res-metric-label">MCA Total</div><div class="res-metric-val"><span id="r-mca">—</span><span class="res-metric-unit">m</span></div></div>
-    </div>
-    <div class="res-detalle"><div class="res-detalle-title">Desglose por tramo</div><div id="r-tramos"></div></div>
-  </div>
-</div>
-<!-- TAB AVANZADO -->
-<div class="layout" id="tab-avanzado" style="display:none;overflow:hidden">
-  <div style="grid-column:1/-1">
-    <div class="card">
-      <div class="card-title">Geometría general</div>
-      <div class="grid2">
-        <div class="field"><label>Altura geométrica total <span class="hint">(m)</span></label><input type="number" id="av-alt-geo" value="15" step="0.5"></div>
-        <div class="field"><label>Presión requerida <span class="hint">(m)</span></label><input type="number" id="av-presion" value="0" min="0" step="1"></div>
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <div class="card-title">Tramos</div>
-      <div class="tramos-list" id="tramos-list"></div>
-      <button class="add-tramo-btn" onclick="addTramo()">+ Agregar tramo</button>
-      <button class="calc-btn" onclick="calcularAvanzado()">Calcular instalación completa</button>
-    </div>
-  </div>
-  <div class="resultado" id="resultado-avanzado" style="grid-column:1/-1">
-    <div class="res-header">Resultado del cálculo</div>
-    <div class="res-metrics">
-      <div class="res-metric"><div class="res-metric-label">Altura geométrica</div><div class="res-metric-val"><span id="av-r-alt-geo">—</span><span class="res-metric-unit">m</span></div></div>
-      <div class="res-metric"><div class="res-metric-label">Pérdidas por fricción</div><div class="res-metric-val"><span id="av-r-friccion">—</span><span class="res-metric-unit">m</span></div></div>
-      <div class="res-metric highlight"><div class="res-metric-label">MCA Total</div><div class="res-metric-val"><span id="av-r-mca">—</span><span class="res-metric-unit">m</span></div></div>
-    </div>
-    <div class="res-detalle"><div class="res-detalle-title">Desglose por tramo</div><div id="av-r-tramos"></div></div>
-  </div>
-</div>
-<!-- TAB SOLAR -->
-<div class="layout" id="tab-solar" style="display:none">
-  <div style="grid-column:1/-1" class="solar-form">
-    <div class="solar-intro"><h3>☀️ Análisis de viabilidad solar</h3><p>Ingresá la provincia y el diámetro de perforación para buscar la bomba solar que cubre los requerimientos calculados.</p></div>
-    <div id="mca-previa-box" class="mca-sin-calcular">⚠️ Calculá primero la MCA en la pestaña "Instalación simple" para continuar con el análisis solar.</div>
-    <div class="card">
-      <div class="card-title">Datos de la instalación</div>
-      <div class="field"><label>Provincia</label>
-        <div class="provincia-select-wrap">
-          <select id="solar-provincia">
-            <option value="">Seleccioná la provincia...</option>
-            <option>Buenos Aires</option><option>CABA</option><option>Catamarca</option><option>Chaco</option>
-            <option>Chubut</option><option>Córdoba</option><option>Corrientes</option><option>Entre Ríos</option>
-            <option>Formosa</option><option>Jujuy</option><option>La Pampa</option><option>La Rioja</option>
-            <option>Mendoza</option><option>Misiones</option><option>Neuquén</option><option>Río Negro</option>
-            <option>Salta</option><option>San Juan</option><option>San Luis</option><option>Santa Cruz</option>
-            <option>Santa Fe</option><option>Santiago del Estero</option><option>Tierra del Fuego</option><option>Tucumán</option>
-          </select>
-        </div>
-      </div>
-      <div class="field"><label>Diámetro de perforación</label>
-        <div class="diametro-perf-grid">
-          <div class="diam-btn" id="dp-63" onclick="setDiamPerf('63mm','dp-63')">63mm<br><span style="font-size:10px;font-weight:400">2.5"</span></div>
-          <div class="diam-btn" id="dp-75" onclick="setDiamPerf('75mm','dp-75')">75mm<br><span style="font-size:10px;font-weight:400">3"</span></div>
-          <div class="diam-btn" id="dp-80" onclick="setDiamPerf('80-90mm','dp-80')">80-90mm<br><span style="font-size:10px;font-weight:400">3"—3.5"</span></div>
-          <div class="diam-btn active" id="dp-100" onclick="setDiamPerf('100mm','dp-100')">100mm<br><span style="font-size:10px;font-weight:400">4"</span></div>
-          <div class="diam-btn" id="dp-110" onclick="setDiamPerf('110-115mm','dp-110')">110-115mm<br><span style="font-size:10px;font-weight:400">4"—4.5"</span></div>
-          <div class="diam-btn" id="dp-6" onclick="setDiamPerf('6ormas','dp-6')">6" o más<br><span style="font-size:10px;font-weight:400">152mm+</span></div>
-        </div>
-      </div>
-      <div class="field"><label>Consumo diario requerido <span class="hint">(L/día)</span></label><input type="number" id="solar-litros" value="3000" min="100" step="100"></div>
-      <button class="calc-btn" onclick="analizarSolar()">☀️ Analizar viabilidad solar</button>
-    </div>
-    <div class="solar-loading" id="solar-loading"><div class="spin"></div><p>Consultando catálogo de bombas y datos de la zona...</p></div>
-    <div class="solar-error" id="solar-error"></div>
-    <div class="solar-resultado" id="solar-resultado">
-      <div class="bomba-card-solar">
-        <div class="kit-img-wrap" id="sr-kit-img-wrap"><div class="kit-img-placeholder">⬇️</div></div>
-        <div class="bc-badge">✓ Bomba recomendada</div>
-        <div class="bc-codigo" id="sr-codigo">—</div>
-        <div class="bc-nombre" id="sr-nombre">—</div>
-        <div class="bc-specs" id="sr-specs">—</div>
-        <div id="sr-kit-link"></div>
-        <div class="zona-chip">📍 <span id="sr-zona">—</span> · <span id="sr-dias">—</span> días/año de uso</div>
-        <div class="caudal-estaciones">
-          <div class="est-card" id="est-verano"><span class="est-label">☀️ Verano</span><span class="est-val ok-txt" id="sr-caudal-verano">—</span><span class="est-sub">L/día</span></div>
-          <div class="est-card" id="est-promedio"><span class="est-label">📅 Promedio</span><span class="est-val" id="sr-caudal-promedio">—</span><span class="est-sub">L/día</span></div>
-          <div class="est-card" id="est-invierno"><span class="est-label">❄️ Invierno</span><span class="est-val" id="sr-caudal-invierno">—</span><span class="est-sub">L/día</span></div>
-        </div>
-        <div id="sr-viabilidad"></div>
-      </div>
-      <div class="panel-grid">
-        <div class="panel-item highlight-solar"><span class="panel-item-label">MCA requerida</span><div class="panel-item-val" id="sr-mca">— m</div><div class="panel-item-sub">Calculada en pestaña anterior</div></div>
-        <div class="panel-item highlight-solar"><span class="panel-item-label">Potencia bomba</span><div class="panel-item-val" id="sr-watts">— W</div><div class="panel-item-sub" id="sr-paneles">— paneles solares</div></div>
-        <div class="panel-item"><span class="panel-item-label">Caudal nominal</span><div class="panel-item-val" id="sr-caudal-m3h">— m³/h</div><div class="panel-item-sub">A la MCA calculada</div></div>
-        <div class="panel-item"><span class="panel-item-label">Días de uso/año</span><div class="panel-item-val" id="sr-dias2">—</div><div class="panel-item-sub" id="sr-zona2">—</div></div>
-      </div>
-      <div class="alerta-invierno" id="alerta-invierno"></div>
-      <div class="alerta-ok" id="alerta-ok"></div>
-    </div>
-  </div>
-</div>
-<script>
-function trackEvent(n,p){if(typeof gtag==='undefined')return;gtag('event',n,p||{});}
-function trackFB(n,p){if(typeof fbq==='undefined')return;fbq('trackCustom',n,p||{});}
-const SUPA_URL='https://wlcmpqwmqwugjwrssatj.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsY21wcXdtcXd1Z2p3cnNzYXRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTg2NzEsImV4cCI6MjA5MjQ3NDY3MX0.UMfYhnkPWcvfKDJGGOisn7iudNHVwnGRI20plFrwj9w';
-function guardarCalculo(res,tipo,provincia){
-try{
-const tramo=res.tramos[0]||{};
-fetch(SUPA_URL+'/rest/v1/calculos_mca',{
-method:'POST',
-headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Prefer':'return=minimal'},
-body:JSON.stringify({tipo_instalacion:tipo,provincia:provincia||null,diametro:tramo.diam||null,material:tramo.material||null,longitud_total_m:tramo.longTotal||null,caudal_m3h:tramo.caudal||null,mca_total:res.mca,perdida_friccion_m:res.perdidaTotal})
-});
-}catch(e){}
-}
-const TABLA_FRICCION={"3/4":[[1.14,7.7],[2.27,27.8],[3.40,58.6],[4.55,99.5]],"1":[[1.14,2.4],[2.27,8.6],[3.40,18.5],[4.55,30.8],[5.68,46.9],[6.80,65.2],[7.95,87.0],[9.10,111.5]],"1 1/4":[[1.14,0.6],[2.27,2.3],[3.40,4.8],[4.55,8.1],[5.68,12.1],[6.80,16.9],[7.95,23.9],[9.10,29.5],[10.2,35.0]],"1 1/2":[[1.14,0.3],[2.27,1.1],[3.40,2.2],[4.55,3.8],[5.68,5.7],[6.80,8.1],[7.95,10.8],[9.10,13.8],[10.2,17.0],[11.4,20.8],[13.6,29.0],[15.9,38.2],[17.0,44.0],[18.2,49.8]],"2":[[1.14,0.1],[2.27,0.4],[3.40,0.8],[4.55,1.3],[5.68,2.0],[6.80,2.8],[7.95,3.8],[9.10,4.8],[10.2,6.0],[11.4,7.3],[13.6,10.2],[15.9,13.6],[17.0,15.4],[18.2,17.4],[20.4,21.7],[22.7,26.2]],"2 1/2":[[3.40,0.3],[4.55,0.5],[5.68,0.7],[6.80,1.0],[7.95,1.3],[9.10,1.6],[10.2,2.0],[11.4,2.5],[13.6,3.4],[15.9,4.5],[17.0,5.1],[18.2,5.8],[20.4,7.3],[22.7,8.8],[28.4,13.1],[34.1,18.3],[39.8,24.3]],"3":[[5.68,0.3],[6.80,0.4],[7.95,0.5],[9.10,0.7],[10.2,0.8],[11.4,1.0],[13.6,1.4],[15.9,1.9],[17.0,2.1],[18.2,2.4],[20.4,3.0],[22.7,3.7],[28.4,5.4],[34.1,8.0],[39.8,10.1],[42.0,10.9],[45.4,12.3],[56.8,17.7],[62.4,20.4],[68.2,23.5]],"4":[[9.10,0.2],[10.2,0.3],[11.4,0.3],[13.6,0.4],[15.9,0.5],[17.0,0.6],[18.2,0.6],[20.4,0.8],[22.7,0.9],[28.4,1.3],[34.1,1.8],[39.8,2.5],[42.0,2.7],[45.4,3.1],[56.8,4.6],[62.4,5.5],[68.2,6.4],[79.4,8.5],[85.0,9.6],[90.8,10.8],[102.0,13.3],[108.0,14.8]],"5":[[20.4,0.3],[22.7,0.4],[28.4,0.5],[34.1,0.7],[39.8,0.9],[42.0,1.0],[45.4,1.1],[56.8,1.6],[62.4,1.9],[68.2,2.3],[79.4,3.1],[85.0,3.4],[90.8,3.9],[102.0,4.9],[108.0,5.3],[113.0,5.9],[170.0,12.6],[227.0,19.4]],"6":[[34.1,0.3],[39.8,0.4],[42.0,0.5],[45.4,0.5],[56.8,0.7],[62.4,0.8],[68.2,0.9],[79.4,1.2],[85.0,1.4],[90.8,1.6],[102.0,1.8],[108.0,2.0],[113.0,2.1],[170.0,4.9],[227.0,8.8],[250.0,10.3],[284.0,13.2]],"8":[[56.8,0.3],[62.4,0.4],[68.2,0.4],[79.4,0.5],[85.0,0.6],[90.8,0.7],[102.0,0.8],[108.0,0.9],[113.0,1.1],[170.0,2.2],[227.0,3.9],[341.0,7.9],[454.0,13.5],[568.0,20.2],[683.0,28.1],[796.0,37.0]],"10":[[170.0,0.6],[227.0,1.1],[341.0,2.6],[454.0,3.9],[568.0,5.6],[683.0,7.3],[796.0,9.7],[910.0,12.5],[1022.0,15.6],[1137.0,19.0],[1250.0,22.9],[1363.0,27.0]],"12":[[341.0,1.0],[454.0,1.6],[568.0,2.2],[683.0,3.0],[796.0,4.0],[910.0,5.1],[1022.0,6.3],[1137.0,7.7],[1250.0,9.2],[1363.0,10.8]],"14":[[454.0,0.9],[568.0,1.3],[683.0,1.8],[796.0,2.4],[910.0,3.0],[1022.0,3.7],[1137.0,4.5],[1250.0,5.4],[1363.0,6.4]],"16":[[568.0,0.8],[683.0,1.1],[796.0,1.4],[910.0,1.8],[1022.0,2.2],[1137.0,2.7],[1250.0,3.2],[1363.0,3.8]],"18":[[683.0,0.7],[796.0,0.9],[910.0,1.2],[1022.0,1.4],[1137.0,1.7],[1250.0,2.0],[1363.0,2.3]]};
-const TABLA_ACC={"1/2":[0.12,5.18,2.44,1.22,0.46,0.30,1.00,0.24,1.09,0.30,0.18,0.27,0.49],"3/4":[0.15,6.71,3.36,1.83,0.61,0.45,1.37,0.30,1.52,0.45,0.24,0.40,0.61],"1":[0.18,8.24,4.27,2.44,0.82,0.52,1.74,0.40,1.83,0.52,0.30,0.46,0.76],"1 1/4":[0.24,11.00,5.49,3.66,1.07,0.70,2.32,0.51,2.53,0.70,0.40,0.61,1.04],"1 1/2":[0.30,13.12,6.71,4.27,1.31,0.82,2.74,0.61,3.05,0.82,0.45,0.73,1.22],"2":[0.36,16.78,8.24,5.80,1.68,1.07,3.66,0.76,3.96,1.07,0.58,0.91,1.52],"2 1/2":[0.43,20.43,10.06,7.01,1.98,1.28,4.27,0.92,4.58,1.28,0.67,1.10,1.83],"3":[0.52,25.01,12.50,9.76,2.44,1.59,5.18,1.16,5.49,1.59,0.85,1.37,2.38],"4":[0.70,33.55,16.16,13.12,3.36,2.14,6.71,1.52,7.32,2.14,1.16,1.83,3.26],"5":[0.88,42.70,21.35,17.69,4.27,2.74,8.24,1.92,9.46,2.74,1.43,2.29,4.12],"6":[1.07,51.85,24.40,20.74,4.88,3.36,10.00,2.29,11.28,3.36,1.77,2.74,4.70],"8":[1.37,68.02,36.60,null,6.10,4.27,13.12,3.05,15.55,4.27,2.29,3.96,6.07],"10":[1.77,85.40,42.70,null,7.93,5.18,16.16,3.96,18.60,5.18,3.05,4.58,7.47],"12":[2.07,100.65,48.80,null,9.76,6.10,20.74,4.58,22.57,6.10,3.66,5.49,9.09],"14":[2.44,115.90,58.00,null,11.28,7.32,23.79,5.18,25.92,7.32,3.96,6.10,10.64],"16":[2.74,134.20,67.10,null,12.81,8.24,26.84,5.80,30.50,8.24,4.58,7.02,12.20]};
-const FACTORES_MATERIAL={"Hierro nuevo":1.00,"Hierro viejo":1.33,"Acero laminado nuevo":0.80,"Acero arrugado":1.25,"Fibrocemento":1.25,"Aluminio":0.70,"PVC":0.65,"Hidrobronz":0.67};
-const ACC_IDX={valv_esclusa:0,valv_globo:1,valv_angulo:2,valv_retencion:3,curva_normal:4,te_normal:6,codo_45:7,codo_180:8,entrada_ordinaria:10,entrada_borda:11};
-function interpolarPerdida(diam,caudal){const t=TABLA_FRICCION[diam];if(!t)return 0;const n=t.length;if(caudal<=t[0][0])return t[0][1]*(caudal/t[0][0])**2;if(caudal>=t[n-1][0])return t[n-1][1]*(caudal/t[n-1][0])**1.85;for(let i=0;i<n-1;i++){if(caudal>=t[i][0]&&caudal<=t[i+1][0]){const r=(caudal-t[i][0])/(t[i+1][0]-t[i][0]);return t[i][1]+r*(t[i+1][1]-t[i][1]);}}return 0;}
-function calcLongEquivAcc(diam,accs){const a=TABLA_ACC[diam];if(!a)return{total:0,detalle:[]};let total=0;const detalle=[];for(const[key,idx]of Object.entries(ACC_IDX)){const cant=accs[key]||0;if(cant>0&&a[idx]!=null){const equiv=cant*a[idx];total+=equiv;detalle.push({nombre:key,cant,unitm:a,totalm:equiv});}}return{total:parseFloat(total.toFixed(4)),detalle};}
-function calcularTramo({longitud,diam,caudal,material,accs}){const fmat=FACTORES_MATERIAL[material]||1;const{total:longAcc,detalle}=calcLongEquivAcc(diam,accs);const longTotal=longitud+longAcc;const perdida100=interpolarPerdida(diam,caudal);const perdida=(perdida100/100)*longTotal*fmat;return{longitud,longAcc:parseFloat(longAcc.toFixed(2)),longTotal:parseFloat(longTotal.toFixed(2)),diam,caudal,material,fmat,perdida100:parseFloat(perdida100.toFixed(4)),perdida:parseFloat(perdida.toFixed(2)),detalle};}
-function calcularInstalacion({altGeo,tramos,presion}){let perdidaTotal=0;const tramosRes=tramos.map((t,i)=>{const r=calcularTramo(t);r.nombre=t.nombre||`Tramo ${i+1}`;perdidaTotal+=r.perdida;return r;});return{altGeo,perdidaTotal:parseFloat(perdidaTotal.toFixed(2)),presion,mca:parseFloat((altGeo+perdidaTotal+presion).toFixed(2)),tramos:tramosRes};}
-let tipoActual='sumergible',unidadActual='m3h';
-let accValues={curvas_asp:0,codos_asp:0,valv_ret_asp:0,valv_esc_asp:0,te_asp:0,ent_ord:1,curvas_imp:0,codos_imp:0,valv_ret_imp:0,valv_esc_imp:0,te_imp:0,valv_glob_imp:0,codo180_imp:0};
-let tramosData=[],tramoCount=0;
-function setTipo(t){tipoActual=t;['sumergible','superficial','riego'].forEach(x=>{document.getElementById(`tipo-${x}`).classList.toggle('active',x===t);document.getElementById(`geo-${x}`).style.display=x===t?'':'none';const ld=document.getElementById(`long-${x}`);if(ld)ld.style.display=x===t?'':'none';});document.getElementById('acc-asp-section').style.display=t==='superficial'?'':'none';document.getElementById('acc-imp-label').textContent=t==='superficial'?'Impulsión':'Accesorios';updateAltGeo();}
-function updateAltGeo(){let v=0;if(tipoActual==='sumergible'){v=(+document.getElementById('nivel-dinamico').value||0)+(+document.getElementById('altura-descarga').value||0);}else if(tipoActual==='superficial'){const asp=+document.getElementById('alt-asp-sup').value||0;v=asp+(+document.getElementById('alt-desc-sup').value||0);document.getElementById('warn-npsh').style.display=asp>7?'block':'none';}else{v=+document.getElementById('alt-riego').value||0;}document.getElementById('alt-geo-val').textContent=v.toFixed(1);return v;}
-function setUnidad(u){unidadActual=u;document.querySelectorAll('#unidad-radio .radio-opt').forEach((el,i)=>{el.classList.toggle('active',['m3h','lh','lmin'][i]===u);});document.querySelector('#caudal-label .hint').textContent={'m3h':'(m³/h)','lh':'(L/h)','lmin':'(L/min)'}[u];updateCaudalConv();}
-function getCaudalM3h(){const v=+document.getElementById('caudal-input').value||0;if(unidadActual==='lh')return v/1000;if(unidadActual==='lmin')return v*60/1000;return v;}
-function updateCaudalConv(){const v=+document.getElementById('caudal-input').value||0;const el=document.getElementById('caudal-conv');if(unidadActual==='m3h'){el.textContent='';return;}el.textContent=`= ${getCaudalM3h().toFixed(3)} m³/h`;checkWarnAntirretorno();}
-function checkWarnAntirretorno(){const w=document.getElementById('warn-antirretorno');w.style.display=(getLongImp()>500&&(accValues.valv_ret_imp||0)===0)?'block':'none';}
-function getLongImp(){if(tipoActual==='sumergible')return +document.getElementById('long-imp-s').value||0;if(tipoActual==='superficial')return +document.getElementById('long-imp-ss').value||0;return +document.getElementById('long-riego-s').value||0;}
-function acc(key,delta){accValues[key]=Math.max(0,(accValues[key]||0)+delta);document.getElementById(`v-${key}`).textContent=accValues[key];checkWarnAntirretorno();}
-function calcularSimple(){
-const altGeo=updateAltGeo(),caudal=getCaudalM3h(),diam=document.getElementById('diametro-select').value,material=document.getElementById('material-select').value,presion=+document.getElementById('presion-req').value||0;
-const tramos=[];
-if(tipoActual==='superficial'){const longAsp=+document.getElementById('long-asp-s').value||0;const accsAsp={curva_normal:accValues.curvas_asp,codo_45:accValues.codos_asp,valv_retencion:accValues.valv_ret_asp,valv_esclusa:accValues.valv_esc_asp,te_normal:accValues.te_asp,entrada_ordinaria:accValues.ent_ord};if(longAsp>0||Object.values(accsAsp).some(v=>v>0))tramos.push({nombre:'Aspiración',longitud:longAsp,diam,caudal,material,accs:accsAsp});}
-const longImp=getLongImp();const accsImp={curva_normal:accValues.curvas_imp,codo_45:accValues.codos_imp,valv_retencion:accValues.valv_ret_imp,valv_esclusa:accValues.valv_esc_imp,te_normal:accValues.te_imp,valv_globo:accValues.valv_glob_imp,codo_180:accValues.codo180_imp};
-if(longImp>0||Object.values(accsImp).some(v=>v>0))tramos.push({nombre:tipoActual==='superficial'?'Impulsión':'Cañería',longitud:longImp,diam,caudal,material,accs:accsImp});
-if(!tramos.length){alert('Ingresá al menos una longitud o accesorio.');return;}
-const res=calcularInstalacion({altGeo,tramos,presion});
-mostrarResultado(res,'simple');
-trackEvent('calcular_mca',{tipo_instalacion:tipoActual,diametro:diam,material,mca_total:res.mca,caudal_m3h:res.tramos[0]?.caudal||0});
-trackFB('calcular_mca',{tipo:tipoActual,mca:res.mca});
-actualizarMcaPrevia(res.mca,res.tramos[0]?.caudal||0);
-guardarCalculo(res,tipoActual,null);
-}
-function mostrarResultado(res,modo){
-const pfx=modo==='simple'?'':'av-';
-document.getElementById(`${pfx}r-alt-geo`).textContent=res.altGeo.toFixed(1);
-document.getElementById(`${pfx}r-friccion`).textContent=res.perdidaTotal.toFixed(2);
-document.getElementById(`${pfx}r-mca`).textContent=res.mca.toFixed(2);
-const tramosEl=document.getElementById(`${pfx}r-tramos`);
-tramosEl.innerHTML=res.tramos.map(t=>{const accLines=t.detalle.map(d=>`${d.cant}× ${fmtAccNombre(d.nombre)} (${d.unitm}m) = ${d.totalm.toFixed(2)}m`).join(' · ');return `<div class="tramo-row"><div><div class="tramo-name">${t.nombre}</div><div class="tramo-sub">${t.diam}" · ${t.longTotal}m equiv. · ${t.material} (×${t.fmat}) · ${t.perdida100} m/100m</div>${accLines?`<div class="acc-detail-list">${accLines}</div>`:''}</div><div class="tramo-perdida">−${t.perdida} m</div></div>`;}).join('');
-const resEl=document.getElementById(`resultado-${modo}`);resEl.style.display='block';resEl.scrollIntoView({behavior:'smooth',block:'nearest'});
-}
-function fmtAccNombre(k){const names={curva_normal:'Curva 90°',codo_45:'Codo 45°',codo_180:'Codo 180°',valv_retencion:'Válv. retención',valv_esclusa:'Válv. esclusa',valv_globo:'Válv. globo',te_normal:'Te normal',entrada_ordinaria:'Entrada ord.',entrada_borda:'Entrada borda'};return names[k]||k;}
-const DIAMS=['3/4','1','1 1/4','1 1/2','2','2 1/2','3','4','5','6','8','10','12','14','16','18'];
-const MATS=['Hierro nuevo','Hierro viejo','Acero laminado nuevo','Acero arrugado','Fibrocemento','Aluminio','PVC','Hidrobronz'];
-function addTramo(){tramoCount++;const id=tramoCount;tramosData.push({id,nombre:`Tramo ${id}`,longitud:10,diam:'2',caudal:10,material:'Hierro nuevo',curva_normal:0,codo_45:0,valv_retencion:0,valv_esclusa:0,te_normal:0,valv_globo:0,codo_180:0,entrada_ordinaria:0});renderTramos();}
-function removeTramo(id){tramosData=tramosData.filter(t=>t.id!==id);renderTramos();}
-function renderTramos(){const list=document.getElementById('tramos-list');list.innerHTML=tramosData.map(t=>`<div class="tramo-card" id="tc-${t.id}"><div class="tramo-card-header"><div class="tramo-card-title">Tramo ${t.id}</div><button class="tramo-remove" onclick="removeTramo(${t.id})">×</button></div><div class="grid2" style="margin-bottom:10px"><div class="field"><label>Nombre</label><input type="text" value="${t.nombre}" oninput="updateTramo(${t.id},'nombre',this.value)" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;width:100%;background:var(--bg)"></div><div class="field"><label>Longitud <span class="hint">(m)</span></label><input type="number" value="${t.longitud}" min="0" step="1" oninput="updateTramo(${t.id},'longitud',+this.value)"></div></div><div class="grid2" style="margin-bottom:10px"><div class="field"><label>Caudal <span class="hint">(m³/h)</span></label><input type="number" value="${t.caudal}" min="0.1" step="0.5" oninput="updateTramo(${t.id},'caudal',+this.value)"></div><div class="field"><label>Diámetro</label><select onchange="updateTramo(${t.id},'diam',this.value)">${DIAMS.map(d=>`<option ${d===t.diam?'selected':''}>${d}</option>`).join('')}</select></div></div><div class="field" style="margin-bottom:10px"><label>Material</label><select onchange="updateTramo(${t.id},'material',this.value)">${MATS.map(m=>`<option ${m===t.material?'selected':''}>${m}</option>`).join('')}</select></div><div class="acc-label">Accesorios</div><div class="acc-grid">${['curva_normal','codo_45','valv_retencion','valv_esclusa','te_normal','valv_globo','codo_180','entrada_ordinaria'].map(k=>`<div class="acc-item"><span class="acc-name">${fmtAccNombre(k)}</span><div class="acc-counter"><button class="acc-btn" onclick="updateTramoAcc(${t.id},'${k}',-1)">−</button><span class="acc-val" id="ta-${t.id}-${k}">${t[k]||0}</span><button class="acc-btn" onclick="updateTramoAcc(${t.id},'${k}',1)">+</button></div></div>`).join('')}</div></div>`).join('');}
-function updateTramo(id,key,val){const t=tramosData.find(x=>x.id===id);if(t)t[key]=val;}
-function updateTramoAcc(id,key,delta){const t=tramosData.find(x=>x.id===id);if(!t)return;t[key]=Math.max(0,(t[key]||0)+delta);document.getElementById(`ta-${id}-${key}`).textContent=t[key];}
-function calcularAvanzado(){
-if(!tramosData.length){alert('Agregá al menos un tramo.');return;}
-const altGeo=+document.getElementById('av-alt-geo').value||0,presion=+document.getElementById('av-presion').value||0;
-const tramos=tramosData.map(t=>({nombre:t.nombre,longitud:t.longitud,diam:t.diam,caudal:t.caudal,material:t.material,accs:{curva_normal:t.curva_normal||0,codo_45:t.codo_45||0,valv_retencion:t.valv_retencion||0,valv_esclusa:t.valv_esclusa||0,te_normal:t.te_normal||0,valv_globo:t.valv_globo||0,codo_180:t.codo_180||0,entrada_ordinaria:t.entrada_ordinaria||0}}));
-const res=calcularInstalacion({altGeo,tramos,presion});
-mostrarResultado(res,'avanzado');
-trackEvent('calcular_mca',{tipo_instalacion:'multiples_tramos',cantidad_tramos:res.tramos.length,mca_total:res.mca});
-trackFB('calcular_mca',{tipo:'multiples_tramos',mca:res.mca});
-const caudalAv=res.tramos.length>0?Math.max(...res.tramos.map(t=>t.caudal)):0;
-actualizarMcaPrevia(res.mca,caudalAv);
-guardarCalculo(res,'multiples_tramos',null);
-}
-function switchTab(t){
-document.getElementById('tab-simple').style.display=t==='simple'?'grid':'none';
-document.getElementById('tab-avanzado').style.display=t==='avanzado'?'grid':'none';
-document.getElementById('tab-solar').style.display=t==='solar'?'grid':'none';
-document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['simple','avanzado','solar'][i]===t));
-trackEvent('tab_cambiado',{tab:t});
-}
-updateAltGeo();
-addTramo();addTramo();
-const CATALOGO_IMGS={'HD-2SS 1.5-75-36-210':{img:'https://dcdn-us.mitiendanube.com/stores/007/467/093/products/bomba-directa-helicoidal-3-210w-1-paneles-550w-post-de-instagram-45-5-c4d3debf330d591e0d17750045755435-640-0.webp',url:'https://febecos.com/productos/kit-bomba-solar-3-pulgadas-210w/',nombre:'Kit Bomba Solar 3" 210W'},'HD-3SSC4.5-35-24-300':{img:'https://dcdn-us.mitiendanube.com/stores/007/467/093/products/1-e226709d4bba1a045e17750638763602-640-0.webp',url:'https://febecos.com/productos/kit-bomba-solar-3-pulgadas-300w/',nombre:'Kit Bomba Solar 3" 300W'},'HD-4SSC6.5-45-48-500':{img:'https://dcdn-us.mitiendanube.com/stores/007/467/093/products/1-f04d0e3992cb89180217750680056767-640-0.webp',url:'https://febecos.com/productos/kit-bomba-solar-4-pulgadas-500w/',nombre:'Kit Bomba Solar 4" 500W'},'HD-3SSC4.5-80-48-600':{img:'https://dcdn-us.mitiendanube.com/stores/007/467/093/products/1-b00f0abbb388140e2f17750733710731-640-0.webp',url:'https://febecos.com/productos/kit-bomba-solar-hibrida-3-pulgadas-600w/',nombre:'Kit Bomba Solar Híbrido 3" 600W'},'HD-4SSC6.5-101-110-1100':{img:'https://dcdn-us.mitiendanube.com/stores/007/467/093/products/1-98895d47127000388917761985810461-640-0.webp',url:'https://febecos.com/productos/kit-bomba-solar-4-1100w-completo/',nombre:'Kit Bomba Solar 4" 1100W'},'HD-3SSC4.5-80-96-600-A/D 220v':{img:'https://dcdn-us.mitiendanube.com/stores/007/467/093/products/1-b00f0abbb388140e2f17750733710731-640-0.webp',url:'https://febecos.com/productos/kit-bomba-solar-hibrida-3-pulgadas-600w/',nombre:'Kit Bomba Solar Híbrido 3" 600W A/D'}};
-function getKitInfo(codigo){if(!codigo)return null;if(CATALOGO_IMGS[codigo])return CATALOGO_IMGS[codigo];for(const[key,val]of Object.entries(CATALOGO_IMGS)){if(codigo.includes(key)||key.includes(codigo.split(' ')[0]))return val;}return null;}
-const ZONAS_SOLAR=[{region:'Norte (NOA/NEA)',factor:0.95,diasUso:347,provincias:['Salta','Jujuy','Tucumán','Santiago del Estero','Formosa','Chaco','Misiones','Corrientes'],hspVerano:7.5,hspInvierno:5.5,hspPromedio:6.5},{region:'Centro-Litoral',factor:0.85,diasUso:311,provincias:['Santa Fe','Entre Ríos','Córdoba','Buenos Aires','CABA'],hspVerano:6.5,hspInvierno:3.8,hspPromedio:5.2},{region:'Cuyo',factor:0.82,diasUso:299,provincias:['Mendoza','San Juan','La Rioja','Catamarca','San Luis'],hspVerano:7.0,hspInvierno:4.8,hspPromedio:5.9},{region:'Pampeana sur',factor:0.75,diasUso:274,provincias:['La Pampa'],hspVerano:6.5,hspInvierno:3.2,hspPromedio:4.9},{region:'Patagonia norte',factor:0.65,diasUso:237,provincias:['Río Negro','Neuquén'],hspVerano:6.8,hspInvierno:2.8,hspPromedio:4.8},{region:'Patagonia sur',factor:0.55,diasUso:201,provincias:['Chubut','Santa Cruz','Tierra del Fuego'],hspVerano:5.5,hspInvierno:2.5,hspPromedio:4.0}];
-const SUGGEST_API='https://simulador-roi-seven.vercel.app/api/suggest-pump';
-const DIAM_TO_PULG={'63mm':2,'75mm':2,'80-90mm':3,'100mm':3,'110-115mm':4,'6ormas':6};
-let solarDiamPerf='100mm',solarMCA=null,solarCaudal=null;
-function normalize(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();}
-function findZona(provincia){if(!provincia)return null;const target=normalize(provincia);for(const z of ZONAS_SOLAR){for(const p of z.provincias){const pn=normalize(p);if(target.includes(pn)||pn.includes(target))return z;}}return null;}
-function setDiamPerf(val,btnId){solarDiamPerf=val;document.querySelectorAll('.diam-btn').forEach(b=>b.classList.remove('active'));document.getElementById(btnId).classList.add('active');}
-function actualizarMcaPrevia(mca,caudal){
-  solarMCA=mca;solarCaudal=caudal;
-  const box=document.getElementById('mca-previa-box');
-  box.className='mca-previa';
-  box.innerHTML=`<div class="mca-previa-item"><span class="mca-previa-label">MCA calculada</span><span class="mca-previa-val">${mca} m</span></div><div class="mca-previa-sep"></div><div class="mca-previa-item"><span class="mca-previa-label">Caudal</span><span class="mca-previa-val">${caudal.toFixed(2)} m³/h</span></div><div class="mca-previa-sep"></div><div class="mca-previa-item"><span class="mca-previa-label">= L/día nominal</span><span class="mca-previa-val">${Math.round(caudal*8*1000)} L/día</span></div>`;
-  document.getElementById('solar-litros').value=Math.round(caudal*8*1000);
+'use client'
+import { useState, useEffect } from 'react'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wlcmpqwmqwugjwrssatj.supabase.co'
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const API_BOMBAS = 'https://simulador-roi-seven.vercel.app/api/suggest-pump'
+
+interface Revendedor {
+  id: number
+  nombre: string
+  apellido: string
+  empresa: string
+  provincia: string
+  descuento_pct: number
+  token_acceso: string
 }
 
-async function analizarSolar(){
-const provincia=document.getElementById('solar-provincia').value,litros=parseInt(document.getElementById('solar-litros').value)||0;
-if(!provincia){alert('Seleccioná la provincia.');return;}
-if(!litros){alert('Ingresá el consumo diario.');return;}
-if(!solarMCA){alert('Primero calculá la MCA en la pestaña "Instalación simple".');return;}
-const loading=document.getElementById('solar-loading'),error=document.getElementById('solar-error'),resultado=document.getElementById('solar-resultado');
-loading.style.display='block';error.style.display='none';resultado.style.display='none';
-try{
-const pulg=DIAM_TO_PULG[solarDiamPerf]||4,altura=Math.max(Math.ceil(solarMCA),10);
-const res=await fetch(`${SUGGEST_API}?height=${altura}&liters=${litros}&diameter=${pulg}`);
-const data=await res.json();
-if(!data.ok||!data.sugerencia)throw new Error(data.message||'No se encontró bomba en el catálogo.');
-const zona=findZona(provincia);
-mostrarResultadoSolar(data,zona,provincia,litros,altura);
-trackEvent('analisis_solar',{provincia,diametro_perforacion:solarDiamPerf,litros_dia:litros,mca:altura,bomba_sugerida:data.sugerencia?.codigo||'',zona:zona?.region||provincia});
-trackFB('analisis_solar',{provincia,bomba:data.sugerencia?.codigo||'',zona:zona?.region||provincia});
-guardarCalculo({mca:altura,perdidaTotal:altura-solarMCA,tramos:[{diam:String(pulg),caudal:solarCaudal,material:'—',longTotal:0,detalle:[]}]},'solar',provincia);
-}catch(err){error.style.display='block';error.textContent='⚠️ '+(err.message||'Error al consultar el catálogo.');}
-finally{loading.style.display='none';}
+interface Bomba {
+  codigo: string
+  marca: string
+  watts: number
+  precio_full: number
+  precio_6cuotas: number | null
+  cuota_mensual: number | null
+  stock: number
+  diam_bomba: string
+  diam_perf: string
+  cant_paneles: number
 }
-function mostrarResultadoSolar(data,zona,provincia,litrosDia,mca){
-  const bomba=data.sugerencia,caudal=data.caudal_a_altura,cumple=data.cumple;
-  document.getElementById('sr-codigo').textContent=bomba.codigo;
-  document.getElementById('sr-nombre').textContent=bomba.marca;
-  document.getElementById('sr-specs').textContent=`${bomba.impulsor||'Centrif.'} · ${bomba.watts}W · ${bomba.cant_paneles} panel${bomba.cant_paneles>1?'es':''} solar${bomba.cant_paneles>1?'es':''}`;
-  document.getElementById('sr-watts').textContent=bomba.watts+' W';
-  document.getElementById('sr-paneles').textContent=bomba.cant_paneles+' panel'+(bomba.cant_paneles>1?'es':'')+' solar'+(bomba.cant_paneles>1?'es':'');
-  document.getElementById('sr-mca').textContent=mca+' m';
-  document.getElementById('sr-caudal-m3h').textContent=(caudal.litros_hora/1000).toFixed(2)+' m³/h';
-  const kitInfo=getKitInfo(bomba.codigo);
-  const imgWrap=document.getElementById('sr-kit-img-wrap'),linkEl=document.getElementById('sr-kit-link');
-  if(kitInfo){imgWrap.innerHTML=`<img src="kitInfo.img"alt="{kitInfo.img}" alt="
-kitInfo.img"alt="{kitInfo.nombre}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=kit-img-placeholder>⬇️</div>'">`;linkEl.innerHTML=`<a href="{kitInfo.url}" target="_blank" class="kit-product-link" onclick="trackEvent('click_ver_kit',{codigo:'
-{bomba.codigo}',nombre:'{kitInfo.nombre}'});trackFB('ViewContent',{content_name:'
-{bomba.codigo}'})">🛒 Ver ${kitInfo.nombre} en Febecos →</a>`;}
-  else{imgWrap.innerHTML='<div class="kit-img-placeholder">⬇️</div>';linkEl.innerHTML='';}
-  const zonaNombre=zona?zona.region:provincia,diasUso=zona?zona.diasUso:300;
-  document.getElementById('sr-zona').textContent=zonaNombre;document.getElementById('sr-dias').textContent=diasUso;
-  document.getElementById('sr-zona2').textContent=zonaNombre;document.getElementById('sr-dias2').textContent=diasUso;
-  const cv=caudal.verano||caudal.litros_hora*8,cp=caudal.promedio||caudal.litros_hora*6,ci=caudal.invierno||caudal.litros_hora*4;
-  document.getElementById('sr-caudal-verano').textContent=cv.toLocaleString('es-AR');
-  document.getElementById('sr-caudal-promedio').textContent=cp.toLocaleString('es-AR');
-  document.getElementById('sr-caudal-invierno').textContent=ci.toLocaleString('es-AR');
-  const estInv=document.getElementById('est-invierno'),valInv=document.getElementById('sr-caudal-invierno');
-  if(ci>=litrosDia){estInv.className='est-card ok';valInv.className='est-val ok-txt';}else{estInv.className='est-card critico';valInv.className='est-val critico-txt';}
-  document.getElementById('sr-viabilidad').innerHTML=`
-    <div class="viabilidad-row"><span class="vcheck">${cumple.altura?'✅':'❌'}</span>Cubre la altura manométrica de ${mca} m</div>
-    <div class="viabilidad-row"><span class="vcheck">${cv>=litrosDia?'✅':'⚠️'}</span>Caudal verano: ${cv.toLocaleString('es-AR')} L/día ${cv>=litrosDia?'≥':'<'} ${litrosDia.toLocaleString('es-AR')} L/día requeridos</div>
-    <div class="viabilidad-row"><span class="vcheck">${ci>=litrosDia?'✅':'⚠️'}</span>Caudal invierno: ${ci.toLocaleString('es-AR')} L/día ${ci>=litrosDia?'≥':'<'} ${litrosDia.toLocaleString('es-AR')} L/día requeridos</div>
-    ${zona?`<div class="viabilidad-row"><span class="vcheck">📍</span>Zona ${zona.region} · ${diasUso} días/año de uso efectivo</div>`:''}`;
-  const alertaInv=document.getElementById('alerta-invierno'),alertaOk=document.getElementById('alerta-ok');
-  if(ci<litrosDia){alertaInv.style.display='block';alertaInv.innerHTML=`<strong>⚠️ Déficit en invierno</strong><br>En el mes más desfavorable la bomba entrega ${ci.toLocaleString('es-AR')} L/día pero el sistema requiere ${litrosDia.toLocaleString('es-AR')} L/día.`;alertaOk.style.display='none';}
-  else{alertaOk.style.display='block';alertaOk.innerHTML=`<strong>✅ Sistema viable todo el año</strong><br>La bomba cubre la demanda incluso en invierno. En ${zona?zona.region:provincia} el mes crítico entrega ${ci.toLocaleString('es-AR')} L/día.`;alertaInv.style.display='none';}
-  document.getElementById('solar-resultado').style.display='block';
-  document.getElementById('solar-resultado').scrollIntoView({behavior:'smooth',block:'start'});
+
+interface ResultadoBomba {
+  sugerencia: Bomba
+  caudal_a_altura: { verano: number; invierno: number; promedio: number }
+  es_fallback: boolean
+  nota: string
+  opciones: Bomba[]
 }
-</script>
-</body>
-</html>
-Alibaba Lens
+
+function precioMayorista(precio: number, descuento: number) {
+  return Math.round(precio * (1 - descuento / 100))
+}
+
+function fmt(n: number) {
+  return '$' + n.toLocaleString('es-AR', { maximumFractionDigits: 0 })
+}
+
+export default function Portal() {
+  const [token, setToken] = useState<string | null>(null)
+  const [rev, setRev] = useState<Revendedor | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const [altura, setAltura] = useState('')
+  const [litros, setLitros] = useState('')
+  const [diametro, setDiametro] = useState('3')
+  const [buscando, setBuscando] = useState(false)
+  const [resultado, setResultado] = useState<ResultadoBomba | null>(null)
+  const [errCalc, setErrCalc] = useState<string | null>(null)
+  const [mostrarPublico, setMostrarPublico] = useState(false)
+  const [vieneDeMCA, setVieneDeMCA] = useState(false)
+
+  async function buscarBombaConParams(h: string, l: string, d: string) {
+    setBuscando(true)
+    setResultado(null)
+    setErrCalc(null)
+    try {
+      const url = `${API_BOMBAS}?height=${h}&liters=${l}&diameter=${d}&season=verano`
+      const res = await fetch(url)
+      const data = await res.json()
+      if (data.ok) setResultado(data)
+      else setErrCalc(data.error || 'No se encontró bomba')
+    } catch {
+      setErrCalc('Error de red al buscar bomba.')
+    } finally {
+      setBuscando(false)
+    }
+  }
+
+  async function verificarToken(t: string) {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/solicitudes_revendedor?token_acceso=eq.${t}&token_acceso_activo=eq.true&select=id,nombre,apellido,empresa,provincia,descuento_pct,token_acceso`,
+        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+      )
+      const data = await res.json()
+      if (!data || data.length === 0) { setError('token_invalido'); return }
+      setRev(data[0])
+    } catch {
+      setError('error_red')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const t = params.get('token')
+    if (!t) { setError('no_token'); setLoading(false); return }
+    setToken(t)
+
+    // Parámetros de calculadora MCA
+    const h = params.get('height')
+    const l = params.get('liters')
+    const d = params.get('diameter')
+    const auto = params.get('auto')
+
+    if (h) setAltura(h)
+    if (l) setLitros(l)
+    if (d) setDiametro(d)
+    if (auto === '1') setVieneDeMCA(true)
+
+    verificarToken(t).then(() => {
+      if (auto === '1' && h && l && d) {
+        setTimeout(() => buscarBombaConParams(h, l, d), 600)
+      }
+    })
+  }, [])
+
+  async function buscarBomba() {
+    if (!altura || !litros) { setErrCalc('Completá altura y litros.'); return }
+    await buscarBombaConParams(altura, litros, diametro)
+  }
+
+  function precioMostrar(precio: number) {
+    if (!rev) return precio
+    return mostrarPublico ? precio : precioMayorista(precio, rev.descuento_pct)
+  }
+
+  if (loading) return <Pantalla emoji="⏳" titulo="Verificando acceso..." sub="" />
+
+  if (error === 'no_token') return (
+    <Pantalla emoji="🔒" titulo="Acceso restringido"
+      sub="Este portal requiere un link de acceso personalizado. Registrate o escribinos por WhatsApp."
+      cta={{ label: 'Registrarme', href: 'https://revendedores-six.vercel.app' }}
+      cta2={{ label: 'WhatsApp', href: 'https://wa.me/5491125750323' }}
+    />
+  )
+
+  if (error === 'token_invalido') return (
+    <Pantalla emoji="❌" titulo="Link inválido o desactivado"
+      sub="Este link de acceso no es válido o fue desactivado. Escribinos para obtener uno nuevo."
+      cta={{ label: 'Escribinos por WhatsApp', href: 'https://wa.me/5491125750323' }}
+    />
+  )
+
+  if (error || !rev) return (
+    <Pantalla emoji="⚠️" titulo="Error de conexión" sub="No pudimos verificar tu acceso. Intentá recargar la página." />
+  )
+
+  return (
+    <div style={s.wrap}>
+      {/* HEADER */}
+      <div style={s.header}>
+        <div style={s.headerInner}>
+          <div>
+            <div style={s.brand}>FEBECOS</div>
+            <div style={s.headerSub}>Portal de Revendedores</div>
+          </div>
+          <div style={s.headerRight}>
+            <div style={s.revendedorBadge}>
+              <span style={{ fontSize: 18 }}>👤</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{rev.nombre} {rev.apellido}</div>
+                <div style={{ fontSize: 11, color: '#7a9ab5' }}>{rev.empresa || rev.provincia}</div>
+              </div>
+            </div>
+            <div style={s.descuentoBadge}>{rev.descuento_pct}% OFF</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={s.content}>
+
+        {/* BANNER CALCULADORA MCA */}
+        {!vieneDeMCA && (
+          <div style={s.bannerMCA}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>🔢 ¿Necesitás calcular la MCA primero?</div>
+              <div style={{ fontSize: 13, color: '#7a9ab5' }}>Usá la calculadora hidráulica completa para instalaciones complejas</div>
+            </div>
+            <a
+              href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`}
+              style={s.btnMCA}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Ir a Calculadora MCA →
+            </a>
+          </div>
+        )}
+
+        {vieneDeMCA && (
+          <div style={{ ...s.bannerMCA, background: 'rgba(74,222,128,0.08)', borderColor: 'rgba(74,222,128,0.25)' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: '#4ade80' }}>✅ Datos cargados desde la Calculadora MCA</div>
+              <div style={{ fontSize: 13, color: '#7a9ab5' }}>Altura: {altura}m · Litros: {parseInt(litros).toLocaleString('es-AR')} L/día · Diámetro: {diametro}"</div>
+            </div>
+            <a
+              href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`}
+              style={{ ...s.btnMCA, background: 'transparent', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
+            >
+              ← Volver a MCA
+            </a>
+          </div>
+        )}
+
+        {/* TOGGLE PRECIO */}
+        <div style={s.toggleWrap}>
+          <span style={{ fontSize: 13, color: '#7a9ab5' }}>Ver precios:</span>
+          <div style={s.toggleBtns}>
+            <button onClick={() => setMostrarPublico(false)} style={{ ...s.toggleBtn, ...(mostrarPublico ? {} : s.toggleBtnActive) }}>
+              Mayorista ({rev.descuento_pct}% OFF)
+            </button>
+            <button onClick={() => setMostrarPublico(true)} style={{ ...s.toggleBtn, ...(mostrarPublico ? s.toggleBtnActive : {}) }}>
+              Precio público
+            </button>
+          </div>
+        </div>
+
+        {/* CALCULADORA */}
+        <div style={s.card}>
+          <div style={s.cardTitle}>🔍 Buscar bomba para tu cliente</div>
+          <div style={s.calcGrid}>
+            <div style={s.campo}>
+              <label style={s.label}>Altura total (MCA)</label>
+              <input style={s.input} type="number" placeholder="Ej: 45" value={altura} onChange={e => setAltura(e.target.value)} />
+              <span style={s.hint}>Profundidad + almacenamiento + fricción</span>
+            </div>
+            <div style={s.campo}>
+              <label style={s.label}>Litros/día necesarios</label>
+              <input style={s.input} type="number" placeholder="Ej: 5000" value={litros} onChange={e => setLitros(e.target.value)} />
+            </div>
+            <div style={s.campo}>
+              <label style={s.label}>Bomba que entra (diámetro)</label>
+              <select style={s.input} value={diametro} onChange={e => setDiametro(e.target.value)}>
+                <option value="2">2" — perforación 63mm o más</option>
+                <option value="3">3" — perforación 80mm o más</option>
+                <option value="4">4" — perforación 110mm o más</option>
+                <option value="6">6" — perforación 160mm o más</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button style={{ ...s.btnBuscar, opacity: buscando ? 0.7 : 1 }} onClick={buscarBomba} disabled={buscando}>
+                {buscando ? 'Buscando...' : '🔍 Buscar bomba'}
+              </button>
+            </div>
+          </div>
+          {errCalc && <p style={s.errorTxt}>{errCalc}</p>}
+        </div>
+
+        {/* RESULTADO */}
+        {resultado && (
+          <div style={s.card}>
+            <div style={s.cardTitle}>
+              {resultado.es_fallback ? '⚠️ Opción más cercana' : '✅ Bomba recomendada'}
+            </div>
+            <BombaCard
+              bomba={resultado.sugerencia}
+              caudal={resultado.caudal_a_altura}
+              nota={resultado.nota}
+              descuento={rev.descuento_pct}
+              mostrarPublico={mostrarPublico}
+              precioMostrar={precioMostrar}
+              wa={rev}
+              litros={Number(litros)}
+              altura={Number(altura)}
+            />
+            {resultado.opciones && resultado.opciones.length > 1 && (
+              <>
+                <div style={{ ...s.cardTitle, marginTop: 20, fontSize: 12 }}>Otras opciones válidas</div>
+                {resultado.opciones.slice(1).map((b, i) => (
+                  <BombaCard key={i} bomba={b as any} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} compact />
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* INFO PORTAL */}
+        <div style={s.infoGrid}>
+          <div style={s.infoCard}>
+            <div style={s.infoEmoji}>💰</div>
+            <div style={s.infoTitulo}>Tu descuento</div>
+            <div style={s.infoVal}>{rev.descuento_pct}%</div>
+            <div style={s.infoSub}>sobre precio de lista en todos los equipos</div>
+          </div>
+          <div style={s.infoCard}>
+            <div style={s.infoEmoji}>🔢</div>
+            <div style={s.infoTitulo}>Calculadora MCA</div>
+            <div style={s.infoSub}>
+              <a href={`https://selector.febecos.com/calculadora-mca.html?token=${token}`} style={{ color: '#e8681a', fontWeight: 700 }} target="_blank" rel="noopener noreferrer">
+                Abrir calculadora →
+              </a>
+            </div>
+          </div>
+          <div style={s.infoCard}>
+            <div style={s.infoEmoji}>🤝</div>
+            <div style={s.infoTitulo}>Soporte técnico</div>
+            <div style={s.infoSub}>
+              <a href="https://wa.me/5491125750323" style={{ color: '#e8681a', fontWeight: 700 }}>WhatsApp directo →</a>
+            </div>
+          </div>
+          <div style={s.infoCard}>
+            <div style={s.infoEmoji}>📦</div>
+            <div style={s.infoTitulo}>Stock en tiempo real</div>
+            <div style={s.infoSub}>Precios y disponibilidad actualizados automáticamente</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  )
+}
+
+function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostrar, wa, litros, altura, compact = false }: any) {
+  const precio = precioMostrar(bomba.precio_full)
+  const precioPublico = bomba.precio_full
+  const msg = encodeURIComponent(
+    `Hola Febecos! Soy revendedor (${wa.nombre} ${wa.apellido || ''}, ${wa.empresa || wa.provincia}).\n` +
+    `Consulto por bomba *${bomba.codigo}* para cliente con ${litros} L/día a ${altura}m.\n` +
+    `Precio mayorista: ${fmt(precioMayorista(precioPublico, descuento))}`
+  )
+
+  return (
+    <div style={{ ...s.bombaCard, padding: compact ? '12px 16px' : '20px' }}>
+      <div style={s.bombaCodigo}>{bomba.codigo}</div>
+      <div style={s.bombaDetails}>
+        <span>{bomba.watts}W</span>
+        <span>·</span>
+        <span>{bomba.cant_paneles} panel{bomba.cant_paneles > 1 ? 'es' : ''}</span>
+        <span>·</span>
+        <span>Bomba {bomba.diam_bomba}"</span>
+        <span>·</span>
+        <span style={{ color: bomba.stock > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+          {bomba.stock > 0 ? `Stock: ${bomba.stock}` : 'Sin stock'}
+        </span>
+      </div>
+      {caudal && !compact && (
+        <div style={s.caudalRow}>
+          <div style={s.caudalItem}><span style={s.caudalLbl}>Verano</span><span style={s.caudalVal}>{caudal.verano?.toLocaleString('es-AR')} L/día</span></div>
+          <div style={s.caudalItem}><span style={s.caudalLbl}>Promedio</span><span style={s.caudalVal}>{caudal.promedio?.toLocaleString('es-AR')} L/día</span></div>
+          <div style={s.caudalItem}><span style={s.caudalLbl}>Invierno</span><span style={s.caudalVal}>{caudal.invierno?.toLocaleString('es-AR')} L/día</span></div>
+        </div>
+      )}
+      <div style={s.precioRow}>
+        <div>
+          <div style={s.precioLabel}>{mostrarPublico ? 'Precio público' : `Precio mayorista (${descuento}% OFF)`}</div>
+          <div style={s.precioVal}>{fmt(precio)}</div>
+          {!mostrarPublico && (
+            <div style={{ fontSize: 11, color: '#7a9ab5' }}>
+              Público: {fmt(precioPublico)} · Ahorrás {fmt(precioPublico - precio)}
+            </div>
+          )}
+          {bomba.cuota_mensual && (
+            <div style={{ fontSize: 12, color: '#e8681a', marginTop: 4 }}>
+              6 cuotas de {fmt(mostrarPublico ? bomba.cuota_mensual : Math.round(bomba.cuota_mensual * (1 - descuento / 100)))}
+            </div>
+          )}
+        </div>
+        <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={s.btnWA}>
+          Consultar stock →
+        </a>
+      </div>
+      {nota && !compact && <div style={s.notaTxt}>{nota}</div>}
+    </div>
+  )
+}
+
+function Pantalla({ emoji, titulo, sub, cta, cta2 }: { emoji: string, titulo: string, sub: string, cta?: { label: string, href: string }, cta2?: { label: string, href: string } }) {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d1a2a', padding: 24 }}>
+      <div style={{ background: '#132233', border: '1px solid #1e3248', borderRadius: 16, padding: '48px 40px', maxWidth: 440, width: '100%', textAlign: 'center' }}>
+        <div style={{ fontSize: 52, marginBottom: 16 }}>{emoji}</div>
+        <h2 style={{ color: '#e8f0f8', marginBottom: 12, fontSize: 20 }}>{titulo}</h2>
+        <p style={{ color: '#7a9ab5', lineHeight: 1.7, marginBottom: 24 }}>{sub}</p>
+        {cta && <a href={cta.href} style={{ display: 'inline-block', padding: '12px 24px', background: '#e8681a', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700, marginRight: 8 }}>{cta.label}</a>}
+        {cta2 && <a href={cta2.href} style={{ display: 'inline-block', padding: '12px 24px', background: '#25d366', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700 }}>{cta2.label}</a>}
+      </div>
+    </div>
+  )
+}
+
+const s: Record<string, React.CSSProperties> = {
+  wrap: { minHeight: '100vh', background: '#0d1a2a', color: '#e8f0f8', fontFamily: "'DM Sans', sans-serif" },
+  header: { background: '#0a1520', borderBottom: '1px solid #1e3248', padding: '0 24px' },
+  headerInner: { maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0' },
+  brand: { fontSize: 13, fontWeight: 800, letterSpacing: '0.15em', color: '#e8681a' },
+  headerSub: { fontSize: 11, color: '#7a9ab5', marginTop: 2 },
+  headerRight: { display: 'flex', alignItems: 'center', gap: 12 },
+  revendedorBadge: { display: 'flex', alignItems: 'center', gap: 8, background: '#132233', border: '1px solid #1e3248', borderRadius: 8, padding: '8px 12px' },
+  descuentoBadge: { background: '#e8681a', color: '#fff', borderRadius: 8, padding: '6px 12px', fontWeight: 800, fontSize: 13 },
+  content: { maxWidth: 900, margin: '0 auto', padding: '24px' },
+  bannerMCA: { background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 10, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' as const },
+  btnMCA: { padding: '8px 16px', background: '#60a5fa', color: '#0d1a2a', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' as const },
+  toggleWrap: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 },
+  toggleBtns: { display: 'flex', gap: 4, background: '#132233', borderRadius: 8, padding: 4, border: '1px solid #1e3248' },
+  toggleBtn: { padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: 'transparent', color: '#7a9ab5', transition: 'all 0.15s' },
+  toggleBtnActive: { background: '#1e3248', color: '#e8f0f8' },
+  card: { background: '#132233', border: '1px solid #1e3248', borderRadius: 12, padding: '20px 24px', marginBottom: 16 },
+  cardTitle: { fontSize: 13, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 16 },
+  calcGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 },
+  campo: { display: 'flex', flexDirection: 'column' as const, gap: 4 },
+  label: { fontSize: 12, fontWeight: 600, color: '#7a9ab5' },
+  input: { padding: '10px 12px', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 8, color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit' },
+  hint: { fontSize: 11, color: '#3a5a7a' },
+  btnBuscar: { width: '100%', padding: '11px 16px', background: '#e8681a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
+  errorTxt: { color: '#f87171', fontSize: 13, marginTop: 12 },
+  bombaCard: { background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 10, marginBottom: 10 },
+  bombaCodigo: { fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#e8681a', marginBottom: 6 },
+  bombaDetails: { display: 'flex', gap: 8, fontSize: 12, color: '#7a9ab5', flexWrap: 'wrap' as const, marginBottom: 12 },
+  caudalRow: { display: 'flex', gap: 16, marginBottom: 16 },
+  caudalItem: { display: 'flex', flexDirection: 'column' as const, gap: 2 },
+  caudalLbl: { fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.06em' },
+  caudalVal: { fontSize: 14, fontWeight: 600, color: '#e8f0f8' },
+  precioRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' as const },
+  precioLabel: { fontSize: 11, color: '#7a9ab5', marginBottom: 4 },
+  precioVal: { fontSize: 24, fontWeight: 800, color: '#4ade80' },
+  btnWA: { display: 'inline-block', padding: '10px 18px', background: '#25d366', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' as const },
+  notaTxt: { fontSize: 12, color: '#7a9ab5', marginTop: 12, padding: '8px 12px', background: '#132233', borderRadius: 6 },
+  infoGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginTop: 8 },
+  infoCard: { background: '#132233', border: '1px solid #1e3248', borderRadius: 10, padding: '16px 18px' },
+  infoEmoji: { fontSize: 22, marginBottom: 8 },
+  infoTitulo: { fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 6 },
+  infoVal: { fontSize: 28, fontWeight: 800, color: '#4ade80', marginBottom: 4 },
+  infoSub: { fontSize: 12, color: '#3a5a7a', lineHeight: 1.5 },
+}
