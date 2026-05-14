@@ -258,7 +258,7 @@ export default function Portal() {
   const [catalogo, setCatalogo] = useState<BombaCatalogo[]>([])
   const [verCatalogo, setVerCatalogo] = useState(false)
   const [cargandoCatalogo, setCargandoCatalogo] = useState(false)
-  const [soloConStock, setSoloConStock] = useState(false)
+  const [filtroStock, setFiltroStock] = useState<'todos'|'local'|'deposito'>('todos')
   const [modalCodigo, setModalCodigo] = useState<string | null>(null)
 
   async function buscarBombaConParams(h: string, l: string, d: string) {
@@ -325,7 +325,11 @@ export default function Portal() {
   if (error === 'token_invalido') return <Pantalla emoji="❌" titulo="Link inválido o desactivado" sub="Este link no es válido o fue desactivado." cta={{ label: 'Escribinos por WhatsApp', href: 'https://wa.me/5491125750323' }} />
   if (error || !rev) return <Pantalla emoji="⚠️" titulo="Error de conexión" sub="No pudimos verificar tu acceso. Intentá recargar." />
 
-  const catalogoFiltrado = soloConStock ? catalogo.filter(b => (b.stock || 0) > 0) : catalogo
+  const catalogoFiltrado = filtroStock === 'local'
+    ? catalogo.filter(b => (b.stock || 0) > 0)
+    : filtroStock === 'deposito'
+    ? catalogo.filter(b => (b.stock || 0) === 0)
+    : catalogo
 
   return (
     <div style={s.wrap}>
@@ -457,8 +461,9 @@ export default function Portal() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ ...s.cardTitle, marginBottom: 0 }}>🔋 Catálogo de bombas</div>
               <div style={s.toggleBtns}>
-                <button onClick={() => setSoloConStock(false)} style={{ ...s.toggleBtn, ...(soloConStock ? {} : s.toggleBtnActive) }}>Todos ({catalogo.length})</button>
-                <button onClick={() => setSoloConStock(true)} style={{ ...s.toggleBtn, ...(soloConStock ? s.toggleBtnActive : {}) }}>✅ Con stock ({catalogo.filter(b => (b.stock || 0) > 0).length})</button>
+                <button onClick={() => setFiltroStock('todos')} style={{ ...s.toggleBtn, ...(filtroStock==='todos' ? s.toggleBtnActive : {}) }}>Todos ({catalogo.length})</button>
+                <button onClick={() => setFiltroStock('local')} style={{ ...s.toggleBtn, ...(filtroStock==='local' ? s.toggleBtnActive : {}), color: filtroStock==='local' ? '#e8f0f8' : '#22c55e' }}>✅ En local — 72hs ({catalogo.filter(b=>(b.stock||0)>0).length})</button>
+                <button onClick={() => setFiltroStock('deposito')} style={{ ...s.toggleBtn, ...(filtroStock==='deposito' ? s.toggleBtnActive : {}), color: filtroStock==='deposito' ? '#e8f0f8' : '#fb923c' }}>📦 A verificar ({catalogo.filter(b=>(b.stock||0)===0).length})</button>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
@@ -482,8 +487,8 @@ export default function Portal() {
                             {!mostrarPublico && b.precio_full && <div style={{ fontSize: 10, color: '#3a5a7a' }}>Público: {fmt(b.precio_full)}</div>}
                           </>
                         ) : <div style={{ fontSize: 12, color: '#3a5a7a' }}>Precio a confirmar</div>}
-                        <div style={{ fontSize: 11, fontWeight: 600, color: conStock ? '#22c55e' : '#ef4444', marginTop: 4 }}>
-                          {conStock ? `✅ Stock: ${b.stock}` : '❌ Sin stock'}
+                        <div style={{ fontSize: 11, fontWeight: 600, color: conStock ? '#22c55e' : '#fb923c', marginTop: 4 }}>
+                          {conStock ? `✅ En local · Stock: ${b.stock} · Entrega 72hs` : '📦 A verificar en depósito'}
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
