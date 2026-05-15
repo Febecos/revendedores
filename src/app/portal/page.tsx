@@ -930,6 +930,9 @@ export default function Portal() {
 }
 
 function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostrar, wa, litros, altura, compact = false, onVerDetalle }: any) {
+  const [mostrarROI, setMostrarROI] = useState(false)
+  const [provincia, setProvincia] = useState('')
+  const [sistemaActual, setSistemaActual] = useState('')
   const precio = precioMostrar(bomba.precio_full)
   const precioPublico = bomba.precio_full
   const msg = encodeURIComponent(
@@ -937,6 +940,26 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
     `Consulto por bomba *${bomba.codigo}* para cliente con ${litros} L/día a ${altura}m.\n` +
     `Precio mayorista: ${fmt(precioMayorista(precioPublico, descuento))}`
   )
+
+  const PROVINCIAS = ['Buenos Aires','CABA','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán']
+  const SISTEMAS = [
+    { val: 'generator', label: '⚡ Generador / luz de red' },
+    { val: 'molino_existente', label: '🌀 Molino de viento' },
+    { val: 'sin_sistema', label: '🚰 Sin sistema actual' },
+  ]
+
+  function roiUrl() {
+    const params = new URLSearchParams({
+      pump_codigo: bomba.codigo,
+      height: String(altura),
+      liters: String(litros),
+      from: 'revendedor',
+    })
+    if (provincia) params.set('zone', provincia)
+    if (sistemaActual) params.set('agua_hoy', sistemaActual)
+    return `https://simulador-roi-seven.vercel.app?${params.toString()}`
+  }
+
   return (
     <div style={{ ...s.bombaCard, padding: compact ? '12px 16px' : '20px' }}>
       <div style={s.bombaCodigo}>{bomba.codigo}</div>
@@ -975,16 +998,58 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
           <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={s.btnWA}>
             Consultar stock →
           </a>
-          <a
-            href={`https://simulador-roi-seven.vercel.app?pump_codigo=${encodeURIComponent(bomba.codigo)}&height=${altura}&liters=${litros}&from=revendedor`}
-            target="_blank" rel="noopener noreferrer"
-            style={{ display:'inline-block', padding:'8px 14px', background:'rgba(232,104,26,0.15)', border:'1px solid #e8681a', borderRadius:8, color:'#e8681a', fontSize:12, fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' as const }}
-          >
-            ⚡ Ver ROI del cliente →
-          </a>
         </div>
       </div>
       {nota && !compact && <div style={s.notaTxt}>{nota}</div>}
+
+      {/* PANEL ROI */}
+      {!compact && (
+        <div style={{ marginTop: 12 }}>
+          <button
+            onClick={() => setMostrarROI(!mostrarROI)}
+            style={{ width:'100%', padding:'10px 16px', background: mostrarROI ? '#1e3248' : 'rgba(232,104,26,0.1)', border:`1px solid ${mostrarROI?'#2a4a6a':'#e8681a'}`, borderRadius:8, color: mostrarROI?'#7a9ab5':'#e8681a', fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
+          >
+            {mostrarROI ? '▲ Cerrar análisis' : '⚡ Analizar retorno de inversión del cliente'}
+          </button>
+
+          {mostrarROI && (
+            <div style={{ background:'#0d1a2a', border:'1px solid #1e3248', borderRadius:8, padding:16, marginTop:8 }}>
+              <div style={{ fontSize:12, color:'#7a9ab5', marginBottom:12 }}>
+                Completá estos datos para calcular en cuánto tiempo recupera la inversión tu cliente.
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
+                <div style={{ display:'flex', flexDirection:'column' as const, gap:4 }}>
+                  <label style={{ fontSize:11, fontWeight:600, color:'#7a9ab5' }}>Provincia del cliente</label>
+                  <select
+                    style={{ padding:'8px 10px', background:'#132233', border:'1px solid #1e3248', borderRadius:8, color:'#e8f0f8', fontSize:13, fontFamily:'inherit', width:'100%' }}
+                    value={provincia} onChange={e=>setProvincia(e.target.value)}
+                  >
+                    <option value="">Seleccioná provincia...</option>
+                    {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column' as const, gap:4 }}>
+                  <label style={{ fontSize:11, fontWeight:600, color:'#7a9ab5' }}>¿Qué usa hoy el cliente?</label>
+                  <div style={{ display:'flex', flexDirection:'column' as const, gap:4 }}>
+                    {SISTEMAS.map(s => (
+                      <button key={s.val} onClick={() => setSistemaActual(s.val)} style={{ padding:'7px 10px', border:`1px solid ${sistemaActual===s.val?'#e8681a':'#1e3248'}`, borderRadius:7, background: sistemaActual===s.val?'rgba(232,104,26,0.12)':'#132233', color: sistemaActual===s.val?'#e8681a':'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <a
+                href={roiUrl()}
+                target="_blank" rel="noopener noreferrer"
+                style={{ display:'block', width:'100%', padding:'12px', background: provincia && sistemaActual ? '#e8681a' : '#1e3248', color: provincia && sistemaActual ? '#fff' : '#3a5a7a', borderRadius:8, textAlign:'center' as const, fontWeight:700, fontSize:14, textDecoration:'none', pointerEvents: provincia && sistemaActual ? 'auto' : 'none' as any }}
+              >
+                {provincia && sistemaActual ? '⚡ Ver ROI completo del cliente →' : 'Completá provincia y sistema para continuar'}
+              </a>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
