@@ -149,65 +149,90 @@ function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUs
 function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number, diam: string) => void }) {
   const [tab, setTab] = useState<'simple'|'avanzado'>('simple')
   const [tipo, setTipo] = useState<'sumergible'|'superficial'|'riego'>('sumergible')
-  // Simple
   const [nivDin, setNivDin] = useState(10)
   const [altDesc, setAltDesc] = useState(2)
   const [altAsp, setAltAsp] = useState(3)
   const [altRiego, setAltRiego] = useState(5)
-  const [presion, setPresion] = useState(0)
+  const [presionKg, setPresionKg] = useState(0)
   const [longImp, setLongImp] = useState(15)
   const [longAsp, setLongAsp] = useState(6)
   const [diam, setDiam] = useState('2')
   const [mat, setMat] = useState('PVC')
-  const [caudal, setCaudal] = useState(5)
+  // Caudal: input en L/h o L/día
+  const [caudalUnidad, setCaudalUnidad] = useState<'lh'|'ldia'>('ldia')
+  const [caudalVal, setCaudalVal] = useState(3000)
   const [accsImp, setAccsImp] = useState<Record<string,number>>({})
   const [accsAsp, setAccsAsp] = useState<Record<string,number>>({})
+  const [mostrarAccs, setMostrarAccs] = useState(false)
+  const [mostrarAccsAsp, setMostrarAccsAsp] = useState(false)
   // Avanzado
   const [altGeoAv, setAltGeoAv] = useState(15)
-  const [presionAv, setPresionAv] = useState(0)
-  const [tramos, setTramos] = useState<any[]>([{ id:1, nombre:'Tramo 1', longitud:15, diam:'2', caudal:5, mat:'PVC', accs:{} }])
-  // Común
-  const [litrosDia, setLitrosDia] = useState(3000)
+  const [presionKgAv, setPresionKgAv] = useState(0)
+  const [tramos, setTramos] = useState<any[]>([{ id:1, nombre:'Tramo 1', longitud:15, diam:'2', caudalLdia:3000, mat:'PVC', accs:{}, mostrarAccs:false }])
   const [diamPerf, setDiamPerf] = useState('3')
   const [resSimple, setResSimple] = useState<any>(null)
   const [resAv, setResAv] = useState<any>(null)
 
   const altGeoSimple = tipo==='sumergible' ? nivDin+altDesc : tipo==='superficial' ? altAsp+altDesc : altRiego
+  // Conversión caudal a m³/h
+  const caudalM3h = caudalUnidad==='ldia' ? caudalVal/1000/8 : caudalVal/1000
+  const litrosDia = caudalUnidad==='ldia' ? caudalVal : caudalVal*8
+  const presionM = presionKg * 10
 
   function calcSimple() {
-    const tramosCalc = []
+    const tramosCalc: any[] = []
     if (tipo==='superficial' && (longAsp>0||Object.values(accsAsp).some(v=>v>0))) {
-      const r = calcTramo(longAsp, diam, caudal, mat, accsAsp)
+      const r = calcTramo(longAsp, diam, caudalM3h, mat, accsAsp)
       tramosCalc.push({ nombre:'Aspiración', diam, ...r })
     }
-    const longR = tipo==='riego' ? longImp : longImp
-    const r2 = calcTramo(longR, diam, caudal, mat, accsImp)
+    const r2 = calcTramo(longImp, diam, caudalM3h, mat, accsImp)
     tramosCalc.push({ nombre: tipo==='superficial'?'Impulsión':'Cañería', diam, ...r2 })
     const fricTotal = parseFloat(tramosCalc.reduce((s,t)=>s+t.perdida,0).toFixed(2))
-    const mca = parseFloat((altGeoSimple + fricTotal + presion).toFixed(2))
+    const mca = parseFloat((altGeoSimple + fricTotal + presionM).toFixed(2))
     setResSimple({ altGeo: altGeoSimple, friccion: fricTotal, mca, tramos: tramosCalc })
   }
 
   function calcAvanzado() {
     const tramosCalc = tramos.map(t => {
-      const r = calcTramo(t.longitud, t.diam, t.caudal, t.mat, t.accs||{})
+      const q = (t.caudalLdia||3000)/1000/8
+      const r = calcTramo(t.longitud, t.diam, q, t.mat, t.accs||{})
       return { nombre: t.nombre, diam: t.diam, ...r }
     })
     const fricTotal = parseFloat(tramosCalc.reduce((s,t)=>s+t.perdida,0).toFixed(2))
-    const mca = parseFloat((altGeoAv + fricTotal + presionAv).toFixed(2))
-    setResAv({ altGeo: altGeoAv, friccion: fricTotal, mca, tramos: tramosCalc })
+    const mca = parseFloat((altGeoAv + fricTotal + presionKgAv*10).toFixed(2))
+    const litTot = tramos[0]?.caudalLdia || 3000
+    setResAv({ altGeo: altGeoAv, friccion: fricTotal, mca, tramos: tramosCalc, litrosDia: litTot })
   }
 
   const ci = { background:'#0d1a2a', border:'1px solid #1e3248', borderRadius:8, padding:'8px 10px', color:'#e8f0f8', fontSize:13, fontFamily:'inherit', width:'100%' } as React.CSSProperties
   const lbl = { fontSize:11, fontWeight:600, color:'#7a9ab5', marginBottom:4, display:'block' } as React.CSSProperties
   const fld = { display:'flex', flexDirection:'column' as const, gap:2 }
 
+  function AccsSection({ accs, setAccs, label, mostrar, setMostrar }: any) {
+    return (
+      <div style={{ marginBottom:10 }}>
+        <button onClick={() => setMostrar(!mostrar)} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', background:'#132233', border:'1px solid #1e3248', borderRadius:8, color:'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer', width:'100%' }}>
+          <span>{mostrar ? '▲' : '▼'}</span>
+          <span>{label}</span>
+          {Object.values(accs).some((v:any)=>v>0) && <span style={{ marginLeft:'auto', background:'#e8681a', color:'#fff', borderRadius:4, padding:'1px 7px', fontSize:11 }}>{Object.values(accs).filter((v:any)=>v>0).length} tipos</span>}
+        </button>
+        {mostrar && (
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginTop:8 }}>
+            {Object.keys(ACC_NAMES).map(k => (
+              <AccCounter key={k} label={ACC_NAMES[k]} val={accs[k]||0} onChange={v=>setAccs({...accs,[k]:v})} />
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div style={{ background:'#0d1a2a', border:'1px solid #1e3248', borderRadius:10, padding:16 }}>
       {/* Tabs */}
       <div style={{ display:'flex', gap:4, background:'#132233', borderRadius:8, padding:4, marginBottom:14 }}>
         {(['simple','avanzado'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ flex:1, padding:'7px 10px', border:'none', borderRadius:6, cursor:'pointer', fontSize:12, fontWeight:700, background: tab===t ? '#1e3248' : 'transparent', color: tab===t ? '#e8f0f8' : '#7a9ab5' }}>
+          <button key={t} onClick={() => setTab(t)} style={{ flex:1, padding:'7px 10px', border:'none', borderRadius:6, cursor:'pointer', fontSize:12, fontWeight:700, background: tab===t?'#1e3248':'transparent', color: tab===t?'#e8f0f8':'#7a9ab5' }}>
             {t==='simple' ? 'Instalación simple' : 'Múltiples tramos'}
           </button>
         ))}
@@ -215,10 +240,10 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
 
       {tab==='simple' && (
         <>
-          {/* Tipo instalación */}
+          {/* Tipo */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:14 }}>
             {(['sumergible','superficial','riego'] as const).map(t => (
-              <button key={t} onClick={() => setTipo(t)} style={{ border: `1.5px solid ${tipo===t?'#4ade80':'#1e3248'}`, borderRadius:8, padding:'8px 6px', textAlign:'center' as const, cursor:'pointer', background: tipo===t?'rgba(74,222,128,0.1)':'#132233', color: tipo===t?'#4ade80':'#7a9ab5', fontSize:11, fontWeight:600, lineHeight:1.3 }}>
+              <button key={t} onClick={() => setTipo(t)} style={{ border:`1.5px solid ${tipo===t?'#4ade80':'#1e3248'}`, borderRadius:8, padding:'8px 6px', textAlign:'center' as const, cursor:'pointer', background: tipo===t?'rgba(74,222,128,0.1)':'#132233', color: tipo===t?'#4ade80':'#7a9ab5', fontSize:11, fontWeight:600, lineHeight:1.3 }}>
                 <div style={{ fontSize:18, marginBottom:3 }}>{t==='sumergible'?'⬇️':t==='superficial'?'🔧':'💧'}</div>
                 {t==='sumergible'?'Sumergible':t==='superficial'?'Superficial':'Riego'}
               </button>
@@ -226,7 +251,7 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
           </div>
 
           {/* Geometría */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
             {tipo==='sumergible' && <>
               <div style={fld}><label style={lbl}>Nivel dinámico (m)</label><input style={ci} type="number" value={nivDin} min={0} step={0.5} onChange={e=>setNivDin(Number(e.target.value))} /></div>
               <div style={fld}><label style={lbl}>Altura descarga (m)</label><input style={ci} type="number" value={altDesc} min={0} step={0.5} onChange={e=>setAltDesc(Number(e.target.value))} /></div>
@@ -235,9 +260,7 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
               <div style={fld}><label style={lbl}>Altura aspiración (m)</label><input style={ci} type="number" value={altAsp} min={0} max={7.5} step={0.5} onChange={e=>setAltAsp(Number(e.target.value))} /></div>
               <div style={fld}><label style={lbl}>Altura descarga (m)</label><input style={ci} type="number" value={altDesc} min={0} step={0.5} onChange={e=>setAltDesc(Number(e.target.value))} /></div>
             </>}
-            {tipo==='riego' && <>
-              <div style={fld}><label style={lbl}>Diferencia de nivel (m)</label><input style={ci} type="number" value={altRiego} step={0.5} onChange={e=>setAltRiego(Number(e.target.value))} /></div>
-            </>}
+            {tipo==='riego' && <div style={fld}><label style={lbl}>Diferencia de nivel (m)</label><input style={ci} type="number" value={altRiego} step={0.5} onChange={e=>setAltRiego(Number(e.target.value))} /></div>}
           </div>
           <div style={{ background:'rgba(74,222,128,0.08)', border:'1px solid #1e5c2a', borderRadius:8, padding:'8px 14px', fontSize:13, color:'#4ade80', fontWeight:600, marginBottom:14 }}>
             📐 Altura geométrica: {altGeoSimple.toFixed(1)} m
@@ -247,39 +270,39 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:10, marginBottom:14 }}>
             <div style={fld}><label style={lbl}>Diámetro caño</label><select style={ci} value={diam} onChange={e=>setDiam(e.target.value)}>{DIAMS_C.map(d=><option key={d}>{d}</option>)}</select></div>
             <div style={fld}><label style={lbl}>Material</label><select style={ci} value={mat} onChange={e=>setMat(e.target.value)}>{MATS_C.map(m=><option key={m}>{m}</option>)}</select></div>
-            <div style={fld}><label style={lbl}>Caudal (m³/h)</label><input style={ci} type="number" value={caudal} min={0.1} step={0.5} onChange={e=>setCaudal(Number(e.target.value))} /></div>
-            <div style={fld}><label style={lbl}>{tipo==='superficial'?'Long. impulsión (m)':'Longitud (m)'}</label><input style={ci} type="number" value={longImp} min={0} step={1} onChange={e=>setLongImp(Number(e.target.value))} /></div>
-            {tipo==='superficial' && <div style={fld}><label style={lbl}>Long. aspiración (m)</label><input style={ci} type="number" value={longAsp} min={0} step={1} onChange={e=>setLongAsp(Number(e.target.value))} /></div>}
-            <div style={fld}><label style={lbl}>Presión descarga (m)</label><input style={ci} type="number" value={presion} min={0} step={1} onChange={e=>setPresion(Number(e.target.value))} /></div>
-          </div>
-
-          {/* Accesorios impulsión */}
-          <div style={{ fontSize:11, fontWeight:700, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:8 }}>
-            {tipo==='superficial'?'Accesorios impulsión':'Accesorios'}
-          </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom: tipo==='superficial'?14:0 }}>
-            {Object.keys(ACC_NAMES).map(k => (
-              <AccCounter key={k} label={ACC_NAMES[k]} val={accsImp[k]||0} onChange={v=>setAccsImp({...accsImp,[k]:v})} />
-            ))}
-          </div>
-
-          {/* Accesorios aspiración (solo superficial) */}
-          {tipo==='superficial' && <>
-            <div style={{ fontSize:11, fontWeight:700, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:8 }}>Accesorios aspiración</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:0 }}>
-              {['curva_normal','codo_45','valv_retencion','valv_esclusa','te_normal','entrada_ord'].map(k => (
-                <AccCounter key={k} label={ACC_NAMES[k]} val={accsAsp[k]||0} onChange={v=>setAccsAsp({...accsAsp,[k]:v})} />
-              ))}
+            <div style={fld}>
+              <label style={lbl}>Caudal</label>
+              <div style={{ display:'flex', gap:4 }}>
+                <input style={{ ...ci, flex:1 }} type="number" value={caudalVal} min={1} step={100} onChange={e=>setCaudalVal(Number(e.target.value))} />
+                <select style={{ ...ci, width:'auto', paddingRight:28 }} value={caudalUnidad} onChange={e=>setCaudalUnidad(e.target.value as any)}>
+                  <option value="ldia">L/día</option>
+                  <option value="lh">L/hora</option>
+                </select>
+              </div>
+              <span style={{ fontSize:10, color:'#3a5a7a' }}>= {caudalM3h.toFixed(3)} m³/h</span>
             </div>
-          </>}
-
-          {/* Litros y diám perf para traspaso */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginTop:14 }}>
-            <div style={fld}><label style={lbl}>Litros/día del cliente</label><input style={ci} type="number" value={litrosDia} min={100} step={100} onChange={e=>setLitrosDia(Number(e.target.value))} /></div>
-            <div style={fld}><label style={lbl}>Diám. perforación</label><select style={ci} value={diamPerf} onChange={e=>setDiamPerf(e.target.value)}>
-              <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
-            </select></div>
+            {tipo==='superficial'
+              ? <>
+                  <div style={fld}><label style={lbl}>Dist. horizontal imp. (m)</label><input style={ci} type="number" value={longImp} min={0} step={1} onChange={e=>setLongImp(Number(e.target.value))} /></div>
+                  <div style={fld}><label style={lbl}>Dist. horizontal asp. (m)</label><input style={ci} type="number" value={longAsp} min={0} step={1} onChange={e=>setLongAsp(Number(e.target.value))} /></div>
+                </>
+              : <div style={fld}><label style={lbl}>Distancia horizontal (m)</label><input style={ci} type="number" value={longImp} min={0} step={1} onChange={e=>setLongImp(Number(e.target.value))} /></div>
+            }
+            <div style={fld}>
+              <label style={lbl}>Presión requerida (kg/cm²)</label>
+              <input style={ci} type="number" value={presionKg} min={0} step={0.5} onChange={e=>setPresionKg(Number(e.target.value))} />
+              {presionKg > 0 && <span style={{ fontSize:10, color:'#3a5a7a' }}>= {presionM.toFixed(1)} m</span>}
+            </div>
           </div>
+
+          {/* Accesorios colapsables */}
+          <AccsSection accs={accsImp} setAccs={setAccsImp} label={tipo==='superficial'?'Accesorios impulsión':'Agregar accesorios'} mostrar={mostrarAccs} setMostrar={setMostrarAccs} />
+          {tipo==='superficial' && <AccsSection accs={accsAsp} setAccs={setAccsAsp} label="Accesorios aspiración" mostrar={mostrarAccsAsp} setMostrar={setMostrarAccsAsp} />}
+
+          {/* Diám perf */}
+          <div style={fld}><label style={lbl}>Diám. perforación</label><select style={ci} value={diamPerf} onChange={e=>setDiamPerf(e.target.value)}>
+            <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
+          </select></div>
 
           <button onClick={calcSimple} style={{ width:'100%', padding:'11px', background:'#1a6b3c', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:14 }}>
             Calcular MCA
@@ -292,7 +315,11 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
         <>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
             <div style={fld}><label style={lbl}>Altura geométrica total (m)</label><input style={ci} type="number" value={altGeoAv} step={0.5} onChange={e=>setAltGeoAv(Number(e.target.value))} /></div>
-            <div style={fld}><label style={lbl}>Presión requerida (m)</label><input style={ci} type="number" value={presionAv} min={0} onChange={e=>setPresionAv(Number(e.target.value))} /></div>
+            <div style={fld}>
+              <label style={lbl}>Presión requerida (kg/cm²)</label>
+              <input style={ci} type="number" value={presionKgAv} min={0} step={0.5} onChange={e=>setPresionKgAv(Number(e.target.value))} />
+              {presionKgAv > 0 && <span style={{ fontSize:10, color:'#3a5a7a' }}>= {(presionKgAv*10).toFixed(1)} m</span>}
+            </div>
           </div>
 
           {tramos.map((t, idx) => (
@@ -303,35 +330,37 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:8, marginBottom:8 }}>
                 <div style={fld}><label style={lbl}>Nombre</label><input style={ci} type="text" value={t.nombre} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,nombre:e.target.value}:x))} /></div>
-                <div style={fld}><label style={lbl}>Longitud (m)</label><input style={ci} type="number" value={t.longitud} min={0} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,longitud:Number(e.target.value)}:x))} /></div>
-                <div style={fld}><label style={lbl}>Caudal (m³/h)</label><input style={ci} type="number" value={t.caudal} min={0.1} step={0.5} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,caudal:Number(e.target.value)}:x))} /></div>
+                <div style={fld}><label style={lbl}>Dist. horizontal (m)</label><input style={ci} type="number" value={t.longitud} min={0} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,longitud:Number(e.target.value)}:x))} /></div>
+                <div style={fld}><label style={lbl}>Caudal (L/día)</label><input style={ci} type="number" value={t.caudalLdia||3000} min={100} step={100} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,caudalLdia:Number(e.target.value)}:x))} /></div>
                 <div style={fld}><label style={lbl}>Diámetro</label><select style={ci} value={t.diam} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,diam:e.target.value}:x))}>{DIAMS_C.map(d=><option key={d}>{d}</option>)}</select></div>
                 <div style={fld}><label style={lbl}>Material</label><select style={ci} value={t.mat} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,mat:e.target.value}:x))}>{MATS_C.map(m=><option key={m}>{m}</option>)}</select></div>
               </div>
-              <div style={{ fontSize:11, fontWeight:700, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:6 }}>Accesorios</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:5 }}>
-                {Object.keys(ACC_NAMES).map(k => (
-                  <AccCounter key={k} label={ACC_NAMES[k]} val={(t.accs||{})[k]||0} onChange={v=>setTramos(tramos.map((x,i)=>i===idx?{...x,accs:{...(x.accs||{}),[k]:v}}:x))} />
-                ))}
-              </div>
+              <button onClick={() => setTramos(tramos.map((x,i)=>i===idx?{...x,mostrarAccs:!x.mostrarAccs}:x))} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', background:'#0d1a2a', border:'1px solid #1e3248', borderRadius:7, color:'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer', marginBottom:8 }}>
+                {t.mostrarAccs?'▲':'▼'} Accesorios
+                {Object.values(t.accs||{}).some((v:any)=>v>0) && <span style={{ background:'#e8681a', color:'#fff', borderRadius:4, padding:'1px 7px', fontSize:11 }}>{Object.values(t.accs||{}).filter((v:any)=>v>0).length} tipos</span>}
+              </button>
+              {t.mostrarAccs && (
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:5 }}>
+                  {Object.keys(ACC_NAMES).map(k => (
+                    <AccCounter key={k} label={ACC_NAMES[k]} val={(t.accs||{})[k]||0} onChange={v=>setTramos(tramos.map((x,i)=>i===idx?{...x,accs:{...(x.accs||{}),[k]:v}}:x))} />
+                  ))}
+                </div>
+              )}
             </div>
           ))}
 
-          <button onClick={() => setTramos([...tramos,{id:Date.now(),nombre:`Tramo ${tramos.length+1}`,longitud:10,diam:'2',caudal:5,mat:'PVC',accs:{}}])} style={{ width:'100%', padding:'8px', border:'1.5px dashed #1e3248', borderRadius:8, background:'transparent', color:'#7a9ab5', fontSize:13, cursor:'pointer', marginBottom:14 }}>
+          <button onClick={() => setTramos([...tramos,{id:Date.now(),nombre:`Tramo ${tramos.length+1}`,longitud:10,diam:'2',caudalLdia:3000,mat:'PVC',accs:{},mostrarAccs:false}])} style={{ width:'100%', padding:'8px', border:'1.5px dashed #1e3248', borderRadius:8, background:'transparent', color:'#7a9ab5', fontSize:13, cursor:'pointer', marginBottom:14 }}>
             + Agregar tramo
           </button>
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
-            <div style={fld}><label style={lbl}>Litros/día del cliente</label><input style={ci} type="number" value={litrosDia} min={100} step={100} onChange={e=>setLitrosDia(Number(e.target.value))} /></div>
-            <div style={fld}><label style={lbl}>Diám. perforación</label><select style={ci} value={diamPerf} onChange={e=>setDiamPerf(e.target.value)}>
-              <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
-            </select></div>
-          </div>
+          <div style={fld}><label style={lbl}>Diám. perforación</label><select style={ci} value={diamPerf} onChange={e=>setDiamPerf(e.target.value)}>
+            <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
+          </select></div>
 
-          <button onClick={calcAvanzado} style={{ width:'100%', padding:'11px', background:'#1a6b3c', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer' }}>
+          <button onClick={calcAvanzado} style={{ width:'100%', padding:'11px', background:'#1a6b3c', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:14 }}>
             Calcular instalación completa
           </button>
-          {resAv && <ResultadoMCA {...resAv} litrosDia={litrosDia} diamPerf={diamPerf} onUsar={onUsarMCA} />}
+          {resAv && <ResultadoMCA {...resAv} diamPerf={diamPerf} onUsar={onUsarMCA} />}
         </>
       )}
     </div>
