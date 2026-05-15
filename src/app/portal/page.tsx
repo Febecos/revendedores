@@ -511,7 +511,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor }
     const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
 
     const kitHtml = data?.kit?.length > 0
-      ? data.kit.map((item: any) => `<tr><td>${item.nombre}${item.potencia_w ? ` — ${item.potencia_w}W` : ''}</td><td style="text-align:center">×${item.cantidad}</td></tr>`).join('')
+      ? data.kit.map((item: any) => `<tr><td style="padding:3px 8px">${item.nombre}${item.potencia_w ? ` — ${item.potencia_w}W` : ''}</td><td style="text-align:center;padding:3px 8px">×${item.cantidad}</td></tr>`).join('')
       : ''
 
     const curvasHtml = data?.curvas?.length > 0
@@ -521,41 +521,41 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor }
     const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>Presupuesto ${nro}</title>
 <style>
-  body { font-family: Arial, sans-serif; color: #1a1a18; margin: 0; padding: 32px; font-size: 13px; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1a6b3c; padding-bottom: 16px; margin-bottom: 24px; }
-  .logo { font-size: 22px; font-weight: 800; color: #1a6b3c; }
-  .logo span { color: #e8681a; }
+  body { font-family: Arial, sans-serif; color: #1a1a18; margin: 0; padding: 24px 32px; font-size: 12px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1a6b3c; padding-bottom: 12px; margin-bottom: 16px; }
+  .logo img { height: 40px; object-fit: contain; }
   .presup-num { text-align: right; }
-  .presup-num h2 { font-size: 18px; margin: 0; color: #1a1a18; }
-  .presup-num p { margin: 4px 0; color: #666; font-size: 12px; }
-  .atendido { background: #f0f9f4; border: 1px solid #b8ddc8; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 12px; color: #1a6b3c; }
-  h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #666; border-bottom: 1px solid #e2e0d8; padding-bottom: 6px; margin: 20px 0 12px; }
-  .specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+  .presup-num h2 { font-size: 16px; margin: 0; color: #1a1a18; }
+  .presup-num p { margin: 3px 0; color: #666; font-size: 11px; }
+  .atendido { background: #f0f9f4; border: 1px solid #b8ddc8; border-radius: 6px; padding: 8px 14px; margin-bottom: 14px; font-size: 12px; color: #1a6b3c; }
+  h3 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #666; border-bottom: 1px solid #e2e0d8; padding-bottom: 4px; margin: 14px 0 10px; }
+  .specs-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px 16px; }
   .spec { display: flex; flex-direction: column; }
-  .spec-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 2px; }
-  .spec-val { font-size: 13px; font-weight: 600; }
-  .precio-box { background: #f0f9f4; border: 2px solid #1a6b3c; border-radius: 10px; padding: 16px 20px; margin: 20px 0; }
-  .precio-label { font-size: 11px; color: #666; margin-bottom: 4px; }
-  .precio-val { font-size: 28px; font-weight: 800; color: #1a6b3c; }
+  .spec-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 1px; }
+  .spec-val { font-size: 12px; font-weight: 600; }
+  .precio-box { background: #f0f9f4; border: 2px solid #1a6b3c; border-radius: 8px; padding: 10px 16px; margin: 12px 0; display: flex; align-items: center; gap: 24px; }
+  .precio-label { font-size: 10px; color: #666; margin-bottom: 2px; }
+  .precio-val { font-size: 20px; font-weight: 800; color: #1a6b3c; }
   .stock-ok { color: #1a6b3c; font-weight: 700; }
   .stock-no { color: #c45c00; font-weight: 700; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { background: #f7f6f2; padding: 7px 10px; text-align: left; font-size: 11px; color: #666; border-bottom: 1px solid #e2e0d8; }
-  td { padding: 6px 10px; border-bottom: 1px solid #f0eeea; }
-  .footer { margin-top: 32px; border-top: 1px solid #e2e0d8; padding-top: 12px; font-size: 11px; color: #888; text-align: center; }
-  @media print { body { padding: 20px; } }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { background: #f7f6f2; padding: 5px 8px; text-align: left; font-size: 10px; color: #666; border-bottom: 1px solid #e2e0d8; }
+  td { padding: 4px 8px; border-bottom: 1px solid #f0eeea; }
+  .footer { margin-top: 20px; border-top: 1px solid #e2e0d8; padding-top: 10px; font-size: 10px; color: #888; text-align: center; }
+  @media print { body { padding: 16px 24px; } @page { size: A4; margin: 12mm; } }
 </style></head><body>
 <div class="header">
-  <div class="logo">FE<span>BE</span>COS<div style="font-size:11px;font-weight:400;color:#666;margin-top:2px">Bombeo Solar — febecos.com</div></div>
+  <div class="logo">
+    <div style="font-size:20px;font-weight:900;color:#1a6b3c;letter-spacing:-0.5px">FEBE<span style="color:#e8681a">COS</span></div>
+    <div style="font-size:10px;color:#666;margin-top:1px">Bombeo Solar — febecos.com</div>
+  </div>
   <div class="presup-num">
     <h2>Presupuesto N° ${nro}</h2>
     <p>Fecha: ${fecha}</p>
-    <p>Válido por 7 días hábiles</p>
+    <p>⏱ Válido por 48 horas</p>
   </div>
 </div>
-<div class="atendido">
-  ✅ Atendido por: <strong>${revendedor}</strong>
-</div>
+<div class="atendido">✅ Atendido por: <strong>${revendedor}</strong></div>
 <h3>Equipo de bombeo solar</h3>
 <div class="specs-grid">
   <div class="spec"><span class="spec-label">Marca</span><span class="spec-val">${data?.bomba?.marca || '—'}</span></div>
@@ -563,24 +563,36 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor }
   <div class="spec"><span class="spec-label">Potencia</span><span class="spec-val">${data?.bomba?.watts || '—'} W</span></div>
   <div class="spec"><span class="spec-label">Voltaje</span><span class="spec-val">${data?.bomba?.voltaje || '—'}</span></div>
   <div class="spec"><span class="spec-label">Paneles solares</span><span class="spec-val">${data?.bomba?.cant_paneles || '—'}</span></div>
-  <div class="spec"><span class="spec-label">Diámetro bomba</span><span class="spec-val">${data?.bomba?.diam_bomba || '—'}"</span></div>
-  <div class="spec"><span class="spec-label">Diámetro perforación mín.</span><span class="spec-val">${data?.bomba?.diam_perf || '—'}</span></div>
-  <div class="spec"><span class="spec-label">Disponibilidad</span><span class="spec-val ${data?.bomba?.stock > 0 ? 'stock-ok' : 'stock-no'}">${data?.bomba?.stock > 0 ? `✅ ${data.bomba.stock} unidades en stock` : '⚠ Sin stock — consultar'}</span></div>
+  <div class="spec"><span class="spec-label">Diám. bomba</span><span class="spec-val">${data?.bomba?.diam_bomba || '—'}"</span></div>
+  <div class="spec"><span class="spec-label">Diám. perf. mín.</span><span class="spec-val">${data?.bomba?.diam_perf || '—'}</span></div>
+  <div class="spec"><span class="spec-label">Disponibilidad</span><span class="spec-val ${data?.bomba?.stock > 0 ? 'stock-ok' : 'stock-no'}">${data?.bomba?.stock > 0 ? `✅ ${data.bomba.stock} en stock` : '⚠ Sin stock'}</span></div>
 </div>
 ${precio ? `<div class="precio-box">
-  <div class="precio-label">${mostrarPublico ? 'Precio público' : `Precio especial (${descuento}% descuento)`}</div>
-  <div class="precio-val">${fmt(precio)}</div>
-  ${!mostrarPublico && data?.bomba?.precio_full ? `<div style="font-size:12px;color:#666;margin-top:4px">Precio de lista: ${fmt(data.bomba.precio_full)}</div>` : ''}
+  <div>
+    <div class="precio-label">${mostrarPublico ? 'Precio público' : `Precio especial (${descuento}% descuento)`}</div>
+    <div class="precio-val">${fmt(precio)}</div>
+  </div>
+  ${!mostrarPublico && data?.bomba?.precio_full ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(data.bomba.precio_full)}</div>` : ''}
 </div>` : ''}
 ${curvasHtml ? `<h3>Rendimiento (L/día por altura)</h3>
 <table><thead><tr><th>Altura</th><th>☀️ Verano (${HSP.verano}h)</th><th>📅 Promedio (${HSP.promedio}h)</th><th>❄️ Invierno (${HSP.invierno}h)</th></tr></thead>
 <tbody>${curvasHtml}</tbody></table>` : ''}
 ${kitHtml ? `<h3>Kit completo incluido</h3>
-<table><thead><tr><th>Componente</th><th style="text-align:center">Cantidad</th></tr></thead>
-<tbody>${kitHtml}</tbody></table>` : ''}
+<table style="table-layout:fixed"><thead><tr><th style="width:45%">Componente</th><th style="width:10%;text-align:center">Cant.</th><th style="width:45%">Componente</th><th style="width:10%;text-align:center">Cant.</th></tr></thead>
+<tbody>${(() => {
+  const items = data?.kit || []
+  const rows = []
+  for (let i = 0; i < items.length; i += 2) {
+    const a = items[i], b = items[i+1]
+    const aName = `${a.nombre}${a.potencia_w ? ` — ${a.potencia_w}W` : ''}`
+    const bName = b ? `${b.nombre}${b.potencia_w ? ` — ${b.potencia_w}W` : ''}` : ''
+    rows.push(`<tr><td style="padding:3px 8px;font-size:11px">${aName}</td><td style="text-align:center;padding:3px 8px">×${a.cantidad}</td><td style="padding:3px 8px;font-size:11px">${bName}</td><td style="text-align:center;padding:3px 8px">${b ? '×'+b.cantidad : ''}</td></tr>`)
+  }
+  return rows.join('')
+})()}</tbody></table>` : ''}
 <div class="footer">
   Febecos — Bombeo Solar Argentina · febecos.com · info@febecos.com<br>
-  Este presupuesto es válido por 7 días hábiles desde la fecha de emisión. Sujeto a disponibilidad de stock.
+  Este presupuesto es válido por 48 horas desde la fecha de emisión. Sujeto a disponibilidad de stock.
 </div>
 </body></html>`
 
