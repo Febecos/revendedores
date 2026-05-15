@@ -470,9 +470,127 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 }
 
 
-function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [nroPresup, setNroPresup] = useState<string | null>(null)
+  const [generandoPDF, setGenerandoPDF] = useState(false)
+
+  async function obtenerNroPresupuesto(): Promise<string> {
+    try {
+      const anio = new Date().getFullYear()
+      // Leer el último número
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/presupuestos_counter?anio=eq.${anio}&select=id,ultimo_numero`, {
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+      })
+      const rows = await res.json()
+      if (!rows || rows.length === 0) return `PREV-${anio}-0001`
+      const row = rows[0]
+      const nuevo = (row.ultimo_numero || 0) + 1
+      // Actualizar el contador
+      await fetch(`${SUPABASE_URL}/rest/v1/presupuestos_counter?id=eq.${row.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' },
+        body: JSON.stringify({ ultimo_numero: nuevo })
+      })
+      return `PREV-${anio}-${String(nuevo).padStart(4, '0')}`
+    } catch { return `PREV-${new Date().getFullYear()}-XXXX` }
+  }
+
+  async function generarPDF() {
+    setGenerandoPDF(true)
+    let nro = nroPresup
+    if (!nro) {
+      nro = await obtenerNroPresupuesto()
+      setNroPresup(nro)
+    }
+    const precio = data?.bomba?.precio_full
+      ? (mostrarPublico ? data.bomba.precio_full : precioMayorista(data.bomba.precio_full, descuento))
+      : null
+    const fecha = new Date().toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' })
+    const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
+
+    const kitHtml = data?.kit?.length > 0
+      ? data.kit.map((item: any) => `<tr><td>${item.nombre}${item.potencia_w ? ` — ${item.potencia_w}W` : ''}</td><td style="text-align:center">×${item.cantidad}</td></tr>`).join('')
+      : ''
+
+    const curvasHtml = data?.curvas?.length > 0
+      ? data.curvas.map((c: any) => `<tr><td>${c.altura_m}m</td><td>${c.litros_verano.toLocaleString('es-AR')}</td><td>${c.litros_promedio.toLocaleString('es-AR')}</td><td>${c.litros_invierno.toLocaleString('es-AR')}</td></tr>`).join('')
+      : ''
+
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Presupuesto ${nro}</title>
+<style>
+  body { font-family: Arial, sans-serif; color: #1a1a18; margin: 0; padding: 32px; font-size: 13px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1a6b3c; padding-bottom: 16px; margin-bottom: 24px; }
+  .logo { font-size: 22px; font-weight: 800; color: #1a6b3c; }
+  .logo span { color: #e8681a; }
+  .presup-num { text-align: right; }
+  .presup-num h2 { font-size: 18px; margin: 0; color: #1a1a18; }
+  .presup-num p { margin: 4px 0; color: #666; font-size: 12px; }
+  .atendido { background: #f0f9f4; border: 1px solid #b8ddc8; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 12px; color: #1a6b3c; }
+  h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #666; border-bottom: 1px solid #e2e0d8; padding-bottom: 6px; margin: 20px 0 12px; }
+  .specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+  .spec { display: flex; flex-direction: column; }
+  .spec-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 2px; }
+  .spec-val { font-size: 13px; font-weight: 600; }
+  .precio-box { background: #f0f9f4; border: 2px solid #1a6b3c; border-radius: 10px; padding: 16px 20px; margin: 20px 0; }
+  .precio-label { font-size: 11px; color: #666; margin-bottom: 4px; }
+  .precio-val { font-size: 28px; font-weight: 800; color: #1a6b3c; }
+  .stock-ok { color: #1a6b3c; font-weight: 700; }
+  .stock-no { color: #c45c00; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #f7f6f2; padding: 7px 10px; text-align: left; font-size: 11px; color: #666; border-bottom: 1px solid #e2e0d8; }
+  td { padding: 6px 10px; border-bottom: 1px solid #f0eeea; }
+  .footer { margin-top: 32px; border-top: 1px solid #e2e0d8; padding-top: 12px; font-size: 11px; color: #888; text-align: center; }
+  @media print { body { padding: 20px; } }
+</style></head><body>
+<div class="header">
+  <div class="logo">FE<span>BE</span>COS<div style="font-size:11px;font-weight:400;color:#666;margin-top:2px">Bombeo Solar — febecos.com</div></div>
+  <div class="presup-num">
+    <h2>Presupuesto N° ${nro}</h2>
+    <p>Fecha: ${fecha}</p>
+    <p>Válido por 7 días hábiles</p>
+  </div>
+</div>
+<div class="atendido">
+  ✅ Atendido por: <strong>${revendedor}</strong>
+</div>
+<h3>Equipo de bombeo solar</h3>
+<div class="specs-grid">
+  <div class="spec"><span class="spec-label">Marca</span><span class="spec-val">${data?.bomba?.marca || '—'}</span></div>
+  <div class="spec"><span class="spec-label">Tipo</span><span class="spec-val">${data?.bomba?.impulsor || '—'}</span></div>
+  <div class="spec"><span class="spec-label">Potencia</span><span class="spec-val">${data?.bomba?.watts || '—'} W</span></div>
+  <div class="spec"><span class="spec-label">Voltaje</span><span class="spec-val">${data?.bomba?.voltaje || '—'}</span></div>
+  <div class="spec"><span class="spec-label">Paneles solares</span><span class="spec-val">${data?.bomba?.cant_paneles || '—'}</span></div>
+  <div class="spec"><span class="spec-label">Diámetro bomba</span><span class="spec-val">${data?.bomba?.diam_bomba || '—'}"</span></div>
+  <div class="spec"><span class="spec-label">Diámetro perforación mín.</span><span class="spec-val">${data?.bomba?.diam_perf || '—'}</span></div>
+  <div class="spec"><span class="spec-label">Disponibilidad</span><span class="spec-val ${data?.bomba?.stock > 0 ? 'stock-ok' : 'stock-no'}">${data?.bomba?.stock > 0 ? `✅ ${data.bomba.stock} unidades en stock` : '⚠ Sin stock — consultar'}</span></div>
+</div>
+${precio ? `<div class="precio-box">
+  <div class="precio-label">${mostrarPublico ? 'Precio público' : `Precio especial (${descuento}% descuento)`}</div>
+  <div class="precio-val">${fmt(precio)}</div>
+  ${!mostrarPublico && data?.bomba?.precio_full ? `<div style="font-size:12px;color:#666;margin-top:4px">Precio de lista: ${fmt(data.bomba.precio_full)}</div>` : ''}
+</div>` : ''}
+${curvasHtml ? `<h3>Rendimiento (L/día por altura)</h3>
+<table><thead><tr><th>Altura</th><th>☀️ Verano (${HSP.verano}h)</th><th>📅 Promedio (${HSP.promedio}h)</th><th>❄️ Invierno (${HSP.invierno}h)</th></tr></thead>
+<tbody>${curvasHtml}</tbody></table>` : ''}
+${kitHtml ? `<h3>Kit completo incluido</h3>
+<table><thead><tr><th>Componente</th><th style="text-align:center">Cantidad</th></tr></thead>
+<tbody>${kitHtml}</tbody></table>` : ''}
+<div class="footer">
+  Febecos — Bombeo Solar Argentina · febecos.com · info@febecos.com<br>
+  Este presupuesto es válido por 7 días hábiles desde la fecha de emisión. Sujeto a disponibilidad de stock.
+</div>
+</body></html>`
+
+    const win = window.open('', '_blank')
+    if (win) {
+      win.document.write(html)
+      win.document.close()
+      setTimeout(() => { win.print(); setGenerandoPDF(false) }, 500)
+    } else { setGenerandoPDF(false) }
+  }
 
   useEffect(() => {
     fetch(`${API_DETALLE}?codigo=${encodeURIComponent(codigo)}`)
@@ -519,7 +637,14 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
             <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: '#e8681a' }}>{codigo}</div>
             <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 2 }}>Detalle del equipo — datos en tiempo real desde Febecos</div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            {data?.ok && (
+              <button onClick={generarPDF} disabled={generandoPDF} style={{ padding:'7px 14px', background:'#e8681a', border:'none', borderRadius:8, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
+                📄 {generandoPDF ? 'Generando...' : nroPresup ? `PDF ${nroPresup}` : 'Generar PDF'}
+              </button>
+            )}
+            <button onClick={onClose} style={{ width: 32, height: 32, background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+          </div>
         </div>
 
         <div style={{ padding: '20px 22px' }}>
@@ -747,6 +872,7 @@ export default function Portal() {
           descuento={rev.descuento_pct}
           mostrarPublico={mostrarPublico}
           onClose={() => setModalCodigo(null)}
+          revendedor={`${rev.nombre} ${rev.apellido}${rev.empresa ? ' — ' + rev.empresa : ''}`}
         />
       )}
 
