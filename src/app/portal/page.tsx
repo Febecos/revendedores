@@ -76,7 +76,126 @@ function CurvaGrafico({ curvas }: { curvas: any[] }) {
   )
 }
 
-// ── MODAL DETALLE ──
+// ── CALCULADORA MCA INTEGRADA ──
+const TABLA_FRICCION: Record<string, number[][]> = {"2":[[1.14,0.1],[2.27,0.4],[3.40,0.8],[4.55,1.3],[5.68,2.0],[6.80,2.8],[7.95,3.8],[9.10,4.8],[10.2,6.0],[11.4,7.3],[13.6,10.2],[15.9,13.6],[17.0,15.4],[18.2,17.4],[20.4,21.7],[22.7,26.2]],"2 1/2":[[3.40,0.3],[4.55,0.5],[5.68,0.7],[6.80,1.0],[7.95,1.3],[9.10,1.6],[10.2,2.0],[11.4,2.5],[13.6,3.4],[15.9,4.5],[17.0,5.1],[18.2,5.8],[20.4,7.3],[22.7,8.8]],"3":[[5.68,0.3],[6.80,0.4],[7.95,0.5],[9.10,0.7],[10.2,0.8],[11.4,1.0],[13.6,1.4],[15.9,1.9],[17.0,2.1],[18.2,2.4],[20.4,3.0],[22.7,3.7],[28.4,5.4],[34.1,8.0]],"4":[[9.10,0.2],[10.2,0.3],[11.4,0.3],[13.6,0.4],[15.9,0.5],[17.0,0.6],[18.2,0.6],[20.4,0.8],[22.7,0.9],[28.4,1.3],[34.1,1.8],[39.8,2.5]]};
+const FACTOR_PVC = 0.65;
+
+function interpolarPerdida(diam: string, caudal: number): number {
+  const t = TABLA_FRICCION[diam]; if (!t) return 0;
+  const n = t.length;
+  if (caudal <= t[0][0]) return t[0][1] * Math.pow(caudal / t[0][0], 2);
+  if (caudal >= t[n-1][0]) return t[n-1][1] * Math.pow(caudal / t[n-1][0], 1.85);
+  for (let i = 0; i < n-1; i++) {
+    if (caudal >= t[i][0] && caudal <= t[i+1][0]) {
+      const r = (caudal - t[i][0]) / (t[i+1][0] - t[i][0]);
+      return t[i][1] + r * (t[i+1][1] - t[i][1]);
+    }
+  }
+  return 0;
+}
+
+function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number, diam: string) => void }) {
+  const [nivelDinamico, setNivelDinamico] = useState(10)
+  const [alturaDescarga, setAlturaDescarga] = useState(2)
+  const [distHoriz, setDistHoriz] = useState(0)
+  const [diamCano, setDiamCano] = useState('2')
+  const [caudal, setCaudal] = useState(5)
+  const [litrosDia, setLitrosDia] = useState(3000)
+  const [diamPerf, setDiamPerf] = useState('3')
+  const [resultado, setResultado] = useState<any>(null)
+
+  const altGeo = nivelDinamico + alturaDescarga
+
+  function calcular() {
+    const caudalM3h = caudal
+    const perdida100 = interpolarPerdida(diamCano, caudalM3h) * FACTOR_PVC
+    const friccion = parseFloat(((perdida100 / 100) * distHoriz).toFixed(2))
+    const mca = parseFloat((altGeo + friccion).toFixed(1))
+    setResultado({ altGeo, friccion, mca, caudalM3h })
+  }
+
+  return (
+    <div style={{ background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 10, padding: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 12 }}>
+        <div style={cs.campo}>
+          <label style={cs.label}>Nivel dinámico (m)</label>
+          <input style={cs.input} type="number" value={nivelDinamico} min={0} onChange={e => setNivelDinamico(Number(e.target.value))} />
+        </div>
+        <div style={cs.campo}>
+          <label style={cs.label}>Altura descarga (m)</label>
+          <input style={cs.input} type="number" value={alturaDescarga} min={0} onChange={e => setAlturaDescarga(Number(e.target.value))} />
+        </div>
+        <div style={cs.campo}>
+          <label style={cs.label}>Dist. horizontal (m)</label>
+          <input style={cs.input} type="number" value={distHoriz} min={0} onChange={e => setDistHoriz(Number(e.target.value))} />
+        </div>
+        <div style={cs.campo}>
+          <label style={cs.label}>Diám. cañería</label>
+          <select style={cs.input} value={diamCano} onChange={e => setDiamCano(e.target.value)}>
+            <option value="2">2"</option>
+            <option value="2 1/2">2½"</option>
+            <option value="3">3"</option>
+            <option value="4">4"</option>
+          </select>
+        </div>
+        <div style={cs.campo}>
+          <label style={cs.label}>Caudal (m³/h)</label>
+          <input style={cs.input} type="number" value={caudal} min={0.1} step={0.5} onChange={e => setCaudal(Number(e.target.value))} />
+        </div>
+        <div style={cs.campo}>
+          <label style={cs.label}>Litros/día requeridos</label>
+          <input style={cs.input} type="number" value={litrosDia} min={100} step={100} onChange={e => setLitrosDia(Number(e.target.value))} />
+        </div>
+        <div style={cs.campo}>
+          <label style={cs.label}>Diám. perforación</label>
+          <select style={cs.input} value={diamPerf} onChange={e => setDiamPerf(e.target.value)}>
+            <option value="2">2" (63mm)</option>
+            <option value="3">3" (80-90mm)</option>
+            <option value="4">4" (110mm)</option>
+            <option value="6">6" (152mm+)</option>
+          </select>
+        </div>
+      </div>
+
+      <button onClick={calcular} style={{ width: '100%', padding: '10px', background: '#1a6b3c', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: resultado ? 12 : 0 }}>
+        Calcular MCA
+      </button>
+
+      {resultado && (
+        <div style={{ background: '#0a2e18', borderRadius: 8, padding: 14 }}>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' as const }}>
+            <div style={{ flex: 1, textAlign: 'center' as const }}>
+              <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Altura geométrica</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#e8f0f8', fontFamily: 'monospace' }}>{resultado.altGeo.toFixed(1)} m</div>
+            </div>
+            <div style={{ flex: 1, textAlign: 'center' as const }}>
+              <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Fricción PVC</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#e8f0f8', fontFamily: 'monospace' }}>{resultado.friccion} m</div>
+            </div>
+            <div style={{ flex: 1, textAlign: 'center' as const, background: 'rgba(74,222,128,0.1)', borderRadius: 8, padding: '8px 4px' }}>
+              <div style={{ fontSize: 10, color: '#4ade80', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>MCA Total</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#4ade80', fontFamily: 'monospace' }}>{resultado.mca} m</div>
+            </div>
+          </div>
+          <button
+            onClick={() => onUsarMCA(resultado.mca, litrosDia, diamPerf)}
+            style={{ width: '100%', padding: '11px', background: '#e8681a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+          >
+            Usar esta MCA para buscar bomba →
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const cs: Record<string, React.CSSProperties> = {
+  campo: { display: 'flex', flexDirection: 'column', gap: 4 },
+  label: { fontSize: 11, fontWeight: 600, color: '#7a9ab5' },
+  input: { padding: '8px 10px', background: '#132233', border: '1px solid #1e3248', borderRadius: 7, color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit' },
+}
+
+
 function ModalDetalle({ codigo, descuento, mostrarPublico, onClose }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -260,7 +379,7 @@ export default function Portal() {
   const [verCatalogo, setVerCatalogo] = useState(false)
   const [cargandoCatalogo, setCargandoCatalogo] = useState(false)
   const [filtroStock, setFiltroStock] = useState<'todos'|'local'|'deposito'>('todos')
-  const [modalCodigo, setModalCodigo] = useState<string | null>(null)
+  const [mostrarCalculadora, setMostrarCalculadora] = useState(false)
 
   async function buscarBombaConParams(h: string, l: string, d: string) {
     setBuscando(true); setResultado(null); setErrCalc(null)
@@ -312,6 +431,17 @@ export default function Portal() {
       if (auto === '1' && h && l && d) setTimeout(() => buscarBombaConParams(h, l, d), 600)
     }).catch(() => {})
   }, [])
+
+  function usarMCA(mca: number, litros: number, diam: string) {
+    setAltura(String(mca))
+    setLitros(String(litros))
+    setDiametro(diam)
+    setMostrarCalculadora(false)
+    // Scroll a la calculadora de búsqueda
+    setTimeout(() => {
+      document.getElementById('buscar-bomba-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
 
   async function buscarBomba() {
     if (!altura || !litros) { setErrCalc('Completá altura y litros.'); return }
@@ -369,25 +499,26 @@ export default function Portal() {
 
       <div style={s.content}>
 
-        {!vieneDeMCA && (
-          <div style={s.bannerMCA}>
+        {/* CALCULADORA MCA INTEGRADA */}
+        <div style={{ ...s.card, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>🔢 ¿Necesitás calcular la MCA primero?</div>
-              <div style={{ fontSize: 13, color: '#7a9ab5' }}>Usá la calculadora hidráulica completa para instalaciones complejas</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#e8f0f8' }}>🔢 Calculadora MCA</div>
+              <div style={{ fontSize: 12, color: '#7a9ab5', marginTop: 2 }}>Calculá la altura manométrica total de la instalación</div>
             </div>
-            <a href={`https://revendedores-six.vercel.app/calculadora.html?token=${token}`} style={s.btnMCA} target="_blank" rel="noopener noreferrer">Ir a Calculadora MCA →</a>
+            <button
+              onClick={() => setMostrarCalculadora(!mostrarCalculadora)}
+              style={{ padding: '7px 14px', background: mostrarCalculadora ? '#1e3248' : 'rgba(96,165,250,0.12)', border: `1px solid ${mostrarCalculadora ? '#2a4a6a' : '#60a5fa'}`, borderRadius: 8, color: mostrarCalculadora ? '#7a9ab5' : '#60a5fa', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              {mostrarCalculadora ? '▲ Cerrar' : '▼ Abrir calculadora'}
+            </button>
           </div>
-        )}
-
-        {vieneDeMCA && (
-          <div style={{ ...s.bannerMCA, background: 'rgba(74,222,128,0.08)', borderColor: 'rgba(74,222,128,0.25)' }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: '#4ade80' }}>✅ Datos cargados desde la Calculadora MCA</div>
-              <div style={{ fontSize: 13, color: '#7a9ab5' }}>Altura: {altura}m · Litros: {parseInt(litros).toLocaleString('es-AR')} L/día · Diámetro: {diametro}"</div>
+          {mostrarCalculadora && (
+            <div style={{ marginTop: 14 }}>
+              <CalculadoraMCA onUsarMCA={usarMCA} />
             </div>
-            <a href={`https://revendedores-six.vercel.app/calculadora.html?token=${token}`} style={{ ...s.btnMCA, background: 'transparent', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}>← Volver a MCA</a>
-          </div>
-        )}
+          )}
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap' as const, gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -412,7 +543,7 @@ export default function Portal() {
         </div>
 
         {/* CALCULADORA */}
-        <div style={s.card}>
+        <div style={s.card} id="buscar-bomba-section">
           <div style={s.cardTitle}>🔍 Buscar bomba para tu cliente</div>
           <div style={s.calcGrid}>
             <div style={s.campo}>
