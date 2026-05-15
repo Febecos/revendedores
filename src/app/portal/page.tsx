@@ -250,37 +250,47 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
             ))}
           </div>
 
-          {/* Geometría */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
+          {/* FILA 1: Profundidad + Altura tanque + Altura geométrica */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:14 }}>
             {tipo==='sumergible' && <>
-              <div style={fld}><label style={lbl}>Nivel dinámico (m)</label><input style={ci} type="number" value={nivDin} min={0} step={0.5} onChange={e=>setNivDin(Number(e.target.value))} /></div>
-              <div style={fld}><label style={lbl}>Altura descarga (m)</label><input style={ci} type="number" value={altDesc} min={0} step={0.5} onChange={e=>setAltDesc(Number(e.target.value))} /></div>
+              <div style={fld}><label style={lbl}>Profundidad bomba (m)</label><input style={ci} type="number" value={nivDin} min={0} step={0.5} onChange={e=>setNivDin(Number(e.target.value))} /></div>
+              <div style={fld}><label style={lbl}>Altura tanque (m)</label><input style={ci} type="number" value={altDesc} min={0} step={0.5} onChange={e=>setAltDesc(Number(e.target.value))} /></div>
             </>}
             {tipo==='superficial' && <>
               <div style={fld}><label style={lbl}>Altura aspiración (m)</label><input style={ci} type="number" value={altAsp} min={0} max={7.5} step={0.5} onChange={e=>setAltAsp(Number(e.target.value))} /></div>
-              <div style={fld}><label style={lbl}>Altura descarga (m)</label><input style={ci} type="number" value={altDesc} min={0} step={0.5} onChange={e=>setAltDesc(Number(e.target.value))} /></div>
+              <div style={fld}><label style={lbl}>Altura tanque (m)</label><input style={ci} type="number" value={altDesc} min={0} step={0.5} onChange={e=>setAltDesc(Number(e.target.value))} /></div>
             </>}
-            {tipo==='riego' && <div style={fld}><label style={lbl}>Diferencia de nivel (m)</label><input style={ci} type="number" value={altRiego} step={0.5} onChange={e=>setAltRiego(Number(e.target.value))} /></div>}
-          </div>
-          <div style={{ background:'rgba(74,222,128,0.08)', border:'1px solid #1e5c2a', borderRadius:8, padding:'8px 14px', fontSize:13, color:'#4ade80', fontWeight:600, marginBottom:14 }}>
-            📐 Altura geométrica: {altGeoSimple.toFixed(1)} m
+            {tipo==='riego' && <>
+              <div style={fld}><label style={lbl}>Diferencia de nivel (m)</label><input style={ci} type="number" value={altRiego} step={0.5} onChange={e=>setAltRiego(Number(e.target.value))} /></div>
+              <div style={{ visibility:'hidden' }} />
+            </>}
+            <div style={{ ...fld, justifyContent:'flex-end' }}>
+              <label style={lbl}>Altura geométrica total</label>
+              <div style={{ background:'rgba(74,222,128,0.1)', border:'1px solid #1e5c2a', borderRadius:8, padding:'8px 12px', fontSize:18, color:'#4ade80', fontWeight:800, fontFamily:'monospace', textAlign:'center' as const }}>
+                {altGeoSimple.toFixed(1)} m
+              </div>
+            </div>
           </div>
 
-          {/* Cañería */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:10, marginBottom:14 }}>
+          {/* FILA 2: Diámetro caño + Material + Caudal */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:14 }}>
             <div style={fld}><label style={lbl}>Diámetro caño</label><select style={ci} value={diam} onChange={e=>setDiam(e.target.value)}>{DIAMS_C.map(d=><option key={d}>{d}</option>)}</select></div>
             <div style={fld}><label style={lbl}>Material</label><select style={ci} value={mat} onChange={e=>setMat(e.target.value)}>{MATS_C.map(m=><option key={m}>{m}</option>)}</select></div>
             <div style={fld}>
               <label style={lbl}>Caudal</label>
               <div style={{ display:'flex', gap:4 }}>
                 <input style={{ ...ci, flex:1 }} type="number" value={caudalVal} min={1} step={100} onChange={e=>setCaudalVal(Number(e.target.value))} />
-                <select style={{ ...ci, width:'auto', paddingRight:28 }} value={caudalUnidad} onChange={e=>setCaudalUnidad(e.target.value as any)}>
+                <select style={{ ...ci, width:'auto', paddingRight:24, paddingLeft:8 }} value={caudalUnidad} onChange={e=>setCaudalUnidad(e.target.value as any)}>
                   <option value="ldia">L/día</option>
                   <option value="lh">L/hora</option>
                 </select>
               </div>
               <span style={{ fontSize:10, color:'#3a5a7a' }}>= {caudalM3h.toFixed(3)} m³/h</span>
             </div>
+          </div>
+
+          {/* FILA 3: Dist. horizontal + Presión + Diám. perforación */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:14 }}>
             {tipo==='superficial'
               ? <>
                   <div style={fld}><label style={lbl}>Dist. horizontal imp. (m)</label><input style={ci} type="number" value={longImp} min={0} step={1} onChange={e=>setLongImp(Number(e.target.value))} /></div>
@@ -293,16 +303,14 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
               <input style={ci} type="number" value={presionKg} min={0} step={0.5} onChange={e=>setPresionKg(Number(e.target.value))} />
               {presionKg > 0 && <span style={{ fontSize:10, color:'#3a5a7a' }}>= {presionM.toFixed(1)} m</span>}
             </div>
+            <div style={fld}><label style={lbl}>Diám. perforación</label><select style={ci} value={diamPerf} onChange={e=>setDiamPerf(e.target.value)}>
+              <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
+            </select></div>
           </div>
 
           {/* Accesorios colapsables */}
-          <AccsSection accs={accsImp} setAccs={setAccsImp} label={tipo==='superficial'?'Accesorios impulsión':'Agregar accesorios'} mostrar={mostrarAccs} setMostrar={setMostrarAccs} />
-          {tipo==='superficial' && <AccsSection accs={accsAsp} setAccs={setAccsAsp} label="Accesorios aspiración" mostrar={mostrarAccsAsp} setMostrar={setMostrarAccsAsp} />}
-
-          {/* Diám perf */}
-          <div style={fld}><label style={lbl}>Diám. perforación</label><select style={ci} value={diamPerf} onChange={e=>setDiamPerf(e.target.value)}>
-            <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
-          </select></div>
+          <AccsSection accs={accsImp} setAccs={setAccsImp} label={tipo==='superficial'?'▼ Accesorios impulsión':'▼ Agregar accesorios'} mostrar={mostrarAccs} setMostrar={setMostrarAccs} />
+          {tipo==='superficial' && <AccsSection accs={accsAsp} setAccs={setAccsAsp} label="▼ Accesorios aspiración" mostrar={mostrarAccsAsp} setMostrar={setMostrarAccsAsp} />}
 
           <button onClick={calcSimple} style={{ width:'100%', padding:'11px', background:'#1a6b3c', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:14 }}>
             Calcular MCA
