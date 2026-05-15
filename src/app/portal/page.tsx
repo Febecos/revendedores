@@ -119,7 +119,7 @@ function AccCounter({ label, val, onChange }: { label: string; val: number; onCh
   )
 }
 
-function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUsar }: any) {
+function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUsar, onReset }: any) {
   return (
     <div style={{ background:'#0a2e18', borderRadius:10, padding:16, marginTop:12 }}>
       <div style={{ display:'flex', gap:10, marginBottom:12, flexWrap:'wrap' as const }}>
@@ -139,14 +139,17 @@ function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUs
           ))}
         </div>
       )}
-      <button onClick={() => onUsar(mca, litrosDia, diamPerf)} style={{ width:'100%', padding:'12px', background:'#e8681a', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer' }}>
+      <button onClick={() => onUsar(mca, litrosDia, diamPerf)} style={{ width:'100%', padding:'12px', background:'#e8681a', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
         Usar esta MCA para buscar bomba →
+      </button>
+      <button onClick={onReset} style={{ width:'100%', padding:'10px', background:'transparent', border:'1px solid #1e3248', borderRadius:8, fontSize:13, fontWeight:600, color:'#7a9ab5', cursor:'pointer' }}>
+        🔄 Calcular otro equipo
       </button>
     </div>
   )
 }
 
-function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number, diam: string) => void }) {
+function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: number, litros: number, diam: string) => void; token: string | null; revendedor: string }) {
   const [tab, setTab] = useState<'simple'|'avanzado'>('simple')
   const [tipo, setTipo] = useState<'sumergible'|'superficial'|'riego'>('sumergible')
   const [nivDin, setNivDin] = useState(10)
@@ -181,6 +184,28 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
   const caudalM3h = litrosDia/1000/8
   const presionM = presionKg * 10
 
+  function guardar(mca: number, friccion: number, tipo: string, tramosCalc: any[]) {
+    try {
+      const tramo = tramosCalc[0] || {}
+      fetch(`${SUPABASE_URL}/rest/v1/calculos_mca`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          tipo_instalacion: tipo,
+          diametro: tramo.diam || null,
+          material: tramo.mat || null,
+          longitud_total_m: tramo.longT || null,
+          caudal_m3h: caudalM3h,
+          mca_total: mca,
+          perdida_friccion_m: friccion,
+          origen: 'portal_revendedor',
+          revendedor_token: token || null,
+          revendedor_nombre: revendedor || null,
+        })
+      })
+    } catch(e) {}
+  }
+
   function calcSimple() {
     const tramosCalc: any[] = []
     if (tipo==='superficial' && (longAsp>0||Object.values(accsAsp).some(v=>v>0))) {
@@ -192,18 +217,24 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
     const fricTotal = parseFloat(tramosCalc.reduce((s,t)=>s+t.perdida,0).toFixed(2))
     const mca = parseFloat((altGeoSimple + fricTotal + presionM).toFixed(2))
     setResSimple({ altGeo: altGeoSimple, friccion: fricTotal, mca, tramos: tramosCalc })
+    guardar(mca, fricTotal, tipo, tramosCalc)
   }
 
   function calcAvanzado() {
     const tramosCalc = tramos.map(t => {
-      const q = (t.caudalLdia||3000)/1000/8
+      const ldia = (t.caudalModo||'litros')==='animales' ? (t.animales||50)*60 : (t.caudalUnidad==='lh' ? (t.caudalLdia||3000)*8 : (t.caudalLdia||3000))
+      const q = ldia/1000/8
       const r = calcTramo(t.longitud, t.diam, q, t.mat, t.accs||{})
-      return { nombre: t.nombre, diam: t.diam, ...r }
+      return { nombre: t.nombre, diam: t.diam, mat: t.mat, ...r }
     })
     const fricTotal = parseFloat(tramosCalc.reduce((s,t)=>s+t.perdida,0).toFixed(2))
+    // Altura geométrica = profundidad + alturaTanque del primer tramo
+    const primerTramo = tramos[0] || {}
+    const altGeoTotal = parseFloat(((primerTramo.profundidad||10) + (primerTramo.alturaTanque||2) + fricTotal + presionKgAv*10).toFixed(2))
     const mca = parseFloat((altGeoAv + fricTotal + presionKgAv*10).toFixed(2))
     const litTot = tramos[0]?.caudalLdia || 3000
     setResAv({ altGeo: altGeoAv, friccion: fricTotal, mca, tramos: tramosCalc, litrosDia: litTot })
+    guardar(mca, fricTotal, 'multiples_tramos', tramosCalc)
   }
 
   const ci = { background:'#0d1a2a', border:'1px solid #1e3248', borderRadius:8, padding:'8px 10px', color:'#e8f0f8', fontSize:13, fontFamily:'inherit', width:'100%' } as React.CSSProperties
@@ -336,7 +367,7 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
           <button onClick={calcSimple} style={{ width:'100%', padding:'11px', background:'#1a6b3c', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:14 }}>
             Calcular MCA
           </button>
-          {resSimple && <ResultadoMCA {...resSimple} litrosDia={litrosDia} diamPerf={diamPerf} onUsar={onUsarMCA} />}
+          {resSimple && <ResultadoMCA {...resSimple} litrosDia={litrosDia} diamPerf={diamPerf} onUsar={onUsarMCA} onReset={() => setResSimple(null)} />}
         </>
       )}
 
@@ -353,20 +384,62 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
 
           {tramos.map((t, idx) => (
             <div key={t.id} style={{ border:'1.5px solid #1e3248', borderRadius:10, padding:14, marginBottom:10, background:'#132233' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                <span style={{ fontSize:13, fontWeight:700, color:'#e8f0f8' }}>Tramo {idx+1}</span>
-                {tramos.length > 1 && <button onClick={() => setTramos(tramos.filter((_,i)=>i!==idx))} style={{ width:22,height:22,border:'1px solid #1e3248',borderRadius:4,background:'transparent',color:'#7a9ab5',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                <input style={{ ...ci, flex:1, fontSize:13, fontWeight:700, maxWidth:180 }} type="text" value={t.nombre} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,nombre:e.target.value}:x))} />
+                {tramos.length > 1 && <button onClick={() => setTramos(tramos.filter((_,i)=>i!==idx))} style={{ width:24,height:24,border:'1px solid #1e3248',borderRadius:4,background:'transparent',color:'#7a9ab5',cursor:'pointer',fontSize:14,marginLeft:8 }}>×</button>}
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:8, marginBottom:8 }}>
-                <div style={fld}><label style={lbl}>Nombre</label><input style={ci} type="text" value={t.nombre} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,nombre:e.target.value}:x))} /></div>
-                <div style={fld}><label style={lbl}>Dist. horizontal (m)</label><input style={ci} type="number" value={t.longitud} min={0} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,longitud:Number(e.target.value)}:x))} /></div>
-                <div style={fld}><label style={lbl}>Caudal (L/día)</label><input style={ci} type="number" value={t.caudalLdia||3000} min={100} step={100} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,caudalLdia:Number(e.target.value)}:x))} /></div>
-                <div style={fld}><label style={lbl}>Diámetro</label><select style={ci} value={t.diam} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,diam:e.target.value}:x))}>{DIAMS_C.map(d=><option key={d}>{d}</option>)}</select></div>
-                <div style={fld}><label style={lbl}>Material</label><select style={ci} value={t.mat} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,mat:e.target.value}:x))}>{MATS_C.map(m=><option key={m}>{m}</option>)}</select></div>
+
+              {/* Fila 1: Diám. perforación + Profundidad + Altura tanque */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:10 }}>
+                <div style={fld}><label style={lbl}>Diám. perforación</label>
+                  <select style={ci} value={t.diamPerf||'3'} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,diamPerf:e.target.value}:x))}>
+                    <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
+                  </select>
+                </div>
+                <div style={fld}><label style={lbl}>Profundidad bomba (m)</label><input style={ci} type="number" value={t.profundidad||10} min={0} step={0.5} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,profundidad:Number(e.target.value)}:x))} /></div>
+                <div style={fld}><label style={lbl}>Altura tanque (m)</label><input style={ci} type="number" value={t.alturaTanque||2} min={0} step={0.5} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,alturaTanque:Number(e.target.value)}:x))} /></div>
               </div>
-              <button onClick={() => setTramos(tramos.map((x,i)=>i===idx?{...x,mostrarAccs:!x.mostrarAccs}:x))} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', background:'#0d1a2a', border:'1px solid #1e3248', borderRadius:7, color:'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer', marginBottom:8 }}>
-                {t.mostrarAccs?'▲':'▼'} Accesorios
-                {Object.values(t.accs||{}).some((v:any)=>v>0) && <span style={{ background:'#e8681a', color:'#fff', borderRadius:4, padding:'1px 7px', fontSize:11 }}>{Object.values(t.accs||{}).filter((v:any)=>v>0).length} tipos</span>}
+
+              {/* Fila 2: Dist. horizontal + Diám. caño + Material */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:10 }}>
+                <div style={fld}><label style={lbl}>Distancia horizontal (m)</label><input style={ci} type="number" value={t.longitud} min={0} step={1} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,longitud:Number(e.target.value)}:x))} /></div>
+                <div style={fld}><label style={lbl}>Diám. caño a colocar</label><select style={ci} value={t.diam} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,diam:e.target.value}:x))}>{DIAMS_C.map(d=><option key={d}>{d}</option>)}</select></div>
+                <div style={fld}><label style={lbl}>Material del caño</label><select style={ci} value={t.mat} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,mat:e.target.value}:x))}>{MATS_C.map(m=><option key={m}>{m}</option>)}</select></div>
+              </div>
+
+              {/* Fila 3: Caudal animales o litros */}
+              <div style={{ marginBottom:10 }}>
+                <label style={lbl}>Caudal requerido</label>
+                <div style={{ display:'flex', gap:4, marginBottom:4 }}>
+                  {(['litros','animales'] as const).map(m => (
+                    <button key={m} onClick={() => setTramos(tramos.map((x,i)=>i===idx?{...x,caudalModo:m}:x))} style={{ flex:1, padding:'4px 8px', border:`1px solid ${(t.caudalModo||'litros')===m?'#4ade80':'#1e3248'}`, borderRadius:6, background:(t.caudalModo||'litros')===m?'rgba(74,222,128,0.1)':'#0d1a2a', color:(t.caudalModo||'litros')===m?'#4ade80':'#7a9ab5', fontSize:11, fontWeight:600, cursor:'pointer' }}>
+                      {m==='litros'?'💧 Litros':'🐄 Animales'}
+                    </button>
+                  ))}
+                </div>
+                {(t.caudalModo||'litros')==='animales' ? (
+                  <div>
+                    <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                      <input style={{ ...ci, flex:1 }} type="number" value={t.animales||50} min={1} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,animales:Number(e.target.value)}:x))} />
+                      <span style={{ color:'#7a9ab5', fontSize:12, whiteSpace:'nowrap' as const }}>cabezas</span>
+                    </div>
+                    <span style={{ fontSize:11, color:'#4ade80', marginTop:2, display:'block' }}>= {((t.animales||50)*60).toLocaleString('es-AR')} L/día</span>
+                  </div>
+                ) : (
+                  <div style={{ display:'flex', gap:4 }}>
+                    <input style={{ ...ci, flex:1 }} type="number" value={t.caudalLdia||3000} min={100} step={100} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,caudalLdia:Number(e.target.value)}:x))} />
+                    <select style={{ ...ci, width:'auto', paddingRight:24, paddingLeft:8 }} value={t.caudalUnidad||'ldia'} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,caudalUnidad:e.target.value}:x))}>
+                      <option value="ldia">L/día</option>
+                      <option value="lh">L/hora</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Accesorios colapsables */}
+              <button onClick={() => setTramos(tramos.map((x,i)=>i===idx?{...x,mostrarAccs:!x.mostrarAccs}:x))} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', background:'#0d1a2a', border:'1px solid #1e3248', borderRadius:7, color:'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer', width:'100%', marginBottom: t.mostrarAccs?8:0 }}>
+                <span>{t.mostrarAccs?'▲':'▼'}</span> Agregar accesorios
+                {Object.values(t.accs||{}).some((v:any)=>v>0) && <span style={{ background:'#e8681a', color:'#fff', borderRadius:4, padding:'1px 7px', fontSize:11, marginLeft:'auto' }}>{Object.values(t.accs||{}).filter((v:any)=>v>0).length} tipos</span>}
               </button>
               {t.mostrarAccs && (
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:5 }}>
@@ -389,7 +462,7 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
           <button onClick={calcAvanzado} style={{ width:'100%', padding:'11px', background:'#1a6b3c', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:14 }}>
             Calcular instalación completa
           </button>
-          {resAv && <ResultadoMCA {...resAv} diamPerf={diamPerf} onUsar={onUsarMCA} />}
+          {resAv && <ResultadoMCA {...resAv} diamPerf={diamPerf} onUsar={onUsarMCA} onReset={() => setResAv(null)} />}
         </>
       )}
     </div>
@@ -717,7 +790,7 @@ export default function Portal() {
           </div>
           {mostrarCalculadora && (
             <div style={{ marginTop: 14 }}>
-              <CalculadoraMCA onUsarMCA={usarMCA} />
+              <CalculadoraMCA onUsarMCA={usarMCA} token={token} revendedor={`${rev.nombre} ${rev.apellido}`} />
             </div>
           )}
         </div>
@@ -901,6 +974,13 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
           </button>
           <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={s.btnWA}>
             Consultar stock →
+          </a>
+          <a
+            href={`https://simulador-roi-seven.vercel.app?pump_codigo=${encodeURIComponent(bomba.codigo)}&height=${altura}&liters=${litros}&from=revendedor`}
+            target="_blank" rel="noopener noreferrer"
+            style={{ display:'inline-block', padding:'8px 14px', background:'rgba(232,104,26,0.15)', border:'1px solid #e8681a', borderRadius:8, color:'#e8681a', fontSize:12, fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' as const }}
+          >
+            ⚡ Ver ROI del cliente →
           </a>
         </div>
       </div>
