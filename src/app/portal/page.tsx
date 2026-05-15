@@ -871,7 +871,6 @@ export default function Portal() {
             )}
           </div>
         )}
-        )}
 
         {/* CATÁLOGO */}
         {verCatalogo && catalogo.length > 0 && (
