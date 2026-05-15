@@ -958,15 +958,12 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
   ]
 
   function roiUrl() {
-    const sistemaVal = SISTEMAS.find(s => s.id === sistemaActual)?.val || sistemaActual
     const params = new URLSearchParams({
-      pump_codigo: bomba.codigo,
+      pump: bomba.codigo,
       height: String(altura),
       liters: String(litros),
-      from: 'revendedor',
     })
     if (provincia) params.set('zone', provincia)
-    if (sistemaVal) params.set('agua_hoy', sistemaVal)
     return `https://simulador-roi-seven.vercel.app?${params.toString()}`
   }
 
@@ -1026,36 +1023,24 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
           {mostrarROI && (
             <div style={{ background:'#0d1a2a', border:'1px solid #1e3248', borderRadius:8, padding:16, marginTop:8 }}>
               <div style={{ fontSize:12, color:'#7a9ab5', marginBottom:12 }}>
-                Completá estos datos para calcular en cuánto tiempo recupera la inversión tu cliente.
+                Seleccioná la provincia del cliente para abrir el simulador con los datos pre-cargados. El sistema actual lo elige el cliente dentro del simulador.
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
-                <div style={{ display:'flex', flexDirection:'column' as const, gap:4 }}>
-                  <label style={{ fontSize:11, fontWeight:600, color:'#7a9ab5' }}>Provincia del cliente</label>
-                  <select
-                    style={{ padding:'8px 10px', background:'#132233', border:'1px solid #1e3248', borderRadius:8, color:'#e8f0f8', fontSize:13, fontFamily:'inherit', width:'100%' }}
-                    value={provincia} onChange={e=>setProvincia(e.target.value)}
-                  >
-                    <option value="">Seleccioná provincia...</option>
-                    {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-                <div style={{ display:'flex', flexDirection:'column' as const, gap:4 }}>
-                  <label style={{ fontSize:11, fontWeight:600, color:'#7a9ab5' }}>¿Qué usa hoy el cliente?</label>
-                  <div style={{ display:'flex', flexDirection:'column' as const, gap:4 }}>
-                    {SISTEMAS.map(s => (
-                      <button key={s.id} onClick={() => setSistemaActual(s.id)} style={{ padding:'7px 10px', border:`1px solid ${sistemaActual===s.id?'#e8681a':'#1e3248'}`, borderRadius:7, background: sistemaActual===s.id?'rgba(232,104,26,0.12)':'#132233', color: sistemaActual===s.id?'#e8681a':'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              <div style={{ marginBottom:12 }}>
+                <label style={{ fontSize:11, fontWeight:600, color:'#7a9ab5', display:'block', marginBottom:4 }}>Provincia del cliente</label>
+                <select
+                  style={{ padding:'8px 10px', background:'#132233', border:'1px solid #1e3248', borderRadius:8, color:'#e8f0f8', fontSize:13, fontFamily:'inherit', width:'100%' }}
+                  value={provincia} onChange={e=>setProvincia(e.target.value)}
+                >
+                  <option value="">Seleccioná provincia...</option>
+                  {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
               </div>
               <a
                 href={roiUrl()}
                 target="_blank" rel="noopener noreferrer"
-                style={{ display:'block', width:'100%', padding:'12px', background: provincia && sistemaActual ? '#e8681a' : '#1e3248', color: provincia && sistemaActual ? '#fff' : '#3a5a7a', borderRadius:8, textAlign:'center' as const, fontWeight:700, fontSize:14, textDecoration:'none', pointerEvents: provincia && sistemaActual ? 'auto' : 'none' as any }}
+                style={{ display:'block', width:'100%', padding:'12px', background: provincia ? '#e8681a' : '#1e3248', color: provincia ? '#fff' : '#3a5a7a', borderRadius:8, textAlign:'center' as const, fontWeight:700, fontSize:14, textDecoration:'none', pointerEvents: provincia ? 'auto' : 'none' as any }}
               >
-                {provincia && sistemaActual ? '⏱ Ver en cuánto recupera la inversión →' : 'Completá provincia y sistema para continuar'}
+                {provincia ? '⏱ Ver en cuánto recupera la inversión →' : 'Seleccioná la provincia para continuar'}
               </a>
             </div>
           )}
