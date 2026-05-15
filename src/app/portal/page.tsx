@@ -161,6 +161,8 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
   // Caudal: input en L/h o L/día
   const [caudalUnidad, setCaudalUnidad] = useState<'lh'|'ldia'>('ldia')
   const [caudalVal, setCaudalVal] = useState(3000)
+  const [caudalModo, setCaudalModo] = useState<'litros'|'animales'>('litros')
+  const [animales, setAnimales] = useState(50)
   const [accsImp, setAccsImp] = useState<Record<string,number>>({})
   const [accsAsp, setAccsAsp] = useState<Record<string,number>>({})
   const [mostrarAccs, setMostrarAccs] = useState(false)
@@ -175,8 +177,8 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
 
   const altGeoSimple = tipo==='sumergible' ? nivDin+altDesc : tipo==='superficial' ? altAsp+altDesc : altRiego
   // Conversión caudal a m³/h
-  const caudalM3h = caudalUnidad==='ldia' ? caudalVal/1000/8 : caudalVal/1000
-  const litrosDia = caudalUnidad==='ldia' ? caudalVal : caudalVal*8
+  const litrosDia = caudalModo==='animales' ? animales*60 : (caudalUnidad==='ldia' ? caudalVal : caudalVal*8)
+  const caudalM3h = litrosDia/1000/8
   const presionM = presionKg * 10
 
   function calcSimple() {
@@ -250,8 +252,8 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
             ))}
           </div>
 
-          {/* FILA 1: Profundidad + Diám. perforación + Altura tanque → Altura geométrica */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:10, marginBottom:14 }}>
+          {/* FILA 1: Diám. perforación + Profundidad + Altura tanque */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:14 }}>
             {tipo==='sumergible' && <>
               <div style={fld}><label style={lbl}>Diám. perforación</label><select style={ci} value={diamPerf} onChange={e=>setDiamPerf(e.target.value)}>
                 <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
@@ -268,15 +270,8 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
             </>}
             {tipo==='riego' && <>
               <div style={fld}><label style={lbl}>Diferencia de nivel (m)</label><input style={ci} type="number" value={altRiego} step={0.5} onChange={e=>setAltRiego(Number(e.target.value))} /></div>
-              <div style={{ visibility:'hidden' }} />
-              <div style={{ visibility:'hidden' }} />
+              <div style={{ visibility:'hidden' }} /><div style={{ visibility:'hidden' }} />
             </>}
-            <div style={fld}>
-              <label style={lbl}>Altura geométrica</label>
-              <div style={{ background:'rgba(74,222,128,0.1)', border:'1px solid #1e5c2a', borderRadius:8, padding:'8px 12px', fontSize:20, color:'#4ade80', fontWeight:800, fontFamily:'monospace', textAlign:'center' as const, height:38, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                {altGeoSimple.toFixed(1)} m
-              </div>
-            </div>
           </div>
 
           {/* FILA 2: Dist. horizontal + Diám. caño a colocar + Material */}
@@ -292,18 +287,38 @@ function CalculadoraMCA({ onUsarMCA }: { onUsarMCA: (mca: number, litros: number
             <div style={fld}><label style={lbl}>Material del caño</label><select style={ci} value={mat} onChange={e=>setMat(e.target.value)}>{MATS_C.map(m=><option key={m}>{m}</option>)}</select></div>
           </div>
 
-          {/* FILA 3: Caudal + Presión (solo riego) */}
+          {/* FILA 3: Caudal (animales o litros) + Presión (solo riego) */}
           <div style={{ display:'grid', gridTemplateColumns: tipo==='riego' ? '1fr 1fr' : '1fr', gap:10, marginBottom:14 }}>
             <div style={fld}>
               <label style={lbl}>Caudal requerido</label>
-              <div style={{ display:'flex', gap:4 }}>
-                <input style={{ ...ci, flex:1 }} type="number" value={caudalVal} min={1} step={100} onChange={e=>setCaudalVal(Number(e.target.value))} />
-                <select style={{ ...ci, width:'auto', paddingRight:24, paddingLeft:8 }} value={caudalUnidad} onChange={e=>setCaudalUnidad(e.target.value as any)}>
-                  <option value="ldia">L/día</option>
-                  <option value="lh">L/hora</option>
-                </select>
+              {/* Selector modo */}
+              <div style={{ display:'flex', gap:4, marginBottom:6 }}>
+                {(['litros','animales'] as const).map(m => (
+                  <button key={m} onClick={() => setCaudalModo(m)} style={{ flex:1, padding:'5px 8px', border:`1px solid ${caudalModo===m?'#4ade80':'#1e3248'}`, borderRadius:6, background: caudalModo===m?'rgba(74,222,128,0.1)':'#132233', color: caudalModo===m?'#4ade80':'#7a9ab5', fontSize:11, fontWeight:600, cursor:'pointer' }}>
+                    {m==='litros' ? '💧 Litros' : '🐄 Animales'}
+                  </button>
+                ))}
               </div>
-              <span style={{ fontSize:10, color:'#3a5a7a' }}>= {caudalM3h.toFixed(3)} m³/h</span>
+              {caudalModo==='animales' ? (
+                <div>
+                  <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                    <input style={{ ...ci, flex:1 }} type="number" value={animales} min={1} step={1} placeholder="Ej: 50" onChange={e=>setAnimales(Number(e.target.value))} />
+                    <span style={{ color:'#7a9ab5', fontSize:12, whiteSpace:'nowrap' as const }}>cabezas</span>
+                  </div>
+                  <span style={{ fontSize:11, color:'#4ade80', marginTop:4, display:'block' }}>= {(animales*60).toLocaleString('es-AR')} L/día ({animales} × 60 L/animal)</span>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display:'flex', gap:4 }}>
+                    <input style={{ ...ci, flex:1 }} type="number" value={caudalVal} min={1} step={100} onChange={e=>setCaudalVal(Number(e.target.value))} />
+                    <select style={{ ...ci, width:'auto', paddingRight:24, paddingLeft:8 }} value={caudalUnidad} onChange={e=>setCaudalUnidad(e.target.value as any)}>
+                      <option value="ldia">L/día</option>
+                      <option value="lh">L/hora</option>
+                    </select>
+                  </div>
+                  <span style={{ fontSize:10, color:'#3a5a7a' }}>= {caudalM3h.toFixed(3)} m³/h</span>
+                </div>
+              )}
             </div>
             {tipo==='riego' && (
               <div style={fld}>
