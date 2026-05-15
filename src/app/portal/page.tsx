@@ -1079,7 +1079,21 @@ export default function Portal() {
         {/* RESULTADO BÚSQUEDA */}
         {resultado && (
           <div style={s.card}>
-            <div style={s.cardTitle}>{resultado.es_fallback ? '⚠️ Opción más cercana' : '✅ Bombas disponibles — seleccioná la que mejor se adapta'}</div>
+            {resultado.es_fallback && (
+              <div style={{ background:'rgba(248,113,113,0.12)', border:'2px solid #f87171', borderRadius:10, padding:'14px 18px', marginBottom:16, display:'flex', gap:12, alignItems:'flex-start' }}>
+                <div style={{ fontSize:28, lineHeight:1 }}>⚠️</div>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:800, color:'#f87171', marginBottom:4 }}>
+                    Ninguna bomba cubre lo solicitado
+                  </div>
+                  <div style={{ fontSize:12, color:'#fca5a5', lineHeight:1.5 }}>
+                    No hay equipo en el catálogo que cubra los {Number(litros).toLocaleString('es-AR')} L/día a {altura}m con el diámetro seleccionado.<br/>
+                    Mostramos la opción más cercana disponible — <strong>revisá con el cliente si puede ajustar sus requerimientos</strong> o consultá con el equipo Febecos.
+                  </div>
+                </div>
+              </div>
+            )}
+            <div style={s.cardTitle}>{resultado.es_fallback ? '📋 Opción más cercana disponible' : '✅ Bombas disponibles — seleccioná la que mejor se adapta'}</div>
             <BombaCard bomba={resultado.sugerencia} caudal={resultado.caudal_a_altura} nota={resultado.nota} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === resultado.sugerencia?.codigo} />
             {resultado.opciones && resultado.opciones.length > 1 && (
               <>
