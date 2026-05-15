@@ -1191,6 +1191,11 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
       )}
       {/* Info básica siempre visible */}
       <div style={s.bombaCodigo}>{bomba.codigo}</div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: /A\/D|220v|hibrida|híbrida/i.test(bomba.codigo) ? '#fbbf24' : '#4ade80', marginBottom: 4 }}>
+        {/A\/D|220v|hibrida|híbrida/i.test(bomba.codigo)
+          ? '⚡🌞 Bomba híbrida — funciona con sol y/o con generador'
+          : '☀️ Bomba solar'}
+      </div>
       <div style={s.bombaDetails}>
         <span>{bomba.watts}W</span><span>·</span>
         <span>{bomba.cant_paneles} panel{bomba.cant_paneles > 1 ? 'es' : ''}</span><span>·</span>
