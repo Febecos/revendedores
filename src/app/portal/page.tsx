@@ -836,14 +836,30 @@ export default function Portal() {
   const [modalCodigo, setModalCodigo] = useState<string | null>(null)
   const [bombaSel, setBombaSel] = useState<string | null>(null)
 
-  function seleccionar(bomba: any) {
+  async function seleccionar(bomba: any) {
     setBombaSel(bomba.codigo)
     const calcId = (window as any)._ultimoCalcMcaId
     if (calcId) {
+      // Actualizar registro existente de la calculadora MCA
       fetch(`${SUPABASE_URL}/rest/v1/calculos_mca?id=eq.${calcId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' },
-        body: JSON.stringify({ bomba_sugerida: bomba.codigo })
+        body: JSON.stringify({ bomba_sugerida: bomba.codigo, litros_dia: Number(litros) || null })
+      }).catch(() => {})
+    } else {
+      // Crear registro nuevo desde el buscador directo
+      fetch(`${SUPABASE_URL}/rest/v1/calculos_mca`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          tipo_instalacion: 'busqueda_directa',
+          mca_total: Number(altura) || null,
+          litros_dia: Number(litros) || null,
+          bomba_sugerida: bomba.codigo,
+          origen: 'portal_revendedor',
+          revendedor_token: token || null,
+          revendedor_nombre: rev ? `${rev.nombre} ${rev.apellido || ''}`.trim() : null,
+        })
       }).catch(() => {})
     }
   }
