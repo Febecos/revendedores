@@ -856,6 +856,8 @@ export default function Portal() {
             </button>
           </div>
         )}
+        {/* RESULTADO BÚSQUEDA */}
+        {resultado && (
           <div style={s.card}>
             <div style={s.cardTitle}>{resultado.es_fallback ? '⚠️ Opción más cercana' : '✅ Bomba recomendada'}</div>
             <BombaCard bomba={resultado.sugerencia} caudal={resultado.caudal_a_altura} nota={resultado.nota} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} />
@@ -868,6 +870,7 @@ export default function Portal() {
               </>
             )}
           </div>
+        )}
         )}
 
         {/* CATÁLOGO */}
