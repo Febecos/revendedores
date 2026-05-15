@@ -951,13 +951,14 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
 
   const PROVINCIAS = ['Buenos Aires','CABA','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán']
   const SISTEMAS = [
-    { val: 'generator', label: '⚡ Generador solo' },
-    { val: 'mill-generator', label: '⚡🌀 Generador + Molino' },
-    { val: 'molino_existente', label: '🌀 Molino solo' },
-    { val: 'sin_sistema', label: '🚰 Sin sistema actual' },
+    { id: 'generator', val: 'generator', label: '⚡ Generador solo' },
+    { id: 'mill-generator', val: 'generator', label: '⚡🌀 Generador + Molino' },
+    { id: 'molino', val: 'Molino', label: '🌀 Molino solo' },
+    { id: 'sin_sistema', val: 'sin_sistema', label: '🚰 Sin sistema actual' },
   ]
 
   function roiUrl() {
+    const sistemaVal = SISTEMAS.find(s => s.id === sistemaActual)?.val || sistemaActual
     const params = new URLSearchParams({
       pump_codigo: bomba.codigo,
       height: String(altura),
@@ -965,7 +966,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
       from: 'revendedor',
     })
     if (provincia) params.set('zone', provincia)
-    if (sistemaActual) params.set('agua_hoy', sistemaActual)
+    if (sistemaVal) params.set('agua_hoy', sistemaVal)
     return `https://simulador-roi-seven.vercel.app?${params.toString()}`
   }
 
@@ -1042,7 +1043,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
                   <label style={{ fontSize:11, fontWeight:600, color:'#7a9ab5' }}>¿Qué usa hoy el cliente?</label>
                   <div style={{ display:'flex', flexDirection:'column' as const, gap:4 }}>
                     {SISTEMAS.map(s => (
-                      <button key={s.val} onClick={() => setSistemaActual(s.val)} style={{ padding:'7px 10px', border:`1px solid ${sistemaActual===s.val?'#e8681a':'#1e3248'}`, borderRadius:7, background: sistemaActual===s.val?'rgba(232,104,26,0.12)':'#132233', color: sistemaActual===s.val?'#e8681a':'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
+                      <button key={s.id} onClick={() => setSistemaActual(s.id)} style={{ padding:'7px 10px', border:`1px solid ${sistemaActual===s.id?'#e8681a':'#1e3248'}`, borderRadius:7, background: sistemaActual===s.id?'rgba(232,104,26,0.12)':'#132233', color: sistemaActual===s.id?'#e8681a':'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
                         {s.label}
                       </button>
                     ))}
