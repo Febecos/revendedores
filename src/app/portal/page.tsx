@@ -375,7 +375,7 @@ export default function Portal() {
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>🔢 ¿Necesitás calcular la MCA primero?</div>
               <div style={{ fontSize: 13, color: '#7a9ab5' }}>Usá la calculadora hidráulica completa para instalaciones complejas</div>
             </div>
-            <a href={`https://revendedores-six.vercel.app/calculadora?token=${token}`} style={s.btnMCA} target="_blank" rel="noopener noreferrer">Ir a Calculadora MCA →</a>
+            <a href={`https://revendedores-six.vercel.app/calculadora.html?token=${token}`} style={s.btnMCA} target="_blank" rel="noopener noreferrer">Ir a Calculadora MCA →</a>
           </div>
         )}
 
@@ -385,7 +385,7 @@ export default function Portal() {
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: '#4ade80' }}>✅ Datos cargados desde la Calculadora MCA</div>
               <div style={{ fontSize: 13, color: '#7a9ab5' }}>Altura: {altura}m · Litros: {parseInt(litros).toLocaleString('es-AR')} L/día · Diámetro: {diametro}"</div>
             </div>
-            <a href={`https://revendedores-six.vercel.app/calculadora?token=${token}`} style={{ ...s.btnMCA, background: 'transparent', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}>← Volver a MCA</a>
+            <a href={`https://revendedores-six.vercel.app/calculadora.html?token=${token}`} style={{ ...s.btnMCA, background: 'transparent', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}>← Volver a MCA</a>
           </div>
         )}
 
@@ -513,7 +513,7 @@ export default function Portal() {
         {/* INFO CARDS */}
         <div style={s.infoGrid}>
           <div style={s.infoCard}><div style={s.infoEmoji}>💰</div><div style={s.infoTitulo}>Tu descuento</div><div style={s.infoVal}>{rev.descuento_pct}%</div><div style={s.infoSub}>sobre precio de lista en todos los equipos</div></div>
-          <div style={s.infoCard}><div style={s.infoEmoji}>🔢</div><div style={s.infoTitulo}>Calculadora MCA</div><div style={s.infoSub}><a href={`https://revendedores-six.vercel.app/calculadora?token=${token}`} style={{ color: '#e8681a', fontWeight: 700 }} target="_blank" rel="noopener noreferrer">Abrir calculadora →</a></div></div>
+          <div style={s.infoCard}><div style={s.infoEmoji}>🔢</div><div style={s.infoTitulo}>Calculadora MCA</div><div style={s.infoSub}><a href={`https://revendedores-six.vercel.app/calculadora.html?token=${token}`} style={{ color: '#e8681a', fontWeight: 700 }} target="_blank" rel="noopener noreferrer">Abrir calculadora →</a></div></div>
           <div style={s.infoCard}><div style={s.infoEmoji}>🤝</div><div style={s.infoTitulo}>Soporte técnico</div><div style={s.infoSub}><a href="https://wa.me/5491125750323" style={{ color: '#e8681a', fontWeight: 700 }}>WhatsApp directo →</a></div></div>
           <div style={s.infoCard}><div style={s.infoEmoji}>📦</div><div style={s.infoTitulo}>Stock en tiempo real</div><div style={s.infoSub}>Precios y disponibilidad actualizados automáticamente</div></div>
         </div>
