@@ -836,6 +836,37 @@ export default function Portal() {
   const [modalCodigo, setModalCodigo] = useState<string | null>(null)
   const [bombaSel, setBombaSel] = useState<string | null>(null)
 
+  // ── PIN DE SEGURIDAD ──────────────────────────────────────────────────────
+  // Estados posibles: 'ok' | 'pedir_nuevo' | 'pedir_existente' | 'verificando'
+  const [pinEstado, setPinEstado] = useState<'ok'|'pedir_nuevo'|'pedir_existente'|'verificando'>('verificando')
+  const [pinInput, setPinInput] = useState('')
+  const [pinError, setPinError] = useState<string | null>(null)
+  const [pinGuardado, setPinGuardado] = useState<string | null>(null)
+
+  function llavePIN(t: string) { return `febecos-pin-${t.slice(0, 8)}` }
+
+  function verificarPIN() {
+    if (pinInput.length !== 4 || !/^\d{4}$/.test(pinInput)) {
+      setPinError('El PIN debe ser 4 dígitos numéricos.'); return
+    }
+    const t = token || ''
+    if (pinEstado === 'pedir_nuevo') {
+      // Primera vez: guardar el PIN elegido
+      localStorage.setItem(llavePIN(t), pinInput)
+      setPinGuardado(pinInput)
+      setPinEstado('ok')
+    } else {
+      // Validar contra el PIN guardado
+      if (pinInput === localStorage.getItem(llavePIN(t))) {
+        setPinEstado('ok')
+      } else {
+        setPinError('PIN incorrecto. Intentá de nuevo.')
+        setPinInput('')
+      }
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   async function seleccionar(bomba: any) {
     setBombaSel(bomba.codigo)
     const calcId = (window as any)._ultimoCalcMcaId
@@ -907,6 +938,14 @@ export default function Portal() {
       const data = await res.json()
       if (!data || data.length === 0) { setError('token_invalido'); return }
       setRev(data[0])
+      // Chequear si ya tiene PIN configurado en este dispositivo
+      const pinExistente = localStorage.getItem(llavePIN(t))
+      if (pinExistente) {
+        setPinGuardado(pinExistente)
+        setPinEstado('pedir_existente')
+      } else {
+        setPinEstado('pedir_nuevo')
+      }
     } catch { setError('error_red') }
     finally { setLoading(false) }
   }
@@ -951,6 +990,62 @@ export default function Portal() {
   if (error === 'no_token') return <Pantalla emoji="🔒" titulo="Acceso restringido" sub="Este portal requiere un link de acceso personalizado." cta={{ label: 'Registrarme', href: 'https://revendedores-six.vercel.app' }} cta2={{ label: 'WhatsApp', href: 'https://wa.me/5491125750323' }} />
   if (error === 'token_invalido') return <Pantalla emoji="❌" titulo="Link inválido o desactivado" sub="Este link no es válido o fue desactivado." cta={{ label: 'Escribinos por WhatsApp', href: 'https://wa.me/5491125750323' }} />
   if (error || !rev) return <Pantalla emoji="⚠️" titulo="Error de conexión" sub="No pudimos verificar tu acceso. Intentá recargar." />
+
+  // ── PANTALLA DE PIN ───────────────────────────────────────────────────────
+  if (pinEstado === 'pedir_nuevo' || pinEstado === 'pedir_existente') {
+    const esNuevo = pinEstado === 'pedir_nuevo'
+    return (
+      <div style={{ minHeight:'100vh', background:'#0d1a2a', display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}>
+        <div style={{ background:'#132236', borderRadius:'16px', padding:'40px 32px', maxWidth:'360px', width:'100%', textAlign:'center', boxShadow:'0 4px 32px rgba(0,0,0,0.4)' }}>
+          <div style={{ fontSize:'48px', marginBottom:'16px' }}>{esNuevo ? '🔐' : '🔑'}</div>
+          <h2 style={{ color:'#e8f0f8', fontSize:'20px', marginBottom:'8px' }}>
+            {esNuevo ? 'Elegí tu PIN de acceso' : `Bienvenido, ${rev.nombre}`}
+          </h2>
+          <p style={{ color:'#6b8fa8', fontSize:'14px', lineHeight:'1.6', marginBottom:'24px' }}>
+            {esNuevo
+              ? 'Creá un PIN de 4 dígitos. Lo vas a necesitar cada vez que entres al portal desde un dispositivo nuevo.'
+              : 'Ingresá tu PIN de 4 dígitos para continuar.'}
+          </p>
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            value={pinInput}
+            onChange={e => { setPinInput(e.target.value.replace(/\D/g,'')); setPinError(null) }}
+            onKeyDown={e => e.key === 'Enter' && verificarPIN()}
+            placeholder="● ● ● ●"
+            autoFocus
+            style={{
+              width:'100%', padding:'16px', fontSize:'28px', textAlign:'center', letterSpacing:'16px',
+              background:'#0d1a2a', border: pinError ? '2px solid #f87171' : '2px solid #1e3a5a',
+              borderRadius:'10px', color:'#e8f0f8', outline:'none', marginBottom:'8px', boxSizing:'border-box'
+            }}
+          />
+          {pinError && <p style={{ color:'#f87171', fontSize:'13px', margin:'0 0 12px' }}>{pinError}</p>}
+          <button
+            onClick={verificarPIN}
+            disabled={pinInput.length !== 4}
+            style={{
+              width:'100%', padding:'14px', background: pinInput.length === 4 ? '#e8681a' : '#1e3a5a',
+              color:'#fff', border:'none', borderRadius:'10px', fontSize:'16px', fontWeight:'700',
+              cursor: pinInput.length === 4 ? 'pointer' : 'not-allowed', transition:'background 0.2s'
+            }}
+          >
+            {esNuevo ? 'Crear PIN y entrar →' : 'Entrar →'}
+          </button>
+          {esNuevo && (
+            <p style={{ color:'#4a6a84', fontSize:'12px', marginTop:'16px', lineHeight:'1.5' }}>
+              💡 El PIN se guarda en este dispositivo. En otro dispositivo te va a pedir crear uno nuevo.
+            </p>
+          )}
+          <p style={{ color:'#2a4a64', fontSize:'12px', marginTop:'12px' }}>
+            Febecos · Portal de Revendedores
+          </p>
+        </div>
+      </div>
+    )
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   const catalogoFiltrado = filtroStock === 'local'
     ? catalogo.filter(b => (b.stock || 0) > 0)
