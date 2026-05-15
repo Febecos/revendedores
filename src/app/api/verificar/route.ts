@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
+import nodemailer from 'nodemailer'
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -63,11 +64,15 @@ export async function GET(req: NextRequest) {
 // ── EMAIL DE BIENVENIDA ──────────────────────────────────────────────────────
 
 async function enviarEmailBienvenida(nombre: string, email: string, portalUrl: string) {
-  const RESEND_KEY = process.env.RESEND_API_KEY
-  if (!RESEND_KEY) {
-    console.warn('RESEND_API_KEY no configurada — email de bienvenida no enviado')
-    return
-  }
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 465,
+    secure: true,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  })
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -76,7 +81,7 @@ async function enviarEmailBienvenida(nombre: string, email: string, portalUrl: s
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tu acceso al Portal Febecos</title>
 </head>
-<body style="margin:0;padding:0;background:#f5f5f0;font-family:sans-serif">
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
   <tr><td align="center">
     <table width="540" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
@@ -111,25 +116,34 @@ async function enviarEmailBienvenida(nombre: string, email: string, portalUrl: s
           <!-- Qué tiene -->
           <p style="margin:24px 0 12px;color:#1a3a5c;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px">¿QUÉ ENCONTRÁS EN EL PORTAL?</p>
           <table cellpadding="0" cellspacing="0" width="100%">
-            ${[
-              ['🔧', 'Calculadora hidráulica', 'Ingresás datos del pozo y te dice qué bomba corresponde'],
-              ['💰', 'Precios mayoristas (7% OFF)', 'Precios actualizados en tiempo real, sin publicar'],
-              ['📋', 'Presupuesto PDF al instante', 'Con tu nombre y datos. Listo para mandar al cliente'],
-              ['📊', 'Análisis de ROI', 'Muestra al cliente cuánto ahorra vs generador. Cierra ventas'],
-            ].map(([emoji, titulo, desc]) => `
-            <tr>
-              <td style="padding:8px 0;vertical-align:top">
-                <table cellpadding="0" cellspacing="0" width="100%">
-                  <tr>
-                    <td width="36" style="vertical-align:top;padding-top:2px;font-size:20px">${emoji}</td>
-                    <td>
-                      <p style="margin:0;color:#1a3a5c;font-weight:700;font-size:14px">${titulo}</p>
-                      <p style="margin:2px 0 0;color:#888;font-size:13px">${desc}</p>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>`).join('')}
+            <tr><td style="padding:8px 0;vertical-align:top">
+              <table cellpadding="0" cellspacing="0" width="100%"><tr>
+                <td width="36" style="vertical-align:top;padding-top:2px;font-size:18px">🔧</td>
+                <td><p style="margin:0;color:#1a3a5c;font-weight:700;font-size:14px">Calculadora hidráulica</p>
+                    <p style="margin:2px 0 0;color:#888;font-size:13px">Ingresás datos del pozo y te dice qué bomba corresponde</p></td>
+              </tr></table>
+            </td></tr>
+            <tr><td style="padding:8px 0;vertical-align:top">
+              <table cellpadding="0" cellspacing="0" width="100%"><tr>
+                <td width="36" style="vertical-align:top;padding-top:2px;font-size:18px">💰</td>
+                <td><p style="margin:0;color:#1a3a5c;font-weight:700;font-size:14px">Precios mayoristas (7% OFF)</p>
+                    <p style="margin:2px 0 0;color:#888;font-size:13px">Precios actualizados en tiempo real, sin publicar</p></td>
+              </tr></table>
+            </td></tr>
+            <tr><td style="padding:8px 0;vertical-align:top">
+              <table cellpadding="0" cellspacing="0" width="100%"><tr>
+                <td width="36" style="vertical-align:top;padding-top:2px;font-size:18px">📋</td>
+                <td><p style="margin:0;color:#1a3a5c;font-weight:700;font-size:14px">Presupuesto PDF al instante</p>
+                    <p style="margin:2px 0 0;color:#888;font-size:13px">Con tu nombre y datos. Listo para mandar al cliente</p></td>
+              </tr></table>
+            </td></tr>
+            <tr><td style="padding:8px 0;vertical-align:top">
+              <table cellpadding="0" cellspacing="0" width="100%"><tr>
+                <td width="36" style="vertical-align:top;padding-top:2px;font-size:18px">📊</td>
+                <td><p style="margin:0;color:#1a3a5c;font-weight:700;font-size:14px">Análisis de ROI</p>
+                    <p style="margin:2px 0 0;color:#888;font-size:13px">Muestra al cliente cuánto ahorra vs generador. Cierra ventas</p></td>
+              </tr></table>
+            </td></tr>
           </table>
 
           <!-- Link copiable -->
@@ -160,24 +174,12 @@ async function enviarEmailBienvenida(nombre: string, email: string, portalUrl: s
 </body>
 </html>`
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'Febecos Portal <portal@febecos.com>',
-      to: [email],
-      subject: `${nombre}, tu acceso al Portal de Revendedores está listo 🎉`,
-      html,
-    }),
+  await transporter.sendMail({
+    from: `"Febecos Portal" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `${nombre}, tu acceso al Portal de Revendedores está listo 🎉`,
+    html,
   })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Resend error ${res.status}: ${err}`)
-  }
 }
 
 // ── PÁGINAS HTML ─────────────────────────────────────────────────────────────
