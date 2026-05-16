@@ -1219,16 +1219,22 @@ export default function Portal() {
         {resultado && !buscando && (
           <div id="resultado-section" style={s.card}>
             {resultado.es_fallback && (
-              <div style={{ background:'rgba(248,113,113,0.12)', border:'2px solid #f87171', borderRadius:10, padding:'14px 18px', marginBottom:16, display:'flex', gap:12, alignItems:'flex-start' }}>
-                <div style={{ fontSize:28, lineHeight:1 }}>⚠️</div>
+              <div style={{
+                background: resultado.sugerencia?.stock > 0 ? 'rgba(74,222,128,0.08)' : 'rgba(251,146,60,0.12)',
+                border: `2px solid ${resultado.sugerencia?.stock > 0 ? '#4ade80' : '#fb923c'}`,
+                borderRadius:10, padding:'14px 18px', marginBottom:16, display:'flex', gap:12, alignItems:'flex-start'
+              }}>
+                <div style={{ fontSize:28, lineHeight:1 }}>{resultado.sugerencia?.stock > 0 ? '✅' : '📦'}</div>
                 <div>
-                  <div style={{ fontSize:14, fontWeight:800, color:'#f87171', marginBottom:4 }}>
-                    {resultado.sugerencia?.stock > 0 ? 'Bomba encontrada' : 'A verificar disponibilidad'}
-                  </div>
-                  <div style={{ fontSize:12, color:'#fca5a5', lineHeight:1.5 }}>
+                  <div style={{ fontSize:14, fontWeight:800, color: resultado.sugerencia?.stock > 0 ? '#4ade80' : '#fb923c', marginBottom:4 }}>
                     {resultado.sugerencia?.stock > 0
-                      ? <>No hay equipo exacto pero encontramos la opción más cercana disponible.</>
-                      : <>La bomba más cercana para {Number(litros).toLocaleString('es-AR')} L/día a {altura}m no tiene stock inmediato en local. Está disponible <strong>a verificar en depósito</strong> — consultá disponibilidad por WhatsApp antes de cotizar.</>
+                      ? 'Bomba encontrada — opción más cercana disponible en stock'
+                      : 'Bomba encontrada — a verificar stock en depósito'}
+                  </div>
+                  <div style={{ fontSize:12, color: resultado.sugerencia?.stock > 0 ? '#86efac' : '#fdba74', lineHeight:1.5 }}>
+                    {resultado.sugerencia?.stock > 0
+                      ? <>Esta bomba supera tus requerimientos de {Number(litros).toLocaleString('es-AR')} L/día a {altura}m y está disponible en stock.</>
+                      : <>Esta bomba cubre tus requerimientos de {Number(litros).toLocaleString('es-AR')} L/día a {altura}m pero <strong>no tiene stock inmediato en local</strong>. Consultá disponibilidad en depósito por WhatsApp antes de cotizar.</>
                     }
                   </div>
                 </div>
@@ -1383,7 +1389,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
           </div>
         )}
       </div>
-      {nota && <div style={s.notaTxt}>{nota}</div>}
+{/* nota ocultada cuando bomba cubre requerimientos */}
 
       {/* BOTÓN SELECCIONAR — siempre visible */}
       {!seleccionada ? (
