@@ -198,6 +198,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
           material: tramo.mat || null,
           longitud_total_m: tramo.longT || null,
           caudal_m3h: caudalM3h,
+          litros_dia: litrosDia || null,
           mca_total: mca,
           perdida_friccion_m: friccion,
           origen: 'portal_revendedor',
@@ -844,6 +845,7 @@ export default function Portal() {
   const [pinGuardado, setPinGuardado] = useState<string | null>(null)
 
   function llavePIN(t: string) { return `febecos-pin-${t.slice(0, 8)}` }
+  function llaveSession(t: string) { return `febecos-session-${t.slice(0, 8)}` }
 
   function verificarPIN() {
     if (pinInput.length !== 4 || !/^\d{4}$/.test(pinInput)) {
@@ -853,11 +855,13 @@ export default function Portal() {
     if (pinEstado === 'pedir_nuevo') {
       // Primera vez: guardar el PIN elegido
       localStorage.setItem(llavePIN(t), pinInput)
+      sessionStorage.setItem(llaveSession(t), '1')
       setPinGuardado(pinInput)
       setPinEstado('ok')
     } else {
       // Validar contra el PIN guardado
       if (pinInput === localStorage.getItem(llavePIN(t))) {
+        sessionStorage.setItem(llaveSession(t), '1')
         setPinEstado('ok')
       } else {
         setPinError('PIN incorrecto. Intentá de nuevo.')
@@ -875,7 +879,7 @@ export default function Portal() {
       fetch(`${SUPABASE_URL}/rest/v1/calculos_mca?id=eq.${calcId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' },
-        body: JSON.stringify({ bomba_sugerida: bomba.codigo, litros_dia: Number(litros) || null })
+        body: JSON.stringify({ bomba_sugerida: bomba.codigo, litros_dia: Number(litros) || null, caudal_m3h: bomba.caudal_m3h || null })
       }).catch(() => {})
     } else {
       // Crear registro nuevo desde el buscador directo
@@ -886,6 +890,8 @@ export default function Portal() {
           tipo_instalacion: 'busqueda_directa',
           mca_total: Number(altura) || null,
           litros_dia: Number(litros) || null,
+          caudal_m3h: Number(litros) ? Number(litros) / 1000 / 8 : null,
+          diametro: diametro || null,
           bomba_sugerida: bomba.codigo,
           origen: 'portal_revendedor',
           revendedor_token: token || null,
@@ -938,6 +944,10 @@ export default function Portal() {
       const data = await res.json()
       if (!data || data.length === 0) { setError('token_invalido'); return }
       setRev(data[0])
+      // Si ya verificó el PIN en esta sesión del browser, entrar directo
+      if (sessionStorage.getItem(llaveSession(t))) {
+        setPinEstado('ok'); return
+      }
       // Chequear si ya tiene PIN configurado en este dispositivo
       const pinExistente = localStorage.getItem(llavePIN(t))
       if (pinExistente) {
