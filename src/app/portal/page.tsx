@@ -924,7 +924,11 @@ export default function Portal() {
   }
 
   async function cargarCatalogo() {
-    if (catalogo.length > 0) { setVerCatalogo(true); return }
+    if (catalogo.length > 0) {
+      setVerCatalogo(true)
+      setTimeout(() => document.getElementById('catalogo-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+      return
+    }
     setCargandoCatalogo(true)
     try {
       const res = await fetch(`${API_BOMBAS}?catalog=1`)
@@ -933,19 +937,49 @@ export default function Portal() {
     } catch {}
     finally { setCargandoCatalogo(false) }
     setVerCatalogo(true)
+    setTimeout(() => document.getElementById('catalogo-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+  }
+
+  function cerrarCatalogo() {
+    setVerCatalogo(false)
+    setTimeout(() => {
+      const destino = resultado ? 'resultado-section' : 'buscar-bomba-section'
+      document.getElementById(destino)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }
+
+  function seleccionarDesdeCatalogo(b: BombaCatalogo) {
+    const bomba = {
+      codigo: b.codigo,
+      marca: b.marca,
+      watts: b.watts,
+      diam_bomba: b.diam_bomba,
+      diam_perf: b.diam_perf,
+      cant_paneles: b.cant_paneles,
+      stock: b.stock,
+      precio_full: b.precio_full,
+      tipo: 'sumergible',
+      impulsor: '',
+      voltaje: '',
+      energia: 'solar',
+    }
+    setResultado({ sugerencia: bomba, caudal_a_altura: null, es_fallback: false, nota: 'Seleccionado desde catálogo', opciones: [] })
+    setBombaSel(null)
+    setVerCatalogo(false)
+    setTimeout(() => document.getElementById('resultado-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
   }
 
   async function verificarToken(t: string) {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/solicitudes_revendedor?token_acceso=eq.${t}&token_acceso_activo=eq.true&select=id,nombre,apellido,empresa,provincia,descuento_pct,token_acceso,tipo_usuario`,
+        `${SUPABASE_URL}/rest/v1/solicitudes_revendedor?token_acceso=eq.${t}&token_acceso_activo=eq.true&select=id,nombre,apellido,empresa,provincia,descuento_pct,token_acceso,tipo_usuario,skip_pin`,
         { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
       )
       const data = await res.json()
       if (!data || data.length === 0) { setError('token_invalido'); return }
       setRev(data[0])
-      // Si ya verificó el PIN en esta sesión del browser, entrar directo
-      if (sessionStorage.getItem(llaveSession(t))) {
+      // Si tiene skip_pin o ya verificó en esta sesión → entrar directo
+      if (data[0].skip_pin || sessionStorage.getItem(llaveSession(t))) {
         setPinEstado('ok'); return
       }
       // Chequear si ya tiene PIN configurado en este dispositivo
@@ -1129,7 +1163,7 @@ export default function Portal() {
             </div>
           </div>
           <button
-            onClick={() => verCatalogo ? setVerCatalogo(false) : cargarCatalogo()}
+            onClick={() => verCatalogo ? cerrarCatalogo() : cargarCatalogo()}
             style={{
               padding: '7px 16px', background: verCatalogo ? '#1e3248' : 'rgba(232,104,26,0.12)',
               border: `1px solid ${verCatalogo ? '#2a4a6a' : '#e8681a'}`,
@@ -1183,7 +1217,7 @@ export default function Portal() {
         )}
         {/* RESULTADO BÚSQUEDA */}
         {resultado && (
-          <div style={s.card}>
+          <div id="resultado-section" style={s.card}>
             {resultado.es_fallback && (
               <div style={{ background:'rgba(248,113,113,0.12)', border:'2px solid #f87171', borderRadius:10, padding:'14px 18px', marginBottom:16, display:'flex', gap:12, alignItems:'flex-start' }}>
                 <div style={{ fontSize:28, lineHeight:1 }}>⚠️</div>
@@ -1212,7 +1246,7 @@ export default function Portal() {
 
         {/* CATÁLOGO */}
         {verCatalogo && catalogo.length > 0 && (
-          <div style={s.card}>
+          <div id="catalogo-section" style={s.card}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ ...s.cardTitle, marginBottom: 0 }}>🔋 Catálogo de bombas</div>
               <div style={s.toggleBtns}>
@@ -1249,6 +1283,9 @@ export default function Portal() {
                       <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
                         <button onClick={() => setModalCodigo(b.codigo)} style={{ padding: '6px 10px', background: '#1e3248', border: '1px solid #2a4a6a', borderRadius: 7, color: '#e8f0f8', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
                           Ver detalle →
+                        </button>
+                        <button onClick={() => seleccionarDesdeCatalogo(b)} style={{ padding: '6px 10px', background: 'rgba(74,222,128,0.12)', border: '1.5px solid #4ade80', borderRadius: 7, color: '#4ade80', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+                          📋 Seleccionar
                         </button>
                         <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 10px', background: '#25d366', color: '#fff', borderRadius: 7, textDecoration: 'none', fontWeight: 700, fontSize: 11, textAlign: 'center' as const, whiteSpace: 'nowrap' as const }}>
                           Consultar →
