@@ -902,7 +902,7 @@ export default function Portal() {
   }
 
   async function buscarBombaConParams(h: string, l: string, d: string) {
-    setBuscando(true); setResultado(null); setErrCalc(null)
+    setBuscando(true); setResultado(null); setErrCalc(null); setBombaSel(null)
     try {
       const res = await fetch(`${API_BOMBAS}?height=${h}&liters=${l}&diameter=${d}&season=verano`)
       const data = await res.json()
@@ -1208,7 +1208,7 @@ export default function Portal() {
         </div>
 
         {/* RESULTADO BÚSQUEDA */}
-        {resultado && (
+        {resultado && !buscando && (
           <div style={{ textAlign: 'right' as const, marginTop: -8, marginBottom: 8 }}>
             <button onClick={() => { setResultado(null); setAltura(''); setLitros(''); setErrCalc(null); setBombaSel(null); document.getElementById('buscar-bomba-section')?.scrollIntoView({ behavior:'smooth', block:'start' }) }} style={{ padding:'7px 14px', background:'transparent', border:'1px solid #1e3248', borderRadius:8, color:'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer' }}>
               🔄 Volver a calcular
@@ -1216,18 +1216,20 @@ export default function Portal() {
           </div>
         )}
         {/* RESULTADO BÚSQUEDA */}
-        {resultado && (
+        {resultado && !buscando && (
           <div id="resultado-section" style={s.card}>
             {resultado.es_fallback && (
               <div style={{ background:'rgba(248,113,113,0.12)', border:'2px solid #f87171', borderRadius:10, padding:'14px 18px', marginBottom:16, display:'flex', gap:12, alignItems:'flex-start' }}>
                 <div style={{ fontSize:28, lineHeight:1 }}>⚠️</div>
                 <div>
                   <div style={{ fontSize:14, fontWeight:800, color:'#f87171', marginBottom:4 }}>
-                    Ninguna bomba cubre lo solicitado
+                    {resultado.sugerencia?.stock > 0 ? 'Bomba encontrada' : 'A verificar disponibilidad'}
                   </div>
                   <div style={{ fontSize:12, color:'#fca5a5', lineHeight:1.5 }}>
-                    No hay equipo en el catálogo que cubra los {Number(litros).toLocaleString('es-AR')} L/día a {altura}m con el diámetro seleccionado.<br/>
-                    Mostramos la opción más cercana disponible — <strong>revisá con el cliente si puede ajustar sus requerimientos</strong> o consultá con el equipo Febecos.
+                    {resultado.sugerencia?.stock > 0
+                      ? <>No hay equipo exacto pero encontramos la opción más cercana disponible.</>
+                      : <>La bomba más cercana para {Number(litros).toLocaleString('es-AR')} L/día a {altura}m no tiene stock inmediato en local. Está disponible <strong>a verificar en depósito</strong> — consultá disponibilidad por WhatsApp antes de cotizar.</>
+                    }
                   </div>
                 </div>
               </div>
@@ -1287,8 +1289,9 @@ export default function Portal() {
                         <button onClick={() => seleccionarDesdeCatalogo(b)} style={{ padding: '6px 10px', background: 'rgba(74,222,128,0.12)', border: '1.5px solid #4ade80', borderRadius: 7, color: '#4ade80', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
                           📋 Seleccionar
                         </button>
-                        <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 10px', background: '#25d366', color: '#fff', borderRadius: 7, textDecoration: 'none', fontWeight: 700, fontSize: 11, textAlign: 'center' as const, whiteSpace: 'nowrap' as const }}>
-                          Consultar →
+                        <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 10px', background: '#25d366', color: '#fff', borderRadius: 7, textDecoration: 'none', fontWeight: 700, fontSize: 11, textAlign: 'center' as const, whiteSpace: 'nowrap' as const, display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                          Consultar
                         </a>
                       </div>
                     </div>
@@ -1357,7 +1360,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
         <span>{bomba.cant_paneles} panel{bomba.cant_paneles > 1 ? 'es' : ''}</span><span>·</span>
         <span>Bomba {bomba.diam_bomba || bomba.diam_perf || '—'}"</span><span>·</span>
         <span style={{ color: bomba.stock > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
-          {bomba.stock > 0 ? `Stock: ${bomba.stock}` : 'Sin stock'}
+          {bomba.stock > 0 ? `Stock: ${bomba.stock}` : '📦 A verificar'}
         </span>
       </div>
       {caudal && (
