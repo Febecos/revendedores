@@ -1255,7 +1255,7 @@ export default function Portal() {
         {/* INFO CARDS */}
         <div style={s.infoGrid}>
           <div style={s.infoCard}><div style={s.infoEmoji}>💰</div><div style={s.infoTitulo}>Tu descuento</div><div style={s.infoVal}>{rev.descuento_pct}%</div><div style={s.infoSub}>sobre precio de lista en todos los equipos</div></div>
-          <div style={s.infoCard}><div style={s.infoEmoji}>🔢</div><div style={s.infoTitulo}>Calculadora MCA</div><div style={s.infoSub}><a href={`https://revendedores-six.vercel.app/calculadora.html?token=${token}`} style={{ color: '#e8681a', fontWeight: 700 }} target="_blank" rel="noopener noreferrer">Abrir calculadora →</a></div></div>
+
           <div style={s.infoCard}><div style={s.infoEmoji}>🤝</div><div style={s.infoTitulo}>Soporte técnico</div><div style={s.infoSub}><a href="https://wa.me/5491125750323" style={{ color: '#e8681a', fontWeight: 700 }}>WhatsApp directo →</a></div></div>
           <div style={s.infoCard}><div style={s.infoEmoji}>📦</div><div style={s.infoTitulo}>Stock en tiempo real</div><div style={s.infoSub}>Precios y disponibilidad actualizados automáticamente</div></div>
         </div>
