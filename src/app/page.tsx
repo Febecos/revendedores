@@ -57,7 +57,6 @@ export default function Home() {
   }
 
   const handleSubmit = async () => {
-    // Validar todos los campos
     const nuevosErrores: Record<string, boolean> = {}
     if (!form.nombre) nuevosErrores.nombre = true
     if (!form.apellido) nuevosErrores.apellido = true
@@ -74,7 +73,6 @@ export default function Home() {
 
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores)
-      // Scroll al primer error
       setTimeout(() => {
         const el = document.querySelector('[data-error="true"]')
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -105,6 +103,14 @@ export default function Home() {
   if (estado === 'ok') return (
     <div style={s.wrap}>
       <div style={s.card}>
+        {/* Logo en pantalla de éxito */}
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <img
+            src="https://dcdn-us.mitiendanube.com/stores/007/467/093/themes/common/logo-6209403414584676726-1775575296-91ab6514e309ebf33862eadc64bcbe161775575296-480-0.webp"
+            alt="Febecos"
+            style={{ height: 40, objectFit: 'contain' }}
+          />
+        </div>
         <div style={{ fontSize: 48, marginBottom: 16, textAlign: 'center' }}>✅</div>
         <h2 style={{ color: '#1a3a5c', marginBottom: 8, textAlign: 'center' }}>¡Solicitud enviada!</h2>
         <p style={{ color: '#555', lineHeight: 1.7, textAlign: 'center' }}>
@@ -135,6 +141,16 @@ export default function Home() {
   return (
     <div style={s.wrap}>
       <div style={s.card}>
+
+        {/* ── LOGO ── */}
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <img
+            src="https://dcdn-us.mitiendanube.com/stores/007/467/093/themes/common/logo-6209403414584676726-1775575296-91ab6514e309ebf33862eadc64bcbe161775575296-480-0.webp"
+            alt="Febecos · Bombas Solares"
+            style={{ height: 44, objectFit: 'contain' }}
+          />
+        </div>
+
         <h1 style={s.titulo}>Portal de Revendedores</h1>
         <p style={s.subtitulo}>
           Accedé al catálogo mayorista, herramientas de cotización y precios diferenciados.
