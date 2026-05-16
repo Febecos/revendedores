@@ -1218,28 +1218,38 @@ export default function Portal() {
         {/* RESULTADO BÚSQUEDA */}
         {resultado && !buscando && (
           <div id="resultado-section" style={s.card}>
-            {resultado.es_fallback && (
-              <div style={{
-                background: resultado.sugerencia?.stock > 0 ? 'rgba(74,222,128,0.08)' : 'rgba(251,146,60,0.12)',
-                border: `2px solid ${resultado.sugerencia?.stock > 0 ? '#4ade80' : '#fb923c'}`,
-                borderRadius:10, padding:'14px 18px', marginBottom:16, display:'flex', gap:12, alignItems:'flex-start'
-              }}>
-                <div style={{ fontSize:28, lineHeight:1 }}>{resultado.sugerencia?.stock > 0 ? '✅' : '📦'}</div>
-                <div>
-                  <div style={{ fontSize:14, fontWeight:800, color: resultado.sugerencia?.stock > 0 ? '#4ade80' : '#fb923c', marginBottom:4 }}>
-                    {resultado.sugerencia?.stock > 0
-                      ? 'Bomba encontrada — opción más cercana disponible en stock'
-                      : 'Bomba encontrada — a verificar stock en depósito'}
-                  </div>
-                  <div style={{ fontSize:12, color: resultado.sugerencia?.stock > 0 ? '#86efac' : '#fdba74', lineHeight:1.5 }}>
-                    {resultado.sugerencia?.stock > 0
-                      ? <>Esta bomba supera tus requerimientos de {Number(litros).toLocaleString('es-AR')} L/día a {altura}m y está disponible en stock.</>
-                      : <>Esta bomba cubre tus requerimientos de {Number(litros).toLocaleString('es-AR')} L/día a {altura}m pero <strong>no tiene stock inmediato en local</strong>. Consultá disponibilidad en depósito por WhatsApp antes de cotizar.</>
-                    }
+            {resultado.es_fallback && (() => {
+              // caudal_a_altura.verano es lo que rinde la bomba a esa altura
+              const caudalBomba = resultado.caudal_a_altura?.verano || 0
+              const litrosPedidos = Number(litros) || 0
+              const cubre = caudalBomba >= litrosPedidos
+              const conStock = (resultado.sugerencia?.stock || 0) > 0
+              return (
+                <div style={{
+                  background: 'rgba(251,146,60,0.12)',
+                  border: '2px solid #fb923c',
+                  borderRadius:10, padding:'14px 18px', marginBottom:16, display:'flex', gap:12, alignItems:'flex-start'
+                }}>
+                  <div style={{ fontSize:28, lineHeight:1 }}>⚠️</div>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#fb923c', marginBottom:4 }}>
+                      {cubre
+                        ? conStock ? 'Bomba encontrada — disponible en stock' : 'Bomba encontrada — a verificar stock en depósito'
+                        : 'Ninguna bomba cubre exactamente lo solicitado'
+                      }
+                    </div>
+                    <div style={{ fontSize:12, color:'#fdba74', lineHeight:1.5 }}>
+                      {cubre
+                        ? conStock
+                          ? <>Esta bomba cubre tus requerimientos ({caudalBomba.toLocaleString('es-AR')} L/día en verano &gt; {litrosPedidos.toLocaleString('es-AR')} L/día solicitados) y está disponible en stock.</>
+                          : <>Esta bomba cubre los {litrosPedidos.toLocaleString('es-AR')} L/día ({caudalBomba.toLocaleString('es-AR')} L/día en verano) pero <strong>no tiene stock inmediato</strong>. Consultá disponibilidad por WhatsApp.</>
+                        : <>No hay equipo que cubra los {litrosPedidos.toLocaleString('es-AR')} L/día a {altura}m. La opción más cercana entrega {caudalBomba.toLocaleString('es-AR')} L/día en verano{conStock ? '' : ' y además no tiene stock inmediato'}. Consultá con el equipo Febecos.</>
+                      }
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
             <div style={s.cardTitle}>{resultado.es_fallback ? '📋 Opción más cercana disponible' : '✅ Bombas disponibles — seleccioná la que mejor se adapta'}</div>
             <BombaCard bomba={resultado.sugerencia} caudal={resultado.caudal_a_altura} nota={resultado.nota} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === resultado.sugerencia?.codigo} />
             {resultado.opciones && resultado.opciones.length > 1 && (
