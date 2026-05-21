@@ -904,7 +904,7 @@ export default function Portal() {
   async function buscarBombaConParams(h: string, l: string, d: string) {
     setBuscando(true); setResultado(null); setErrCalc(null); setBombaSel(null)
     try {
-      const res = await fetch(`${API_BOMBAS}?height=${h}&liters=${l}&diameter=${d}&season=verano`)
+      const res = await fetch(`${API_BOMBAS}?height=${h}&liters=${l}&diameter=${d}&season=verano&_t=${Date.now()}`)
       const data = await res.json()
       if (data.ok) {
         setResultado(data)
@@ -931,7 +931,7 @@ export default function Portal() {
     }
     setCargandoCatalogo(true)
     try {
-      const res = await fetch(`${API_BOMBAS}?catalog=1`)
+      const res = await fetch(`${API_BOMBAS}?catalog=1&_t=${Date.now()}`)
       const data = await res.json()
       if (data.ok) setCatalogo(data.catalog || [])
     } catch {}
