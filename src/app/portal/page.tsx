@@ -972,7 +972,7 @@ export default function Portal() {
       if (!data?.ok || !data.revendedor) { setError('token_invalido'); return }
       setRev(data.revendedor)
       // Si tiene skip_pin o ya verificó en esta sesión → entrar directo
-      if (data[0].skip_pin || sessionStorage.getItem(llaveSession(t))) {
+      if (data.revendedor.skip_pin || sessionStorage.getItem(llaveSession(t))) {
         setPinEstado('ok'); return
       }
       // Chequear si ya tiene PIN configurado en este dispositivo
