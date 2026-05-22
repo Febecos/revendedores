@@ -1333,6 +1333,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
   const [pedidoLoading, setPedidoLoading] = useState(false)
   const [pedidoEnviado, setPedidoEnviado] = useState(false)
   const [pedidoError, setPedidoError] = useState('')
+  const [aceptaTCPago, setAceptaTCPago] = useState(false)
   const precio = precioMostrar(bomba.precio_full)
   const precioPublico = bomba.precio_full
   const msg = encodeURIComponent(
@@ -1356,6 +1357,10 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
   }
 
   async function enviarPedido(metodo: 'transferencia' | 'nave' | 'mercadopago') {
+    if (!aceptaTCPago) {
+      setPedidoError('Debés aceptar los Términos y Condiciones para continuar.')
+      return
+    }
     setPedidoLoading(true)
     setPedidoError('')
     try {
@@ -1495,6 +1500,34 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
               </div>
 
               {/* ── PEDIDO ENVIADO ── */}
+              {/* ── T&C ── */}
+              {!pedidoEnviado && (
+                <div style={{
+                  display:'flex', alignItems:'flex-start', gap:9, marginBottom:12,
+                  padding:'10px 12px', borderRadius:8,
+                  background: pedidoError && !aceptaTCPago ? 'rgba(255,107,107,0.08)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${pedidoError && !aceptaTCPago ? '#ff6b6b' : '#1e3248'}`,
+                }}>
+                  <input
+                    type="checkbox"
+                    id={`tc-${bomba.codigo}`}
+                    checked={aceptaTCPago}
+                    onChange={e => { setAceptaTCPago(e.target.checked); if (e.target.checked) setPedidoError('') }}
+                    style={{ marginTop:2, width:15, height:15, cursor:'pointer', accentColor:'#4ade80', flexShrink:0 }}
+                  />
+                  <label htmlFor={`tc-${bomba.codigo}`} style={{ fontSize:11, color:'#7a9ab5', lineHeight:1.5, cursor:'pointer' }}>
+                    Leí y acepto los{' '}
+                    <a href="/terminos#revendedores" target="_blank" rel="noopener noreferrer" style={{ color:'#4ade80', fontWeight:600 }}>
+                      Términos del Programa de Revendedores
+                    </a>{' '}
+                    y la{' '}
+                    <a href="/terminos#privacidad" target="_blank" rel="noopener noreferrer" style={{ color:'#4ade80', fontWeight:600 }}>
+                      Política de Privacidad
+                    </a>.
+                  </label>
+                </div>
+              )}
+
               {pedidoEnviado ? (
                 <div style={{ textAlign:'center' as const, padding:'20px 12px' }}>
                   <div style={{ fontSize:40, marginBottom:12 }}>✅</div>
