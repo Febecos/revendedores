@@ -1,23 +1,18 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { getDb } from '@/lib/db'
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from('solicitudes_revendedor')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    const sql = getDb()
+    const rows = await sql`
+      SELECT * FROM solicitudes_revendedor
+      ORDER BY created_at DESC
+    `
+    return NextResponse.json(
+      { solicitudes: rows },
+      { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+    )
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
-
-  return NextResponse.json(
-    { solicitudes: data },
-    { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
-  )
 }

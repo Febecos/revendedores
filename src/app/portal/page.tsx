@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wlcmpqwmqwugjwrssatj.supabase.co'
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+// Supabase removido — todo va a Neon via API routes internas
 const API_BOMBAS = 'https://simulador-roi-seven.vercel.app/api/suggest-pump'
 const API_DETALLE = 'https://simulador-roi-seven.vercel.app/api/pump-detail'
 declare global { interface Window { _ultimoCalcMcaId?: string } }
@@ -189,9 +188,9 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
   function guardar(mca: number, friccion: number, tipo: string, tramosCalc: any[]) {
     try {
       const tramo = tramosCalc[0] || {}
-      fetch(`${SUPABASE_URL}/rest/v1/calculos_mca`, {
+      fetch('/api/calculos-mca', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo_instalacion: tipo,
           diametro: tramo.diam || null,
@@ -205,8 +204,8 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
           revendedor_token: token || null,
           revendedor_nombre: revendedor || null,
         })
-      }).then(r => r.json()).then(rows => {
-        if (rows?.[0]?.id) window._ultimoCalcMcaId = rows[0].id
+      }).then(r => r.json()).then(data => {
+        if (data?.id) window._ultimoCalcMcaId = data.id
       }).catch(() => {})
     } catch(e) {}
   }
@@ -485,18 +484,15 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor }
     try {
       const anio = new Date().getFullYear()
       // Leer el último número
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/presupuestos_counter?anio=eq.${anio}&select=id,ultimo_numero`, {
-        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-      })
-      const rows = await res.json()
-      if (!rows || rows.length === 0) return `PREV-${anio}-0001`
-      const row = rows[0]
+      const res = await fetch(`/api/presupuestos-counter?anio=${anio}`)
+      const row = await res.json()
+      if (!row?.id) return `PREV-${anio}-0001`
       const nuevo = (row.ultimo_numero || 0) + 1
       // Actualizar el contador
-      await fetch(`${SUPABASE_URL}/rest/v1/presupuestos_counter?id=eq.${row.id}`, {
+      await fetch('/api/presupuestos-counter', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' },
-        body: JSON.stringify({ ultimo_numero: nuevo })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: row.id, ultimo_numero: nuevo })
       })
       return `PREV-${anio}-${String(nuevo).padStart(4, '0')}`
     } catch { return `PREV-${new Date().getFullYear()}-XXXX` }
@@ -876,16 +872,16 @@ export default function Portal() {
     const calcId = (window as any)._ultimoCalcMcaId
     if (calcId) {
       // Actualizar registro existente de la calculadora MCA
-      fetch(`${SUPABASE_URL}/rest/v1/calculos_mca?id=eq.${calcId}`, {
+      fetch('/api/calculos-mca', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' },
-        body: JSON.stringify({ bomba_sugerida: bomba.codigo, litros_dia: Number(litros) || null, caudal_m3h: bomba.caudal_m3h || null })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: calcId, bomba_sugerida: bomba.codigo, litros_dia: Number(litros) || null, caudal_m3h: bomba.caudal_m3h || null })
       }).catch(() => {})
     } else {
       // Crear registro nuevo desde el buscador directo
-      fetch(`${SUPABASE_URL}/rest/v1/calculos_mca`, {
+      fetch('/api/calculos-mca', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo_instalacion: 'busqueda_directa',
           mca_total: Number(altura) || null,
@@ -911,10 +907,10 @@ export default function Portal() {
         // PATCH bomba sugerida al cálculo MCA si existe
         const calcId = (window as any)._ultimoCalcMcaId
         if (calcId && data.sugerencia?.codigo) {
-          fetch(`${SUPABASE_URL}/rest/v1/calculos_mca?id=eq.${calcId}`, {
+          fetch('/api/calculos-mca', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' },
-            body: JSON.stringify({ bomba_sugerida: data.sugerencia.codigo, litros_dia: Number(l), zona: '', caudal_verano: data.caudal_a_altura?.verano || null, caudal_invierno: data.caudal_a_altura?.invierno || null })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: calcId, bomba_sugerida: data.sugerencia.codigo, litros_dia: Number(l), caudal_verano: data.caudal_a_altura?.verano || null, caudal_invierno: data.caudal_a_altura?.invierno || null })
           }).catch(() => {})
         }
       }
@@ -971,13 +967,10 @@ export default function Portal() {
 
   async function verificarToken(t: string) {
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/solicitudes_revendedor?token_acceso=eq.${t}&token_acceso_activo=eq.true&select=id,nombre,apellido,empresa,provincia,descuento_pct,token_acceso,tipo_usuario,skip_pin`,
-        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
-      )
+      const res = await fetch(`/api/verificar-token?token=${encodeURIComponent(t)}`)
       const data = await res.json()
-      if (!data || data.length === 0) { setError('token_invalido'); return }
-      setRev(data[0])
+      if (!data?.ok || !data.revendedor) { setError('token_invalido'); return }
+      setRev(data.revendedor)
       // Si tiene skip_pin o ya verificó en esta sesión → entrar directo
       if (data[0].skip_pin || sessionStorage.getItem(llaveSession(t))) {
         setPinEstado('ok'); return
