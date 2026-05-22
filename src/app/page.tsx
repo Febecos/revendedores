@@ -46,6 +46,7 @@ export default function Home() {
   const [equiposMes, setEquiposMes] = useState('')
   const [estado, setEstado] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
   const [errores, setErrores] = useState<Record<string, boolean>>({})
+  const [aceptaTerminos, setAceptaTerminos] = useState(false)
 
   const toggleTipo = (id: string) => {
     setTipos(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
@@ -70,6 +71,7 @@ export default function Home() {
     if (!expAnos) nuevosErrores.expAnos = true
     if (!expSolar) nuevosErrores.expSolar = true
     if (!equiposMes) nuevosErrores.equiposMes = true
+    if (!aceptaTerminos) nuevosErrores.terminos = true
 
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores)
@@ -319,6 +321,34 @@ export default function Home() {
           </p>
         )}
 
+        {/* T&C checkbox */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16,
+          padding: '12px 14px', borderRadius: 8,
+          background: errores.terminos ? '#fff5f5' : '#f9f9f9',
+          border: `1.5px solid ${errores.terminos ? '#e53e3e' : '#e0e0e0'}`,
+        }}>
+          <input
+            type="checkbox"
+            id="acepta-terminos"
+            checked={aceptaTerminos}
+            onChange={e => { setAceptaTerminos(e.target.checked); setErrores(prev => ({ ...prev, terminos: false })) }}
+            style={{ marginTop: 2, width: 16, height: 16, cursor: 'pointer', accentColor: '#1a3a5c', flexShrink: 0 }}
+          />
+          <label htmlFor="acepta-terminos" style={{ fontSize: 12, color: '#555', lineHeight: 1.5, cursor: 'pointer' }}>
+            Leí y acepto los{' '}
+            <a href="/terminos#revendedores" target="_blank" rel="noopener noreferrer" style={{ color: '#1a3a5c', fontWeight: 600 }}>
+              Términos y Condiciones del Programa de Revendedores
+            </a>{' '}
+            y la{' '}
+            <a href="/terminos#privacidad" target="_blank" rel="noopener noreferrer" style={{ color: '#1a3a5c', fontWeight: 600 }}>
+              Política de Privacidad
+            </a>{' '}
+            de Febecos.
+          </label>
+        </div>
+        {errores.terminos && <p style={{ ...s.errorMsg, marginBottom: 10 }}>Debés aceptar los términos y condiciones para continuar.</p>}
+
         <button
           style={{ ...s.boton, opacity: estado === 'loading' ? 0.7 : 1 }}
           onClick={handleSubmit}
@@ -330,6 +360,11 @@ export default function Home() {
         <p style={s.footer}>
           ¿Ya sos revendedor y tenés acceso? Escribinos por WhatsApp al{' '}
           <a href="https://wa.me/5491125750323" style={{ color: '#1a3a5c' }}>11 2575-0323</a>
+        </p>
+        <p style={{ textAlign: 'center', marginTop: 12, fontSize: 11, color: '#bbb' }}>
+          <a href="/terminos" style={{ color: '#999', textDecoration: 'none' }}>Términos y Condiciones</a>
+          {' · '}
+          <a href="/terminos#privacidad" style={{ color: '#999', textDecoration: 'none' }}>Política de Privacidad</a>
         </p>
       </div>
     </div>
