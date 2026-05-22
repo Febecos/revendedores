@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { monto, titulo, token } = await req.json()
+    const { monto, titulo, token, pedido_id } = await req.json()
     if (!monto || !titulo) {
       return NextResponse.json({ ok: false, error: 'monto y titulo requeridos' }, { status: 400 })
     }
@@ -13,8 +13,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'MP_ACCESS_TOKEN no configurado' }, { status: 500 })
     }
 
-    const baseUrl = 'https://revendedores-six.vercel.app'
+    const baseUrl = 'https://revendedores.febecos.com'
     const tokenParam = token ? `&token=${encodeURIComponent(token)}` : ''
+    const pedidoParam = pedido_id ? `&pedido=${encodeURIComponent(pedido_id)}` : ''
 
     const body = {
       items: [
@@ -26,13 +27,14 @@ export async function POST(req: NextRequest) {
         },
       ],
       back_urls: {
-        success: `${baseUrl}/portal?pago=ok${tokenParam}`,
-        failure: `${baseUrl}/portal?pago=error${tokenParam}`,
-        pending: `${baseUrl}/portal?pago=pendiente${tokenParam}`,
+        success: `${baseUrl}/portal?pago=ok${tokenParam}${pedidoParam}`,
+        failure: `${baseUrl}/portal?pago=error${tokenParam}${pedidoParam}`,
+        pending: `${baseUrl}/portal?pago=pendiente${tokenParam}${pedidoParam}`,
       },
       auto_return: 'approved',
       statement_descriptor: 'FEBECOS SOLAR',
-      external_reference: `portal-${Date.now()}`,
+      external_reference: pedido_id ? `pedido-${pedido_id}` : `portal-${Date.now()}`,
+      notification_url: 'https://selector.febecos.com/api/mp-webhook',
     }
 
     const res = await fetch('https://api.mercadopago.com/checkout/preferences', {
