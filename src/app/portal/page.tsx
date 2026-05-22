@@ -1330,8 +1330,9 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
   const [sistemaActual, setSistemaActual] = useState('')
   const [mostrarPago, setMostrarPago] = useState(false)
   const [pagoTab, setPagoTab] = useState<'transferencia'|'nave'|'mp'>('transferencia')
-  const [mpLoading, setMpLoading] = useState(false)
-  const [mpError, setMpError] = useState('')
+  const [pedidoLoading, setPedidoLoading] = useState(false)
+  const [pedidoEnviado, setPedidoEnviado] = useState(false)
+  const [pedidoError, setPedidoError] = useState('')
   const precio = precioMostrar(bomba.precio_full)
   const precioPublico = bomba.precio_full
   const msg = encodeURIComponent(
@@ -1354,26 +1355,37 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
     return `https://simulador-roi-seven.vercel.app?${params.toString()}`
   }
 
-  async function irAMercadoPago() {
-    setMpLoading(true)
-    setMpError('')
+  async function enviarPedido(metodo: 'transferencia' | 'nave' | 'mercadopago') {
+    setPedidoLoading(true)
+    setPedidoError('')
     try {
-      const res = await fetch('/api/mp-preference', {
+      const esMayorista = metodo === 'transferencia' && descuento > 0
+      const res = await fetch('/api/pedidos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          monto: precioPublico,
-          titulo: `Kit Solar Febecos — ${bomba.codigo} (${bomba.watts}W)`,
-          token: token || '',
+          revendedor_id:     wa?.id || null,
+          revendedor_nombre: wa ? `${wa.nombre} ${wa.apellido || ''}`.trim() : null,
+          revendedor_email:  wa?.email || null,
+          revendedor_token:  token || null,
+          bomba_codigo:      bomba.codigo,
+          bomba_descripcion: `${bomba.marca || ''} ${bomba.watts}W — ${bomba.impulsor || ''}`.trim(),
+          litros_dia:        litros || null,
+          altura_m:          altura || null,
+          precio_publico:    precioPublico,
+          precio_final:      esMayorista ? precioMayoristaCalc : precioPublico,
+          descuento_pct:     esMayorista ? descuento : 0,
+          tipo_comprador:    esMayorista ? 'revendedor' : 'cliente_final',
+          metodo_pago:       metodo,
         }),
       })
       const data = await res.json()
-      if (!data.ok || !data.init_point) { setMpError('No se pudo generar el link. Reintentá.'); return }
-      window.open(data.init_point, '_blank')
+      if (!data.ok) { setPedidoError('No se pudo registrar el pedido. Reintentá.'); return }
+      setPedidoEnviado(true)
     } catch {
-      setMpError('Error de conexión. Reintentá.')
+      setPedidoError('Error de conexión. Reintentá.')
     } finally {
-      setMpLoading(false)
+      setPedidoLoading(false)
     }
   }
 
@@ -1482,90 +1494,80 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
                 ))}
               </div>
 
-              {/* Tab: Transferencia */}
-              {pagoTab === 'transferencia' && (
-                <div>
-                  <div style={{ background:'rgba(74,222,128,0.07)', border:'1px solid rgba(74,222,128,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
-                    <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Tu precio mayorista ({descuento}% OFF)</div>
-                    <div style={{ fontSize:26, fontWeight:800, color:'#4ade80', fontFamily:'monospace' }}>{fmt(precioMayoristaCalc)}</div>
-                    <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>Precio público: {fmt(precioPublico)}</div>
+              {/* ── PEDIDO ENVIADO ── */}
+              {pedidoEnviado ? (
+                <div style={{ textAlign:'center' as const, padding:'20px 12px' }}>
+                  <div style={{ fontSize:40, marginBottom:12 }}>✅</div>
+                  <div style={{ fontSize:16, fontWeight:700, color:'#4ade80', marginBottom:8 }}>¡Pedido recibido!</div>
+                  <div style={{ fontSize:13, color:'#7a9ab5', lineHeight:1.7 }}>
+                    Estamos verificando disponibilidad de stock.<br/>
+                    Te contactamos en breve para confirmar y enviarte los datos de pago.
                   </div>
-                  <div style={{ background:'#132233', borderRadius:8, padding:'12px 14px', marginBottom:12, fontSize:12, lineHeight:1.8 }}>
-                    <div style={{ fontWeight:700, color:'#e8f0f8', marginBottom:6, fontSize:13 }}>📋 Datos bancarios Febecos</div>
-                    <div style={{ color:'#7a9ab5' }}>Banco: <span style={{ color:'#e8f0f8', fontWeight:600 }}>Banco Macro</span></div>
-                    <div style={{ color:'#7a9ab5' }}>Titular: <span style={{ color:'#e8f0f8', fontWeight:600 }}>Guillermo Javier Sandler</span></div>
-                    <div style={{ color:'#7a9ab5' }}>Cuenta: <span style={{ color:'#e8f0f8', fontWeight:600 }}>Caja de Ahorros $</span></div>
-                    <div style={{ color:'#7a9ab5' }}>CBU: <span style={{ color:'#e8f0f8', fontWeight:600, fontFamily:'monospace', letterSpacing:'0.04em' }}>2850370540094969145308</span></div>
-                    <div style={{ color:'#7a9ab5' }}>Alias: <span style={{ color:'#e8f0f8', fontWeight:700 }}>GALGO.LIMITE.PIBE</span></div>
-                    <div style={{ color:'#7a9ab5' }}>CUIT: <span style={{ color:'#e8f0f8', fontWeight:600 }}>20-21730156-5</span></div>
+                  <div style={{ marginTop:16, fontSize:11, color:'#3a5a7a' }}>
+                    ¿Consultas? WhatsApp: <a href="https://wa.me/5491125750323" style={{ color:'#25d366' }}>+54 9 11 2575-0323</a>
                   </div>
-                  <div style={{ fontSize:11, color:'#e8681a', background:'rgba(232,104,26,0.08)', borderRadius:8, padding:'8px 12px', marginBottom:10, display:'flex', gap:8 }}>
-                    <span>⚠️</span>
-                    <span>Antes de transferir, solicitanos la factura por WhatsApp para que podamos prepararla.</span>
-                  </div>
-                  <a href={`https://wa.me/5491125750323?text=${msgTransferencia}`} target="_blank" rel="noopener noreferrer"
-                    style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%', padding:'12px', background:'#25d366', color:'#fff', borderRadius:8, textDecoration:'none', fontSize:13, fontWeight:700 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                    Pedir factura y confirmar pedido
-                  </a>
                 </div>
-              )}
-
-              {/* Tab: NAVE */}
-              {pagoTab === 'nave' && (
-                <div>
-                  <div style={{ background:'rgba(74,222,128,0.07)', border:'1px solid rgba(74,222,128,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
-                    <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Precio público en 6 cuotas sin interés</div>
-                    <div style={{ display:'flex', alignItems:'baseline', gap:12 }}>
-                      <div>
-                        <div style={{ fontSize:22, fontWeight:800, color:'#4ade80', fontFamily:'monospace' }}>{fmt(cuotaNave)}<span style={{ fontSize:13, fontWeight:400, color:'#7a9ab5' }}>/mes</span></div>
-                        <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>Total: {fmt(precioPublico)} en 6 cuotas</div>
-                      </div>
+              ) : (
+                <>
+                {/* Tab: Transferencia */}
+                {pagoTab === 'transferencia' && (
+                  <div>
+                    <div style={{ background:'rgba(74,222,128,0.07)', border:'1px solid rgba(74,222,128,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
+                      <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Tu precio mayorista ({descuento}% OFF)</div>
+                      <div style={{ fontSize:26, fontWeight:800, color:'#4ade80', fontFamily:'monospace' }}>{fmt(precioMayoristaCalc)}</div>
+                      <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>Precio público: {fmt(precioPublico)}</div>
                     </div>
+                    <div style={{ fontSize:11, color:'#7a9ab5', background:'rgba(255,255,255,0.03)', borderRadius:8, padding:'8px 12px', marginBottom:12, lineHeight:1.7 }}>
+                      Al confirmar, te enviamos la factura y los datos bancarios para hacer la transferencia.
+                    </div>
+                    {pedidoError && <div style={{ fontSize:12, color:'#ff6b6b', marginBottom:8 }}>{pedidoError}</div>}
+                    <button onClick={() => enviarPedido('transferencia')} disabled={pedidoLoading}
+                      style={{ width:'100%', padding:'12px', background: pedidoLoading ? '#1e3248' : '#4ade80', color:'#0a1520', borderRadius:8, border:'none', fontSize:14, fontWeight:800, cursor: pedidoLoading ? 'not-allowed' : 'pointer' }}>
+                      {pedidoLoading ? '⏳ Enviando...' : '✅ Confirmar pedido por transferencia'}
+                    </button>
                   </div>
-                  <div style={{ fontSize:11, color:'#e8681a', background:'rgba(232,104,26,0.08)', borderRadius:8, padding:'8px 12px', marginBottom:10, display:'flex', gap:8 }}>
-                    <span>ℹ️</span>
-                    <span>Esta opción es con <strong>NAVE</strong>. Un vendedor de Febecos te enviará el link de pago personalizado. Disponible solo para <strong>precio público</strong> (no mayorista).</span>
-                  </div>
-                  <a href={`https://wa.me/5491125750323?text=${msgNave}`} target="_blank" rel="noopener noreferrer"
-                    style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%', padding:'12px', background:'#25d366', color:'#fff', borderRadius:8, textDecoration:'none', fontSize:13, fontWeight:700 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                    Solicitar link de pago NAVE
-                  </a>
-                </div>
-              )}
+                )}
 
-              {/* Tab: Mercado Pago */}
-              {pagoTab === 'mp' && (
-                <div>
-                  <div style={{ background:'rgba(0,158,227,0.07)', border:'1px solid rgba(0,158,227,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
-                    <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Precio público + tasas Mercado Pago</div>
-                    <div style={{ fontSize:22, fontWeight:800, color:'#009ee3', fontFamily:'monospace' }}>{fmt(precioPublico)}</div>
-                    <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>El monto final varía según las cuotas elegidas en MP</div>
+                {/* Tab: NAVE */}
+                {pagoTab === 'nave' && (
+                  <div>
+                    <div style={{ background:'rgba(74,222,128,0.07)', border:'1px solid rgba(74,222,128,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
+                      <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Precio público — 6 cuotas con NAVE</div>
+                      <div style={{ fontSize:22, fontWeight:800, color:'#4ade80', fontFamily:'monospace' }}>{fmt(cuotaNave)}<span style={{ fontSize:13, fontWeight:400, color:'#7a9ab5' }}>/mes</span></div>
+                      <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>Total: {fmt(precioPublico)} en 6 cuotas</div>
+                    </div>
+                    <div style={{ fontSize:11, color:'#e8681a', background:'rgba(232,104,26,0.08)', borderRadius:8, padding:'8px 12px', marginBottom:12, display:'flex', gap:8 }}>
+                      <span>ℹ️</span>
+                      <span>Al confirmar, un vendedor te enviará el link de pago de <strong>NAVE</strong>. Precio público sin descuento mayorista.</span>
+                    </div>
+                    {pedidoError && <div style={{ fontSize:12, color:'#ff6b6b', marginBottom:8 }}>{pedidoError}</div>}
+                    <button onClick={() => enviarPedido('nave')} disabled={pedidoLoading}
+                      style={{ width:'100%', padding:'12px', background: pedidoLoading ? '#1e3248' : '#4ade80', color:'#0a1520', borderRadius:8, border:'none', fontSize:14, fontWeight:800, cursor: pedidoLoading ? 'not-allowed' : 'pointer' }}>
+                      {pedidoLoading ? '⏳ Enviando...' : '📅 Solicitar pago en 6 cuotas NAVE'}
+                    </button>
                   </div>
-                  <div style={{ fontSize:11, color:'#e8681a', background:'rgba(232,104,26,0.08)', borderRadius:8, padding:'8px 12px', marginBottom:10, display:'flex', gap:8 }}>
-                    <span>⚠️</span>
-                    <span><strong>Importante:</strong> Mercado Pago aplica sus propias tasas de financiamiento sobre el precio público. El monto de cada cuota será <strong>mayor</strong> al de NAVE y varía según la cantidad de cuotas elegida.</span>
+                )}
+
+                {/* Tab: Mercado Pago */}
+                {pagoTab === 'mp' && (
+                  <div>
+                    <div style={{ background:'rgba(0,158,227,0.07)', border:'1px solid rgba(0,158,227,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
+                      <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Precio público + tasas Mercado Pago</div>
+                      <div style={{ fontSize:22, fontWeight:800, color:'#009ee3', fontFamily:'monospace' }}>{fmt(precioPublico)}</div>
+                      <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>El monto por cuota varía según las cuotas que elegís en MP</div>
+                    </div>
+                    <div style={{ fontSize:11, color:'#e8681a', background:'rgba(232,104,26,0.08)', borderRadius:8, padding:'8px 12px', marginBottom:12, display:'flex', gap:8 }}>
+                      <span>⚠️</span>
+                      <span><strong>Importante:</strong> Las tasas de Mercado Pago son mayores a las de NAVE. Al confirmar te enviamos el link de pago de MP.</span>
+                    </div>
+                    {pedidoError && <div style={{ fontSize:12, color:'#ff6b6b', marginBottom:8 }}>{pedidoError}</div>}
+                    <button onClick={() => enviarPedido('mercadopago')} disabled={pedidoLoading}
+                      style={{ width:'100%', padding:'12px', background: pedidoLoading ? '#1e3248' : '#009ee3', color:'#fff', borderRadius:8, border:'none', fontSize:14, fontWeight:800, cursor: pedidoLoading ? 'not-allowed' : 'pointer' }}>
+                      {pedidoLoading ? '⏳ Enviando...' : '💳 Solicitar link Mercado Pago'}
+                    </button>
                   </div>
-                  {mpError && (
-                    <div style={{ fontSize:12, color:'#ff6b6b', background:'rgba(255,107,107,0.08)', borderRadius:8, padding:'8px 12px', marginBottom:10 }}>{mpError}</div>
-                  )}
-                  <button
-                    onClick={irAMercadoPago}
-                    disabled={mpLoading}
-                    style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%', padding:'12px', background: mpLoading ? '#1e3248' : '#009ee3', color:'#fff', borderRadius:8, border:'none', fontSize:13, fontWeight:700, cursor: mpLoading ? 'not-allowed' : 'pointer' }}
-                  >
-                    {mpLoading ? '⏳ Generando link...' : (
-                      <>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="12" cy="12" r="12" fill="#009ee3"/>
-                          <path d="M8 12.5c1.5 0 2.5-1 3.5-2.5S14 7 16 7c1.5 0 2 1 2 2s-.5 2.5-2 3.5c-1 .7-2 .5-3 0L12 12l-1-1-1.5 1.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/>
-                        </svg>
-                        Pagar con Mercado Pago
-                      </>
-                    )}
-                  </button>
-                </div>
+                )}
+                </>
               )}
             </div>
           )}
