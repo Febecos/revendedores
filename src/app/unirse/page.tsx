@@ -69,6 +69,14 @@ async function getTramos(): Promise<Tramo[]> {
   } catch { return TRAMOS_FALLBACK }
 }
 
+async function getRevendedoresActivos(): Promise<number> {
+  try {
+    const sql = getDb()
+    const rows = await sql`SELECT COUNT(*) AS total FROM revendedores WHERE activo = true`
+    return Number((rows[0] as any)?.total ?? 0)
+  } catch { return 0 }
+}
+
 async function getModelos(): Promise<Modelo[]> {
   try {
     const sql = getDb()
@@ -143,7 +151,7 @@ function MockupPortal() {
 }
 
 export default async function UnirsePage() {
-  const [tramos, modelos] = await Promise.all([getTramos(), getModelos()])
+  const [tramos, modelos, revendedoresActivos] = await Promise.all([getTramos(), getModelos(), getRevendedoresActivos()])
 
   return (
     <>
@@ -172,11 +180,13 @@ export default async function UnirsePage() {
         {/* ── NAV ── */}
         <nav style={{ background:C.blanco, borderBottom:`1px solid ${C.grisB}`, height:68, display:'flex', alignItems:'center', position:'sticky', top:0, zIndex:200 }}>
           <div style={{ maxWidth:1060, margin:'0 auto', width:'100%', padding:'0 28px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <a href="https://febecos.com" style={{ color:C.azul, fontWeight:800, fontSize:20, letterSpacing:-.5 }}>🌱 Febecos</a>
+            <a href="https://febecos.com">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-febecos-nav.png" alt="Febecos" style={{ height:36, display:'block' }} />
+            </a>
             <div style={{ display:'flex', gap:16, alignItems:'center' }}>
               <a className="u-nav-l" href="https://febecos.com/catalogo" style={{ color:C.gris, fontSize:13, fontWeight:500 }}>Catálogo</a>
-              <a className="u-nav-l" href="https://selector.febecos.com" style={{ color:C.gris, fontSize:13, fontWeight:500 }}>Selector</a>
-              <a href="https://revendedores.febecos.com" style={{ background:C.grisBg, color:C.azulTxt, border:`1px solid ${C.grisB}`, borderRadius:8, padding:'7px 16px', fontSize:13, fontWeight:600 }}>
+              <a href="/portal" style={{ background:C.grisBg, color:C.azulTxt, border:`1px solid ${C.grisB}`, borderRadius:8, padding:'7px 16px', fontSize:13, fontWeight:600 }}>
                 Ya tengo acceso →
               </a>
             </div>
@@ -216,6 +226,33 @@ export default async function UnirsePage() {
             ))}
           </div>
         </div>
+
+        {/* ── DEMANDA EN VIVO ── */}
+        <section style={{ padding:'40px 28px', background:C.fondo }}>
+          <div style={{ maxWidth:900, margin:'0 auto' }}>
+            <p style={{ textAlign:'center', fontSize:12, fontWeight:700, color:C.gris, textTransform:'uppercase', letterSpacing:'.1em', marginBottom:24 }}>
+              📡 Qué está pasando ahora mismo
+            </p>
+            <div className="u-g3" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:14 }}>
+              {[
+                { valor: '18–25',       label: 'Consultas diarias',          detalle: 'Productores buscando solución',  emoji: '🔍' },
+                { valor: '53%',         label: 'Son ganaderos',               detalle: 'Agua para animales: demanda fija', emoji: '🐄' },
+                { valor: revendedoresActivos > 0 ? `${revendedoresActivos}` : '12+', label: 'Revendedores activos', detalle: 'En toda la Argentina',          emoji: '🤝' },
+                { valor: '8 provincias',label: 'Sin cobertura activa',        detalle: 'Zonas libres disponibles',        emoji: '📍' },
+              ].map(s => (
+                <div key={s.label} style={{ background:C.blanco, border:`1px solid ${C.grisB}`, borderRadius:12, padding:'18px 16px', textAlign:'center' }}>
+                  <div style={{ fontSize:22, marginBottom:6 }}>{s.emoji}</div>
+                  <div style={{ fontSize:22, fontWeight:800, color:C.azulTxt, lineHeight:1.1 }}>{s.valor}</div>
+                  <div style={{ fontSize:13, fontWeight:700, color:C.azulTxt, margin:'4px 0 2px' }}>{s.label}</div>
+                  <div style={{ fontSize:11, color:C.gris, lineHeight:1.4 }}>{s.detalle}</div>
+                </div>
+              ))}
+            </div>
+            <p style={{ textAlign:'center', fontSize:12, color:C.gris, marginTop:16 }}>
+              Datos actualizados · El que llega primero a una zona captura el mercado.
+            </p>
+          </div>
+        </section>
 
         {/* ── BENEFICIOS ── */}
         <section style={{ padding:'64px 28px', background:C.fondo }}>
