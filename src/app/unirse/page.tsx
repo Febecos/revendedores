@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { C } from './colores'
 import FormularioWA from './FormularioWA'
 import MockupSelectorAnimado from './MockupSelectorAnimado'
+import BtnDemo from './BtnDemo'
 
 interface Tramo {
   nivel: string
@@ -404,6 +405,12 @@ export default async function UnirsePage() {
               Completá tus datos y te contactamos por WhatsApp. Sin presión, sin compromisos.
             </p>
             <FormularioWA />
+            <div style={{ marginTop: 24, paddingTop: 24, borderTop: `1px solid ${C.grisB}` }}>
+              <p style={{ textAlign: 'center', fontSize: 13, color: C.gris, marginBottom: 4 }}>
+                ¿Preferís ver el portal antes de contactarte?
+              </p>
+              <BtnDemo />
+            </div>
           </div>
         </section>
 

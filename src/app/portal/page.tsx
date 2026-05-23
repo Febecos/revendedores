@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react'
 
 // Supabase removido — todo va a Neon via API routes internas
-const API_BOMBAS = 'https://simulador-roi-seven.vercel.app/api/suggest-pump'
-const API_DETALLE = 'https://simulador-roi-seven.vercel.app/api/pump-detail'
+const API_BOMBAS = 'https://roi.febecos.com/api/suggest-pump'
+const API_DETALLE = 'https://roi.febecos.com/api/pump-detail'
 declare global { interface Window { _ultimoCalcMcaId?: string } }
 const FEBECOS_LOGO_B64 = 'data:image/webp;base64,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'
 
@@ -18,6 +18,7 @@ interface ResultadoBomba {
 interface BombaCatalogo {
   codigo: string; marca: string; watts: number; diam_bomba: string
   diam_perf: string; cant_paneles: number; stock: number; precio_full: number
+  cuota_mensual: number | null
 }
 
 function precioMayorista(precio: number, descuento: number) {
@@ -291,14 +292,14 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:14 }}>
             {tipo==='sumergible' && <>
               <div style={fld}><label style={lbl}>Diám. perforación</label><select style={ci} value={diamPerf} onChange={e=>setDiamPerf(e.target.value)}>
-                <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
+                <option value="2">63mm (≈2½")</option><option value="3">80-100mm (≈3")</option><option value="4">110mm (≈4¼")</option><option value="4">115mm (≈4½")</option><option value="4">120mm (≈4¾")</option><option value="6">160mm (6")</option>
               </select></div>
               <div style={fld}><label style={lbl}>Profundidad bomba (m)</label><input style={ci} type="number" value={nivDin} min={0} step={0.5} onChange={e=>setNivDin(Number(e.target.value))} /></div>
               <div style={fld}><label style={lbl}>Altura tanque (m)</label><input style={ci} type="number" value={altDesc} min={0} step={0.5} onChange={e=>setAltDesc(Number(e.target.value))} /></div>
             </>}
             {tipo==='superficial' && <>
               <div style={fld}><label style={lbl}>Diám. perforación</label><select style={ci} value={diamPerf} onChange={e=>setDiamPerf(e.target.value)}>
-                <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
+                <option value="2">63mm (≈2½")</option><option value="3">80-100mm (≈3")</option><option value="4">110mm (≈4¼")</option><option value="4">115mm (≈4½")</option><option value="4">120mm (≈4¾")</option><option value="6">160mm (6")</option>
               </select></div>
               <div style={fld}><label style={lbl}>Altura aspiración (m)</label><input style={ci} type="number" value={altAsp} min={0} max={7.5} step={0.5} onChange={e=>setAltAsp(Number(e.target.value))} /></div>
               <div style={fld}><label style={lbl}>Altura tanque (m)</label><input style={ci} type="number" value={altDesc} min={0} step={0.5} onChange={e=>setAltDesc(Number(e.target.value))} /></div>
@@ -397,7 +398,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:10 }}>
                 <div style={fld}><label style={lbl}>Diám. perforación</label>
                   <select style={ci} value={t.diamPerf||'3'} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,diamPerf:e.target.value}:x))}>
-                    <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
+                    <option value="2">63mm (≈2½")</option><option value="3">80-100mm (≈3")</option><option value="4">110mm (≈4¼")</option><option value="4">115mm (≈4½")</option><option value="4">120mm (≈4¾")</option><option value="6">160mm (6")</option>
                   </select>
                 </div>
                 <div style={fld}><label style={lbl}>Profundidad bomba (m)</label><input style={ci} type="number" value={t.profundidad||10} min={0} step={0.5} onChange={e=>setTramos(tramos.map((x,i)=>i===idx?{...x,profundidad:Number(e.target.value)}:x))} /></div>
@@ -460,7 +461,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
           </button>
 
           <div style={fld}><label style={lbl}>Diám. perforación</label><select style={ci} value={diamPerf} onChange={e=>setDiamPerf(e.target.value)}>
-            <option value="2">2" (63mm)</option><option value="3">3" (80-90mm)</option><option value="4">4" (110mm)</option><option value="6">6" (152mm+)</option>
+            <option value="2">63mm (≈2½")</option><option value="3">80-100mm (≈3")</option><option value="4">110mm (≈4¼")</option><option value="4">115mm (≈4½")</option><option value="4">120mm (≈4¾")</option><option value="6">160mm (6")</option>
           </select></div>
 
           <button onClick={calcAvanzado} style={{ width:'100%', padding:'11px', background:'#1a6b3c', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:14 }}>
@@ -817,6 +818,7 @@ export default function Portal() {
   const [rev, setRev] = useState<Revendedor | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [diasDemo, setDiasDemo] = useState<number | null>(null)   // null = no es demo
   const [altura, setAltura] = useState('')
   const [litros, setLitros] = useState('')
   const [diametro, setDiametro] = useState('3')
@@ -829,6 +831,9 @@ export default function Portal() {
   const [verCatalogo, setVerCatalogo] = useState(false)
   const [cargandoCatalogo, setCargandoCatalogo] = useState(false)
   const [filtroStock, setFiltroStock] = useState<'todos'|'local'|'deposito'>('todos')
+  const [filtroDiam, setFiltroDiam] = useState('todos')
+  const [filtroWatts, setFiltroWatts] = useState('todos')
+  const [filtroTipo, setFiltroTipo] = useState('todos')
   const [mostrarCalculadora, setMostrarCalculadora] = useState(false)
   const [modalCodigo, setModalCodigo] = useState<string | null>(null)
   const [bombaSel, setBombaSel] = useState<string | null>(null)
@@ -990,7 +995,27 @@ export default function Portal() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const t = params.get('token') || localStorage.getItem('febecos-token')
-    if (!t) { setError('no_token'); setLoading(false); return }
+    if (!t) {
+      // Sin token: chequeamos si hay demo activa
+      fetch('/api/demo')
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            // Demo válida — acceso completo con banner
+            setToken('DEMO')
+            setRev({ id: 0, nombre: 'Demo', apellido: '', empresa: 'Portal Demo', provincia: 'Buenos Aires', descuento_pct: 7, token_acceso: 'DEMO', tipo_usuario: 'demo' })
+            setDiasDemo(data.diasRestantes)
+            setPinEstado('ok')
+          } else if (data.expired) {
+            setError('demo_expirado')
+          } else {
+            setError('no_token')
+          }
+          setLoading(false)
+        })
+        .catch(() => { setError('no_token'); setLoading(false) })
+      return
+    }
     // Si vino por URL, guardarlo para próximas veces
     if (params.get('token')) localStorage.setItem('febecos-token', params.get('token')!)
     setToken(t)
@@ -1024,8 +1049,26 @@ export default function Portal() {
   }
 
   if (loading) return <Pantalla emoji="⏳" titulo="Verificando acceso..." sub="" />
-  if (error === 'no_token') return <Pantalla emoji="🔒" titulo="Acceso restringido" sub="Este portal requiere un link de acceso personalizado." cta={{ label: 'Registrarme', href: 'https://revendedores-six.vercel.app' }} cta2={{ label: 'WhatsApp', href: 'https://wa.me/5491125750323' }} />
+  if (error === 'no_token') return <Pantalla emoji="🔒" titulo="Acceso restringido" sub="Este portal requiere un link de acceso personalizado." cta={{ label: 'Registrarme', href: '/unirse' }} cta2={{ label: 'WhatsApp', href: 'https://wa.me/5491125750323' }} />
   if (error === 'token_invalido') return <Pantalla emoji="❌" titulo="Link inválido o desactivado" sub="Este link no es válido o fue desactivado." cta={{ label: 'Escribinos por WhatsApp', href: 'https://wa.me/5491125750323' }} />
+  if (error === 'demo_expirado') return (
+    <div style={{ minHeight:'100vh', background:'#0d1a2a', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+      <div style={{ background:'#132236', borderRadius:16, padding:'40px 32px', maxWidth:400, width:'100%', textAlign:'center' }}>
+        <div style={{ fontSize:48, marginBottom:16 }}>⏰</div>
+        <h2 style={{ color:'#e8f0f8', fontSize:22, fontWeight:800, marginBottom:8 }}>Tu demo de 7 días terminó</h2>
+        <p style={{ color:'#7a9ab5', fontSize:14, lineHeight:1.65, marginBottom:28 }}>
+          Esperamos que hayas podido explorar el portal. Para seguir cotizando y acceder a tus precios mayoristas, completá el registro — es gratis y sin compromiso.
+        </p>
+        <a href="/unirse#formulario" style={{ display:'block', padding:'14px', background:'#a8c61b', color:'#003d72', borderRadius:10, fontWeight:800, fontSize:15, textDecoration:'none', marginBottom:12 }}>
+          Registrarme ahora →
+        </a>
+        <a href="https://wa.me/5491125750323?text=Hola%2C%20us%C3%A9%20el%20portal%20demo%20y%20me%20interesa%20registrarme." target="_blank" rel="noopener noreferrer"
+          style={{ display:'block', padding:'12px', background:'#25d366', color:'#fff', borderRadius:10, fontWeight:700, fontSize:14, textDecoration:'none' }}>
+          💬 Hablar con un asesor
+        </a>
+      </div>
+    </div>
+  )
   if (error || !rev) return <Pantalla emoji="⚠️" titulo="Error de conexión" sub="No pudimos verificar tu acceso. Intentá recargar." />
 
   // ── PANTALLA DE PIN ───────────────────────────────────────────────────────
@@ -1084,11 +1127,21 @@ export default function Portal() {
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  const catalogoFiltrado = filtroStock === 'local'
-    ? catalogo.filter(b => (b.stock || 0) > 0)
-    : filtroStock === 'deposito'
-    ? catalogo.filter(b => (b.stock || 0) === 0)
-    : catalogo
+  const catalogoFiltrado = catalogo
+    .filter(b => filtroStock === 'todos' ? true : filtroStock === 'local' ? (b.stock || 0) > 0 : (b.stock || 0) === 0)
+    .filter(b => filtroDiam === 'todos' ? true : String(b.diam_bomba) === filtroDiam)
+    .filter(b => {
+      if (filtroTipo === 'todos') return true
+      const esHibrida = /A\/D|220v|hibrida|híbrida/i.test(b.codigo)
+      return filtroTipo === 'hibrida' ? esHibrida : !esHibrida
+    })
+    .filter(b => {
+      if (filtroWatts === 'todos') return true
+      if (filtroWatts === 'low') return (b.watts || 0) <= 300
+      if (filtroWatts === 'mid') return (b.watts || 0) > 300 && (b.watts || 0) <= 600
+      if (filtroWatts === 'high') return (b.watts || 0) > 600
+      return true
+    })
 
   return (
     <div style={s.wrap}>
@@ -1100,6 +1153,22 @@ export default function Portal() {
           onClose={() => setModalCodigo(null)}
           revendedor={`${rev.nombre} ${rev.apellido}${rev.empresa ? ' — ' + rev.empresa : ''}`}
         />
+      )}
+
+      {/* ── BANNER DEMO ─────────────────────────────────────────────────────── */}
+      {diasDemo !== null && (
+        <div style={{ background: '#a8c61b', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>👀</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#003d72' }}>
+              Modo demo · {diasDemo} día{diasDemo !== 1 ? 's' : ''} restante{diasDemo !== 1 ? 's' : ''}
+            </span>
+            <span style={{ fontSize: 12, color: '#2d4a00' }}>— Estás viendo el portal completo con descuento Nivel 1 (7%)</span>
+          </div>
+          <a href="/unirse#formulario" style={{ background: '#003d72', color: '#fff', borderRadius: 7, padding: '6px 16px', fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
+            Registrarme para acceso permanente →
+          </a>
+        </div>
       )}
 
       <div style={s.header}>
@@ -1185,10 +1254,10 @@ export default function Portal() {
             <div style={s.campo}>
               <label style={s.label}>Bomba que entra (diámetro)</label>
               <select style={s.input} value={diametro} onChange={e => setDiametro(e.target.value)}>
-                <option value="2">2" — perforación 63mm o más</option>
-                <option value="3">3" — perforación 80mm o más</option>
-                <option value="4">4" — perforación 110mm o más</option>
-                <option value="6">6" — perforación 160mm o más</option>
+                <option value="2">2" — perforación 63mm (≈2½")</option>
+                <option value="3">3" — perforación 80-100mm</option>
+                <option value="4">4" — perforación 110-120mm</option>
+                <option value="6">6" — perforación 160mm</option>
               </select>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
@@ -1258,14 +1327,51 @@ export default function Portal() {
         {/* CATÁLOGO */}
         {verCatalogo && catalogo.length > 0 && (
           <div id="catalogo-section" style={s.card}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ ...s.cardTitle, marginBottom: 0 }}>🔋 Catálogo de bombas</div>
-              <div style={s.toggleBtns}>
-                <button onClick={() => setFiltroStock('todos')} style={{ ...s.toggleBtn, ...(filtroStock==='todos' ? s.toggleBtnActive : {}) }}>Todos ({catalogo.length})</button>
-                <button onClick={() => setFiltroStock('local')} style={{ ...s.toggleBtn, ...(filtroStock==='local' ? s.toggleBtnActive : {}), color: filtroStock==='local' ? '#e8f0f8' : '#22c55e' }}>✅ En local — 72hs ({catalogo.filter(b=>(b.stock||0)>0).length})</button>
-                <button onClick={() => setFiltroStock('deposito')} style={{ ...s.toggleBtn, ...(filtroStock==='deposito' ? s.toggleBtnActive : {}), color: filtroStock==='deposito' ? '#e8f0f8' : '#fb923c' }}>📦 A verificar ({catalogo.filter(b=>(b.stock||0)===0).length})</button>
-              </div>
-            </div>
+            {/* Título + filtros en una sola fila compacta */}
+            {(() => {
+              const chip = (active: boolean, extraColor?: string): React.CSSProperties => ({
+                padding: '3px 9px', borderRadius: 5, border: 'none', cursor: 'pointer',
+                fontSize: 11, fontWeight: active ? 700 : 500,
+                background: active ? '#1e3248' : 'transparent',
+                color: active ? '#e8f0f8' : (extraColor || '#7a9ab5'),
+                transition: 'all 0.12s', whiteSpace: 'nowrap' as const,
+              })
+              const group: React.CSSProperties = { display:'flex', gap:2, background:'#0d1c2b', borderRadius:6, padding:2, border:'1px solid #1e3248' }
+              const div: React.CSSProperties = { width:1, height:14, background:'#1e3248', alignSelf:'center' }
+              return (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap' as const, gap:8, marginBottom:14 }}>
+                  <div style={{ ...s.cardTitle, marginBottom:0 }}>🔋 Catálogo de bombas</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' as const }}>
+                    <div style={group}>
+                      {[{v:'todos',l:'Tipo'},{v:'solar',l:'☀️'},{v:'hibrida',l:'⚡🌞'}].map(t => (
+                        <button key={t.v} onClick={() => setFiltroTipo(t.v)} style={chip(filtroTipo===t.v)} title={t.v==='todos'?'Todos los tipos':t.v==='solar'?'Solar':'Híbrida'}>{t.l}</button>
+                      ))}
+                    </div>
+                    <div style={div}/>
+                    <div style={group}>
+                      {[{v:'todos',l:'⌀'},{v:'2',l:'2"'},{v:'3',l:'3"'},{v:'4',l:'4"'}].map(d => (
+                        <button key={d.v} onClick={() => setFiltroDiam(d.v)} style={chip(filtroDiam===d.v)} title={d.v==='todos'?'Todos los diámetros':d.l}>{d.l}</button>
+                      ))}
+                    </div>
+                    <div style={div}/>
+                    <div style={group}>
+                      {[{v:'todos',l:'W'},{v:'low',l:'≤300'},{v:'mid',l:'300-600'},{v:'high',l:'+600'}].map(w => (
+                        <button key={w.v} onClick={() => setFiltroWatts(w.v)} style={chip(filtroWatts===w.v)} title={w.v==='todos'?'Todos los watts':w.l+'W'}>{w.l}</button>
+                      ))}
+                    </div>
+                    <div style={div}/>
+                    <div style={group}>
+                      <button onClick={() => setFiltroStock('todos')} style={chip(filtroStock==='todos')} title="Todos">Todo</button>
+                      <button onClick={() => setFiltroStock('local')} style={chip(filtroStock==='local', '#22c55e')} title={`En local (${catalogo.filter(b=>(b.stock||0)>0).length})`}>✅ {catalogo.filter(b=>(b.stock||0)>0).length}</button>
+                      <button onClick={() => setFiltroStock('deposito')} style={chip(filtroStock==='deposito', '#fb923c')} title={`A verificar (${catalogo.filter(b=>(b.stock||0)===0).length})`}>📦 {catalogo.filter(b=>(b.stock||0)===0).length}</button>
+                    </div>
+                    {catalogoFiltrado.length < catalogo.length && (
+                      <span style={{ fontSize:10, color:'#7a9ab5', marginLeft:2 }}>{catalogoFiltrado.length}/{catalogo.length}</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
               {catalogoFiltrado.map((b) => {
                 const conStock = (b.stock || 0) > 0
@@ -1353,7 +1459,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
     const params = new URLSearchParams({ pump: bomba.codigo, height: String(altura), liters: String(litros) })
     if (provincia) params.set('zone', provincia)
     if (sistemaVal) params.set('compare', sistemaVal)
-    return `https://simulador-roi-seven.vercel.app?${params.toString()}`
+    return `https://roi.febecos.com?${params.toString()}`
   }
 
   async function enviarPedido(metodo: 'transferencia' | 'nave' | 'mercadopago') {
@@ -1395,7 +1501,10 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
   }
 
   const precioMayoristaCalc = precioMayorista(precioPublico, descuento)
-  const cuotaNave = Math.ceil(precioPublico / 6)
+  // Usar cuota_mensual de la DB (con interés NAVE), no dividir precio/6
+  const cuotaNave = bomba.cuota_mensual || Math.ceil(precioPublico / 6)
+  // En modo mayorista, solo transferencia está disponible
+  const effectivePagoTab = mostrarPublico ? pagoTab : 'transferencia'
 
   const msgTransferencia = encodeURIComponent(
     `Hola Febecos! Soy ${wa.nombre} ${wa.apellido || ''} (${wa.empresa || wa.provincia}).\n` +
@@ -1465,11 +1574,11 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
       ) : (
         /* ACCIONES — solo cuando está seleccionado */
         <div style={{ marginTop: 12, display:'flex', flexDirection:'column' as const, gap:8 }}>
-          <div style={{ display:'flex', gap:8 }}>
-            <button onClick={() => onVerDetalle(bomba.codigo)} style={{ flex:1, padding:'9px 12px', background:'#1e3248', border:'1px solid #2a4a6a', borderRadius:8, color:'#e8f0f8', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+          <div style={{ display:'flex', flexDirection:'column' as const, gap:8 }}>
+            <button onClick={() => onVerDetalle(bomba.codigo)} style={{ width:'100%', padding:'12px 14px', background:'#e8681a', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', letterSpacing:0.2 }}>
               📋 Ver detalle y compartir presupuesto
             </button>
-            <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={{ flex:1, ...s.btnWA, display:'flex', alignItems:'center', justifyContent:'center', gap:6, textDecoration:'none' }}>
+            <a href={`https://wa.me/5491125750323?text=${msg}`} target="_blank" rel="noopener noreferrer" style={{ width:'100%', ...s.btnWA, display:'flex', alignItems:'center', justifyContent:'center', gap:6, textDecoration:'none', boxSizing:'border-box' as const }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
               Consultar por WhatsApp
             </a>
@@ -1485,19 +1594,29 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
           {mostrarPago && (
             <div style={{ background:'#0a1520', border:'1px solid #1e3248', borderRadius:10, padding:16 }}>
               {/* Tabs */}
-              <div style={{ display:'flex', gap:6, marginBottom:14 }}>
-                {([
-                  { key:'transferencia', label:'🏦 Transferencia', sub:'Precio mayorista' },
-                  { key:'nave', label:'📅 6 cuotas NAVE', sub:'Precio público' },
-                  { key:'mp', label:'💳 Mercado Pago', sub:'Precio público + tasas' },
-                ] as const).map(t => (
-                  <button key={t.key} onClick={() => setPagoTab(t.key)}
-                    style={{ flex:1, padding:'8px 6px', borderRadius:8, border: pagoTab===t.key ? '1.5px solid #4ade80' : '1px solid #1e3248', background: pagoTab===t.key ? 'rgba(74,222,128,0.10)' : '#132233', color: pagoTab===t.key ? '#4ade80' : '#7a9ab5', fontSize:11, fontWeight:700, cursor:'pointer', lineHeight:1.3, textAlign:'center' as const }}>
-                    <div>{t.label}</div>
-                    <div style={{ fontSize:9, fontWeight:400, opacity:0.8, marginTop:2 }}>{t.sub}</div>
-                  </button>
-                ))}
-              </div>
+              {(() => {
+                const pagoTabs = mostrarPublico
+                  ? [
+                      { key:'transferencia' as const, label:'🏦 Transferencia', sub:'Precio público' },
+                      { key:'nave' as const, label:'📅 6 cuotas NAVE', sub:'Precio público' },
+                      { key:'mp' as const, label:'💳 Mercado Pago', sub:'Precio público + tasas' },
+                    ]
+                  : [
+                      { key:'transferencia' as const, label:'🏦 Transferencia', sub:'Precio mayorista' },
+                    ]
+                const tabActivo = pagoTabs.find(t => t.key === pagoTab) ? pagoTab : 'transferencia'
+                return (
+                  <div style={{ display:'flex', gap:6, marginBottom:14 }}>
+                    {pagoTabs.map(t => (
+                      <button key={t.key} onClick={() => setPagoTab(t.key)}
+                        style={{ flex:1, padding:'8px 6px', borderRadius:8, border: tabActivo===t.key ? '1.5px solid #4ade80' : '1px solid #1e3248', background: tabActivo===t.key ? 'rgba(74,222,128,0.10)' : '#132233', color: tabActivo===t.key ? '#4ade80' : '#7a9ab5', fontSize:11, fontWeight:700, cursor:'pointer', lineHeight:1.3, textAlign:'center' as const }}>
+                        <div>{t.label}</div>
+                        <div style={{ fontSize:9, fontWeight:400, opacity:0.8, marginTop:2 }}>{t.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
 
               {/* ── PEDIDO ENVIADO ── */}
               {/* ── T&C ── */}
@@ -1543,12 +1662,21 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
               ) : (
                 <>
                 {/* Tab: Transferencia */}
-                {pagoTab === 'transferencia' && (
+                {effectivePagoTab === 'transferencia' && (
                   <div>
                     <div style={{ background:'rgba(74,222,128,0.07)', border:'1px solid rgba(74,222,128,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
-                      <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Tu precio mayorista ({descuento}% OFF)</div>
-                      <div style={{ fontSize:26, fontWeight:800, color:'#4ade80', fontFamily:'monospace' }}>{fmt(precioMayoristaCalc)}</div>
-                      <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>Precio público: {fmt(precioPublico)}</div>
+                      {mostrarPublico ? (
+                        <>
+                          <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Precio público</div>
+                          <div style={{ fontSize:26, fontWeight:800, color:'#4ade80', fontFamily:'monospace' }}>{fmt(precioPublico)}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Tu precio mayorista ({descuento}% OFF)</div>
+                          <div style={{ fontSize:26, fontWeight:800, color:'#4ade80', fontFamily:'monospace' }}>{fmt(precioMayoristaCalc)}</div>
+                          <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>Precio público: {fmt(precioPublico)}</div>
+                        </>
+                      )}
                     </div>
                     <div style={{ fontSize:11, color:'#7a9ab5', background:'rgba(255,255,255,0.03)', borderRadius:8, padding:'8px 12px', marginBottom:12, lineHeight:1.7 }}>
                       Al confirmar, te enviamos la factura y los datos bancarios para hacer la transferencia.
@@ -1562,7 +1690,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
                 )}
 
                 {/* Tab: NAVE */}
-                {pagoTab === 'nave' && (
+                {effectivePagoTab === 'nave' && (
                   <div>
                     <div style={{ background:'rgba(74,222,128,0.07)', border:'1px solid rgba(74,222,128,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
                       <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Precio público — 6 cuotas con NAVE</div>
@@ -1582,7 +1710,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
                 )}
 
                 {/* Tab: Mercado Pago */}
-                {pagoTab === 'mp' && (
+                {effectivePagoTab === 'mp' && (
                   <div>
                     <div style={{ background:'rgba(0,158,227,0.07)', border:'1px solid rgba(0,158,227,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
                       <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Precio público + tasas Mercado Pago</div>
