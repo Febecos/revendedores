@@ -2,6 +2,7 @@
 import { getDb } from '@/lib/db'
 import { C } from './colores'
 import FormularioWA from './FormularioWA'
+import MockupSelectorAnimado from './MockupSelectorAnimado'
 
 interface Tramo {
   nivel: string
@@ -341,11 +342,11 @@ export default async function UnirsePage() {
                   🔑 Ver el portal de revendedores →
                 </a>
               </div>
-              {/* Mockup portal */}
+              {/* Mockup animado del selector */}
               <div>
-                <MockupPortal />
-                <p style={{ textAlign:'center', fontSize:12, color:C.gris, marginTop:12 }}>
-                  Así se ve tu portal una vez que tenés acceso
+                <MockupSelectorAnimado />
+                <p style={{ textAlign:'center', fontSize:12, color:C.gris, marginTop:16 }}>
+                  Así funciona el cotizador en el portal de revendedores
                 </p>
               </div>
             </div>
