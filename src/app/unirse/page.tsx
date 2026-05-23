@@ -25,12 +25,13 @@ const PROVINCIAS = [
   'Santiago del Estero','Tierra del Fuego','Tucumán',
 ]
 
+// Precios reales del Kit Solar 2" 210W (precio_full $1.580.820 según Neon DB)
 const NIVELES = [
-  { nivel: 'Nivel 1', desde: '$0',           pct: '7%',  ejemplo: '$56.000',  color: C.azulTxt },
-  { nivel: 'Nivel 2', desde: '$1.000.000',   pct: '10%', ejemplo: '$80.000',  color: C.azulMid },
-  { nivel: 'Nivel 3', desde: '$3.000.000',   pct: '12%', ejemplo: '$96.000',  color: C.verde   },
-  { nivel: 'Nivel 4', desde: '$7.000.000',   pct: '15%', ejemplo: '$120.000', color: '#1a6b35' },
-  { nivel: 'Nivel 5', desde: '$15.000.000',  pct: '20%', ejemplo: '$160.000', color: '#155a2a' },
+  { nivel: 'Nivel 1', desde: '$0',           pct: '7%',  ejemplo: '$110.657', color: C.azulTxt },
+  { nivel: 'Nivel 2', desde: '$1.000.000',   pct: '10%', ejemplo: '$158.082', color: C.azulMid },
+  { nivel: 'Nivel 3', desde: '$3.000.000',   pct: '12%', ejemplo: '$189.698', color: C.verde   },
+  { nivel: 'Nivel 4', desde: '$7.000.000',   pct: '15%', ejemplo: '$237.123', color: '#1a6b35' },
+  { nivel: 'Nivel 5', desde: '$15.000.000',  pct: '20%', ejemplo: '$316.164', color: '#155a2a' },
 ]
 
 const BENEFICIOS = [
@@ -180,7 +181,7 @@ export default function UnirsePage() {
                     <th style={{ padding: '12px 20px', textAlign: 'left', color: 'rgba(255,255,255,.8)', fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>Nivel</th>
                     <th style={{ padding: '12px 20px', textAlign: 'left', color: 'rgba(255,255,255,.8)', fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>Facturación mensual</th>
                     <th style={{ padding: '12px 20px', textAlign: 'left', color: 'rgba(255,255,255,.8)', fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>Descuento</th>
-                    <th style={{ padding: '12px 20px', textAlign: 'left', color: 'rgba(255,255,255,.8)', fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>Ganancia en kit $800k</th>
+                    <th style={{ padding: '12px 20px', textAlign: 'left', color: 'rgba(255,255,255,.8)', fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>Tu margen · Kit 2" 210W</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -198,22 +199,26 @@ export default function UnirsePage() {
 
             {/* Ejemplo visual */}
             <div style={{ background: C.acentoBg, border: `1px solid ${C.acentoBord}`, borderRadius: 12, padding: '24px 28px' }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: C.verde, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.08em' }}>📊 Ejemplo concreto — 5 kits de $800.000/mes</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: C.verde, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.08em' }}>📊 Ejemplo real — Kit Bomba Solar 2" 210W</p>
+              <p style={{ fontSize: 13, color: C.gris, marginBottom: 16 }}>Precio de lista: <strong style={{ color: C.azulTxt }}>$1.580.820</strong> · Kit completo con paneles, cable y soga</p>
               <div className="unirse-ej-grid" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <div style={{ background: C.blanco, border: `1px solid ${C.grisB}`, borderRadius: 10, padding: '16px 24px', textAlign: 'center', flex: 1 }}>
-                  <div style={{ fontSize: 12, color: C.gris, marginBottom: 4 }}>Nivel 1 · 7%</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: C.azulTxt }}>$280.000</div>
-                  <div style={{ fontSize: 12, color: C.gris }}>de margen en el mes</div>
+                <div style={{ background: C.blanco, border: `1px solid ${C.grisB}`, borderRadius: 10, padding: '16px 20px', textAlign: 'center', flex: 1 }}>
+                  <div style={{ fontSize: 12, color: C.gris, marginBottom: 2 }}>Nivel 1 · 7%</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: C.azulTxt }}>$110.657</div>
+                  <div style={{ fontSize: 11, color: C.gris }}>por venta</div>
                 </div>
-                <div style={{ color: C.acento, fontSize: 24, fontWeight: 800 }}>→</div>
-                <div style={{ background: C.blanco, border: `2px solid ${C.verde}`, borderRadius: 10, padding: '16px 24px', textAlign: 'center', flex: 1 }}>
-                  <div style={{ fontSize: 12, color: C.gris, marginBottom: 4 }}>Nivel 3 · 12%</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: C.verde }}>$480.000</div>
-                  <div style={{ fontSize: 12, color: C.gris }}>de margen en el mes</div>
+                <div style={{ color: C.acento, fontSize: 22, fontWeight: 800, flexShrink: 0 }}>→</div>
+                <div style={{ background: C.blanco, border: `2px solid ${C.verde}`, borderRadius: 10, padding: '16px 20px', textAlign: 'center', flex: 1 }}>
+                  <div style={{ fontSize: 12, color: C.gris, marginBottom: 2 }}>Nivel 3 · 12%</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: C.verde }}>$189.698</div>
+                  <div style={{ fontSize: 11, color: C.gris }}>por venta</div>
                 </div>
               </div>
-              <p style={{ fontSize: 13, color: C.gris, marginTop: 14, textAlign: 'center' }}>
-                El nivel sube automáticamente a medida que crece tu volumen mensual.
+              <p style={{ fontSize: 13, color: C.azulTxt, marginTop: 14, textAlign: 'center', fontWeight: 600 }}>
+                5 ventas/mes en Nivel 3 → <span style={{ color: C.verde }}>$948.490 de margen bruto</span>
+              </p>
+              <p style={{ fontSize: 12, color: C.gris, marginTop: 4, textAlign: 'center' }}>
+                El nivel sube automáticamente según tu volumen mensual acumulado.
               </p>
             </div>
           </div>
