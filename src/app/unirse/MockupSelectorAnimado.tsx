@@ -1,278 +1,317 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { C } from './colores'
 
-// Pasos del selector — simula al usuario eligiendo
-const PASOS = [
+/* ── Paleta exacta del selector real (formulario.html) ── */
+const azul     = '#003d72'
+const azulMid  = '#224a73'
+const azulTxt  = '#203b61'
+const verde    = '#2D5A27'
+const acento   = '#a8c61b'
+const acentoBg = '#f5fadf'
+const acentoBord = '#c8df6a'
+const fondo    = '#f7f9fc'
+const blanco   = '#ffffff'
+const gris     = '#5a6a7a'
+const grisB    = '#dce6f0'
+const grisBg   = '#eef3f9'
+
+/* ── Cada "frame" es lo que se ve en pantalla ── */
+const FRAMES = [
   {
-    titulo: '¿A qué profundidad está el agua?',
-    subtitulo: 'Profundidad del pozo',
-    input: '45 metros',
-    emoji: '📏',
-    color: C.azul,
+    paso: '1 de 4', pct: 25,
+    pregunta: '¿Para qué necesitás el agua?',
+    sub: 'Elegí el uso principal',
+    tipo: 'opts',
+    opts: [
+      { emoji: '🐄', label: 'Ganado', sel: true  },
+      { emoji: '🌱', label: 'Riego',  sel: false },
+      { emoji: '🏡', label: 'Mixto',  sel: false },
+    ],
+    seleccionando: '🐄 Ganado',
   },
   {
-    titulo: '¿Cuánta agua necesitás por día?',
-    subtitulo: 'Consumo diario',
-    input: '2.000 litros',
-    emoji: '💧',
-    color: C.azul,
+    paso: '2 de 4', pct: 50,
+    pregunta: '¿Cuántos animales tenés?',
+    sub: 'Usamos 60 L/animal/día (consumo verano)',
+    tipo: 'input',
+    placeholder: 'Ej: 200',
+    unit: 'cabezas',
+    valor: '200',
+    calc: '≈ 12.000 L/día de consumo estimado',
   },
   {
-    titulo: '¿Para qué usás el agua?',
-    subtitulo: 'Tipo de uso',
-    input: '🐄  Ganado / Bebederos',
-    emoji: '🌾',
-    color: C.azul,
+    paso: '3 de 4', pct: 75,
+    pregunta: '¿Cuál es el diámetro de la perforación?',
+    sub: 'El diámetro determina qué bomba puede entrar al pozo',
+    tipo: 'opts2',
+    opts: [
+      { label: '75mm — 3"',     desc: 'Angosto estándar', sel: false },
+      { label: '100mm — 4"',    desc: 'Mayor caudal',     sel: true  },
+    ],
+    seleccionando: '100mm — 4"',
+  },
+  {
+    paso: '4 de 4', pct: 100,
+    tipo: 'resultado',
   },
 ]
 
-const RESULTADO = {
-  kit: 'Kit Bomba Solar 4" 500W',
-  desc: 'Cubre todo el año · profundidad máx. 80 m',
-  precio: '$2.216.673',
-  cuota: '$428.557/mes',
-  paneles: '3 paneles solares incluidos',
-}
+// Duración de cada frame antes de "tocar" Continuar (ms)
+const HOLD_MS    = 1800
+const TAP_MS     = 600
+const RESULT_MS  = 3400
 
 export default function MockupSelectorAnimado() {
-  const [paso, setPaso] = useState(0)         // 0-2 = pasos, 3 = resultado
-  const [typing, setTyping] = useState(false)  // animación de "escribiendo"
-  const [tapping, setTapping] = useState(false) // animación de tap en botón
+  const [frame, setFrame]    = useState(0)
+  const [tapping, setTapping] = useState(false)
 
   useEffect(() => {
     let t1: ReturnType<typeof setTimeout>
     let t2: ReturnType<typeof setTimeout>
-    let t3: ReturnType<typeof setTimeout>
 
-    if (paso < 3) {
-      // Simula que el usuario está escribiendo/eligiendo
-      t1 = setTimeout(() => setTyping(true), 600)
-      // Luego toca el botón
-      t2 = setTimeout(() => { setTyping(false); setTapping(true) }, 1800)
-      // Avanza al siguiente paso
-      t3 = setTimeout(() => {
+    const isResult = FRAMES[frame].tipo === 'resultado'
+    const hold = isResult ? RESULT_MS : HOLD_MS
+
+    t1 = setTimeout(() => {
+      if (!isResult) setTapping(true)
+      t2 = setTimeout(() => {
         setTapping(false)
-        setPaso(p => p + 1)
-      }, 2400)
-    } else {
-      // En el resultado, espera y reinicia el loop
-      t1 = setTimeout(() => {
-        setPaso(0)
-        setTyping(false)
-        setTapping(false)
-      }, 4000)
-    }
+        setFrame(f => (f + 1) % FRAMES.length)
+      }, isResult ? 0 : TAP_MS)
+    }, hold)
 
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, [paso])
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [frame])
 
-  const pasoActual = PASOS[paso]
+  const f = FRAMES[frame]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      {/* Marco del teléfono */}
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14, fontFamily:"'Rubik',system-ui,sans-serif" }}>
+
+      {/* ── Marco del teléfono ── */}
       <div style={{
-        width: 260,
-        background: '#111',
-        borderRadius: 36,
-        padding: '12px 8px',
-        boxShadow: '0 20px 60px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.2)',
-        position: 'relative',
+        width: 268,
+        background: '#1a1a1a',
+        borderRadius: 38,
+        padding: '10px 7px 14px',
+        boxShadow: '0 24px 64px rgba(0,0,0,.40), 0 4px 16px rgba(0,0,0,.25)',
       }}>
-        {/* Muesca superior */}
-        <div style={{
-          width: 80, height: 22, background: '#111',
-          borderRadius: '0 0 16px 16px',
-          margin: '0 auto 8px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-        }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#333' }} />
-          <div style={{ width: 40, height: 4, borderRadius: 4, background: '#333' }} />
+
+        {/* Muesca */}
+        <div style={{ width:76, height:20, background:'#1a1a1a', borderRadius:'0 0 14px 14px', margin:'0 auto 6px', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+          <div style={{ width:7, height:7, borderRadius:'50%', background:'#333' }}/>
+          <div style={{ width:36, height:4, borderRadius:4, background:'#333' }}/>
         </div>
 
         {/* Pantalla */}
-        <div style={{
-          background: C.fondo,
-          borderRadius: 24,
-          overflow: 'hidden',
-          minHeight: 400,
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
-          {/* Header del selector */}
-          <div style={{
-            background: C.azul,
-            padding: '14px 16px 12px',
-            display: 'flex', flexDirection: 'column', gap: 6,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: C.blanco, fontWeight: 800, fontSize: 13 }}>🌱 Febecos</span>
-              <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 10 }}>
-                {paso < 3 ? `Paso ${paso + 1} de 3` : '¡Listo!'}
-              </span>
+        <div style={{ background:fondo, borderRadius:26, overflow:'hidden', minHeight:440 }}>
+
+          {/* Cabecera del selector */}
+          <div style={{ background:azul, padding:'12px 16px 10px' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+              <span style={{ color:blanco, fontWeight:800, fontSize:13, letterSpacing:-.3 }}>🌱 Febecos</span>
+              <span style={{ color:'rgba(255,255,255,.5)', fontSize:10 }}>Paso {f.paso}</span>
             </div>
-            {/* Barra de progreso */}
-            <div style={{ height: 3, background: 'rgba(255,255,255,.2)', borderRadius: 3, overflow: 'hidden' }}>
+            {/* Barra de progreso real */}
+            <div style={{ height:3, background:'rgba(255,255,255,.2)', borderRadius:3, overflow:'hidden' }}>
               <div style={{
-                height: '100%',
-                background: C.acento,
-                borderRadius: 3,
-                width: paso < 3 ? `${((paso + 1) / 3) * 100}%` : '100%',
-                transition: 'width .5s ease',
-              }} />
+                height:'100%', borderRadius:3,
+                background:`linear-gradient(90deg,${azul},${acento})`,
+                width:`${f.pct}%`,
+                transition:'width .5s cubic-bezier(.4,0,.2,1)',
+              }}/>
             </div>
           </div>
 
-          {/* Contenido */}
-          <div style={{ flex: 1, padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {paso < 3 ? (
+          {/* Cuerpo */}
+          <div style={{ padding:'14px 14px 16px' }}>
+
+            {f.tipo !== 'resultado' ? (
               <>
-                {/* Pregunta */}
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>{pasoActual.emoji}</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: C.azulTxt, lineHeight: 1.3, marginBottom: 4 }}>
-                    {pasoActual.titulo}
-                  </div>
-                  <div style={{ fontSize: 10, color: C.gris }}>{pasoActual.subtitulo}</div>
-                </div>
-
-                {/* Campo de input (simulado) */}
+                {/* Card estilo .fc */}
                 <div style={{
-                  background: C.blanco,
-                  border: `2px solid ${typing ? C.azul : C.grisB}`,
-                  borderRadius: 10,
-                  padding: '12px 14px',
-                  transition: 'border-color .3s',
-                  position: 'relative',
+                  background:blanco, border:`1px solid ${grisB}`,
+                  borderRadius:10, overflow:'hidden', marginBottom:10,
+                  animation:'fu .28s ease both',
                 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: typing ? C.azulTxt : C.gris }}>
-                    {typing ? pasoActual.input : (paso === 2 ? 'Seleccioná...' : 'Ingresá el valor...')}
+                  {/* .fch */}
+                  <div style={{ background:azul, padding:'10px 14px' }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:blanco, marginBottom:1 }}>Completá los datos</div>
+                    <div style={{ fontSize:10, color:'rgba(255,255,255,.65)' }}>Te lleva 2 minutos</div>
                   </div>
-                  {typing && (
-                    <div style={{
-                      position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                      width: 2, height: 16, background: C.azul,
-                      animation: 'blink 1s step-end infinite',
-                    }} />
-                  )}
+                  {/* .fcb */}
+                  <div style={{ padding:'14px 14px 12px' }}>
+
+                    {/* Pregunta .ql */}
+                    <div style={{ fontSize:13, fontWeight:600, color:azulTxt, marginBottom:4, lineHeight:1.35 }}>
+                      {f.pregunta}
+                    </div>
+                    {/* Sub .qs */}
+                    <div style={{ fontSize:10, color:gris, marginBottom:11, lineHeight:1.4 }}>
+                      {f.sub}
+                    </div>
+
+                    {/* Opciones icono (.opts.row / .opt.il) */}
+                    {f.tipo === 'opts' && (
+                      <div style={{ display:'flex', gap:6 }}>
+                        {(f as any).opts.map((o: any) => (
+                          <div key={o.label} style={{
+                            flex:1,
+                            border:`1.5px solid ${o.sel ? azul : grisB}`,
+                            borderRadius:7,
+                            background: o.sel ? grisBg : grisBg,
+                            padding:'8px 4px',
+                            textAlign:'center',
+                            boxShadow: o.sel ? `0 0 0 2px rgba(0,61,114,.15)` : 'none',
+                            transition:'all .15s',
+                          }}>
+                            <div style={{ fontSize:18, marginBottom:2 }}>{o.emoji}</div>
+                            <div style={{ fontSize:10, fontWeight:500, color: o.sel ? azulTxt : gris }}>{o.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Input numérico */}
+                    {f.tipo === 'input' && (
+                      <>
+                        <div style={{ position:'relative', marginBottom:6 }}>
+                          <div style={{
+                            padding:'9px 42px 9px 10px',
+                            border:`1.5px solid ${azul}`,
+                            borderRadius:7, fontSize:13, fontWeight:600,
+                            color:azulTxt, background:blanco,
+                            boxShadow:`0 0 0 2px rgba(0,61,114,.12)`,
+                          }}>
+                            {(f as any).valor}
+                          </div>
+                          <span style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', fontSize:11, color:gris, fontWeight:500 }}>
+                            {(f as any).unit}
+                          </span>
+                        </div>
+                        {(f as any).calc && (
+                          <div style={{ fontSize:11, color:verde, fontWeight:500 }}>
+                            ✓ {(f as any).calc}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Opciones con radio (.opts.g2) */}
+                    {f.tipo === 'opts2' && (
+                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                        {(f as any).opts.map((o: any) => (
+                          <div key={o.label} style={{
+                            display:'flex', alignItems:'center', gap:8,
+                            padding:'9px 11px',
+                            border:`1.5px solid ${o.sel ? azul : grisB}`,
+                            borderRadius:7, background:grisBg,
+                            boxShadow: o.sel ? `0 0 0 2px rgba(0,61,114,.15)` : 'none',
+                          }}>
+                            {/* Radio dot */}
+                            <div style={{
+                              width:14, height:14, borderRadius:'50%',
+                              border:`2px solid ${o.sel ? azul : '#bbb'}`,
+                              background: o.sel ? azul : 'transparent',
+                              flexShrink:0, position:'relative',
+                            }}>
+                              {o.sel && <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:4, height:4, background:blanco, borderRadius:'50%' }}/>}
+                            </div>
+                            <div>
+                              <div style={{ fontSize:12, fontWeight:500, color:azulTxt }}>{o.label}</div>
+                              <div style={{ fontSize:10, color:gris }}>{o.desc}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                  </div>
                 </div>
 
-                {/* Opciones de uso (solo paso 3) */}
-                {paso === 2 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {[
-                      { emoji: '🐄', label: 'Ganado / Bebederos', active: typing },
-                      { emoji: '🌿', label: 'Riego', active: false },
-                      { emoji: '🏠', label: 'Uso doméstico', active: false },
-                    ].map(op => (
-                      <div key={op.label} style={{
-                        background: op.active ? C.acentoBg : C.blanco,
-                        border: `1.5px solid ${op.active ? C.acentoBord : C.grisB}`,
-                        borderRadius: 8, padding: '9px 12px',
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        transition: 'all .3s',
-                      }}>
-                        <span style={{ fontSize: 16 }}>{op.emoji}</span>
-                        <span style={{ fontSize: 12, fontWeight: op.active ? 700 : 400, color: op.active ? C.azulTxt : C.gris }}>
-                          {op.label}
-                        </span>
-                        {op.active && <span style={{ marginLeft: 'auto', color: C.verde, fontSize: 14 }}>✓</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Botón Continuar (.btn) */}
+                <div style={{
+                  width:'100%', padding:'11px 14px',
+                  background: tapping ? azulMid : azul,
+                  color:blanco, borderRadius:8,
+                  fontSize:13, fontWeight:600,
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                  transform: tapping ? 'scale(.97)' : 'scale(1)',
+                  transition:'all .15s',
+                  boxSizing:'border-box',
+                  boxShadow: tapping ? `0 5px 18px rgba(0,61,114,.35)` : 'none',
+                }}>
+                  Continuar
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: tapping ? 'translateX(3px)' : 'none', transition:'transform .15s' }}>
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </div>
 
-                {/* Botón Siguiente */}
-                <div style={{ marginTop: 'auto' }}>
-                  <div style={{
-                    background: tapping ? '#bcd430' : C.acento,
-                    color: C.azul,
-                    borderRadius: 10,
-                    padding: '12px',
-                    textAlign: 'center',
-                    fontWeight: 800,
-                    fontSize: 14,
-                    transform: tapping ? 'scale(.96)' : 'scale(1)',
-                    transition: 'all .15s',
-                    cursor: 'pointer',
-                  }}>
-                    {paso < 2 ? 'Siguiente →' : 'Ver mi equipo ideal ✓'}
-                  </div>
-
-                  {/* Indicador de tap */}
-                  {tapping && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: 80,
-                      right: 60,
-                      width: 28, height: 28,
-                      borderRadius: '50%',
-                      background: 'rgba(0,61,114,.25)',
-                      animation: 'ripple .4s ease-out',
-                    }} />
-                  )}
+                {/* SSL note */}
+                <div style={{ textAlign:'center', fontSize:9, color:'#b0bec5', letterSpacing:'.07em', textTransform:'uppercase', marginTop:8 }}>
+                  ◎ Conexión segura SSL
                 </div>
               </>
             ) : (
-              /* Resultado */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {/* Badge éxito */}
+              /* ── RESULTADO: .bomba-card ── */
+              <div style={{
+                background:`linear-gradient(135deg, ${azul} 0%, ${azulMid} 100%)`,
+                borderRadius:12, padding:16, color:blanco,
+                animation:'fu .28s ease both',
+              }}>
+                {/* Badge */}
                 <div style={{
-                  background: C.acentoBg,
-                  border: `1px solid ${C.acentoBord}`,
-                  borderRadius: 10,
-                  padding: '10px 12px',
-                  textAlign: 'center',
+                  display:'inline-flex', alignItems:'center', gap:5,
+                  background:'rgba(168,198,27,.25)', border:`1px solid ${acento}`,
+                  color:acento, fontSize:9, fontWeight:700,
+                  padding:'3px 10px', borderRadius:100,
+                  textTransform:'uppercase', letterSpacing:'.06em', marginBottom:10,
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.verde, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 2 }}>
-                    ✓ Equipo ideal encontrado
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: C.azulTxt }}>
-                    {RESULTADO.kit}
-                  </div>
-                  <div style={{ fontSize: 10, color: C.gris, marginTop: 2 }}>{RESULTADO.desc}</div>
+                  ✓ Equipo recomendado
                 </div>
 
-                {/* Precio */}
-                <div style={{ background: C.azul, borderRadius: 10, padding: '14px 12px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.6)', marginBottom: 2 }}>Precio de lista</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: C.blanco }}>{RESULTADO.precio}</div>
-                  <div style={{ fontSize: 11, color: C.acento }}>{RESULTADO.cuota}</div>
+                <div style={{ fontSize:10, color:'rgba(255,255,255,.55)', fontFamily:'monospace', marginBottom:2 }}>HD-4SS-500</div>
+                <div style={{ fontSize:17, fontWeight:800, color:blanco, marginBottom:2 }}>Kit Bomba Solar 4" 500W</div>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,.65)', marginBottom:12 }}>
+                  Cubre todo el año · 3 paneles · prof. máx. 80m
                 </div>
 
-                {/* Incluye */}
-                {[
-                  '✓ Bomba solar sumergible 500W',
-                  '✓ 3 paneles solares incluidos',
-                  '✓ Cable, soga y protecciones',
-                  '✓ Garantía 12 meses Febecos',
-                ].map(item => (
-                  <div key={item} style={{ fontSize: 11, color: C.azulTxt, fontWeight: 500 }}>{item}</div>
-                ))}
+                <div style={{ fontSize:24, fontWeight:800, color:acento, marginBottom:12 }}>
+                  $2.216.673 <span style={{ fontSize:11, fontWeight:400, color:'rgba(255,255,255,.5)' }}>lista</span>
+                </div>
 
-                {/* CTA */}
+                {/* Checks */}
+                <div style={{ display:'flex', flexDirection:'column', gap:5, marginBottom:14 }}>
+                  {['Bomba solar sumergible 500W','3 paneles solares incluidos','Cable, soga y protecciones','Garantía 12 meses'].map(item => (
+                    <div key={item} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'rgba(255,255,255,.9)' }}>
+                      <span style={{ color:acento, fontWeight:700, flexShrink:0 }}>✓</span>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA WA */}
                 <div style={{
-                  background: '#25d366', color: C.blanco,
-                  borderRadius: 10, padding: '11px 12px',
-                  textAlign: 'center', fontWeight: 800, fontSize: 13,
+                  width:'100%', padding:'11px 12px',
+                  background:'#25d366', color:blanco,
+                  borderRadius:8, fontSize:12, fontWeight:700,
+                  textAlign:'center', boxSizing:'border-box',
                 }}>
-                  💬 Consultar por WhatsApp
+                  💬 Consultá por WhatsApp
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Barra home del teléfono */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10 }}>
-          <div style={{ width: 80, height: 4, background: '#333', borderRadius: 4 }} />
+        {/* Home bar */}
+        <div style={{ display:'flex', justifyContent:'center', paddingTop:10 }}>
+          <div style={{ width:72, height:4, background:'#333', borderRadius:4 }}/>
         </div>
       </div>
 
       <style>{`
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-        @keyframes ripple { 0%{transform:scale(.5);opacity:.8} 100%{transform:scale(2);opacity:0} }
+        @keyframes fu { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
     </div>
   )
