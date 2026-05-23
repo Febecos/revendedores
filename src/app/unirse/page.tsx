@@ -1,8 +1,12 @@
 // Server Component — lee comisiones_tramos y catálogo directo de Neon DB.
+// force-dynamic: siempre re-renderiza en el servidor para reflejar cambios del admin.
+export const dynamic = 'force-dynamic'
+
 import { getDb } from '@/lib/db'
 import { C } from './colores'
 import FormularioWA from './FormularioWA'
 import MockupSelectorAnimado from './MockupSelectorAnimado'
+import MultiplicadorMargen from './MultiplicadorMargen'
 
 interface Tramo {
   nivel: string
@@ -43,12 +47,13 @@ function kitsPorUmbral(monto: number): string {
 }
 
 // Fallback si la DB no responde o la tabla no tiene datos aún
+// (deben coincidir con lo configurado en el panel admin)
 const TRAMOS_FALLBACK: Tramo[] = [
-  { nivel: 'Nivel 1', desde_monto: 0,          hasta_monto: 999999,    porcentaje: 7  },
-  { nivel: 'Nivel 2', desde_monto: 1_000_000,  hasta_monto: 2999999,   porcentaje: 10 },
-  { nivel: 'Nivel 3', desde_monto: 3_000_000,  hasta_monto: 6999999,   porcentaje: 12 },
-  { nivel: 'Nivel 4', desde_monto: 7_000_000,  hasta_monto: 14999999,  porcentaje: 15 },
-  { nivel: 'Nivel 5', desde_monto: 15_000_000, hasta_monto: null,       porcentaje: 20 },
+  { nivel: 'Nivel 1', desde_monto: 0,           hasta_monto: 4_999_999,  porcentaje: 7  },
+  { nivel: 'Nivel 2', desde_monto: 5_000_000,   hasta_monto: 9_999_999,  porcentaje: 10 },
+  { nivel: 'Nivel 3', desde_monto: 10_000_000,  hasta_monto: 19_999_999, porcentaje: 12 },
+  { nivel: 'Nivel 4', desde_monto: 20_000_000,  hasta_monto: 39_999_999, porcentaje: 15 },
+  { nivel: 'Nivel 5', desde_monto: 40_000_000,  hasta_monto: null,        porcentaje: 20 },
 ]
 
 async function getTramos(): Promise<Tramo[]> {
@@ -140,11 +145,6 @@ function MockupPortal() {
 export default async function UnirsePage() {
   const [tramos, modelos] = await Promise.all([getTramos(), getModelos()])
 
-  const nivelBase  = tramos[0]
-  const nivelMedio = tramos[Math.floor(tramos.length / 2)] ?? tramos[1]
-  const margenBase  = nivelBase  ? KIT_PRECIO * nivelBase.porcentaje  / 100 : 0
-  const margenMedio = nivelMedio ? KIT_PRECIO * nivelMedio.porcentaje / 100 : 0
-
   return (
     <>
       <style>{`
@@ -197,7 +197,7 @@ export default async function UnirsePage() {
               Precios mayoristas, cotizador técnico y soporte completo de Febecos.<br />Sin cuota de ingreso. Sin stock mínimo.
             </p>
             <a href="#formulario" className="u-cta" style={{ display:'inline-block', background:C.acento, color:C.azul, padding:'15px 36px', borderRadius:10, fontWeight:800, fontSize:16, transition:'background .15s' }}>
-              Quiero sumarme →
+              Quiero probar online →
             </a>
           </div>
         </section>
@@ -268,7 +268,10 @@ export default async function UnirsePage() {
                               <div style={{ fontSize:11, color:C.gris, marginTop:2 }}>{info.desc}</div>
                             </td>
                             <td style={{ padding:'13px 16px', color:C.azulTxt, fontSize:13 }}>
-                              {t.desde_monto === 0 ? 'Desde $0' : `Desde ${fmt(t.desde_monto)}`}
+                              {t.desde_monto === 0 ? '$0' : fmt(t.desde_monto)}
+                              {t.hasta_monto != null
+                                ? <> — {fmt(t.hasta_monto)}</>
+                                : <span style={{ color:C.gris }}> en adelante</span>}
                             </td>
                             <td style={{ padding:'13px 16px', color:C.gris, fontSize:13 }}>
                               {kitsPorUmbral(t.desde_monto)}
@@ -282,31 +285,13 @@ export default async function UnirsePage() {
                   </table>
                 </div>
 
-                {/* Ejemplo */}
-                <div style={{ background:C.acentoBg, border:`1px solid ${C.acentoBord}`, borderRadius:12, padding:'24px 28px' }}>
-                  <p style={{ fontSize:13, fontWeight:700, color:C.verde, marginBottom:4, textTransform:'uppercase', letterSpacing:'.08em' }}>
-                    📊 Ejemplo real — {KIT_NOMBRE}
-                  </p>
-                  <p style={{ fontSize:13, color:C.gris, marginBottom:16 }}>
-                    Precio de lista: <strong style={{ color:C.azulTxt }}>{fmt(KIT_PRECIO)}</strong> · Kit completo con paneles, cable y soga
-                  </p>
-                  <div className="u-ej" style={{ display:'flex', gap:16, alignItems:'center' }}>
-                    <div style={{ background:C.blanco, border:`1px solid ${C.grisB}`, borderRadius:10, padding:'16px 20px', textAlign:'center', flex:1 }}>
-                      <div style={{ fontSize:12, color:C.gris, marginBottom:2 }}>{nivelBase?.nivel} · {NIVEL_NOMBRE[1]?.label} · {nivelBase?.porcentaje}%</div>
-                      <div style={{ fontSize:26, fontWeight:800, color:C.azulTxt }}>{fmt(margenBase)}</div>
-                      <div style={{ fontSize:11, color:C.gris }}>por venta</div>
-                    </div>
-                    <div style={{ color:C.acento, fontSize:22, fontWeight:800, flexShrink:0 }}>→</div>
-                    <div style={{ background:C.blanco, border:`2px solid ${C.verde}`, borderRadius:10, padding:'16px 20px', textAlign:'center', flex:1 }}>
-                      <div style={{ fontSize:12, color:C.gris, marginBottom:2 }}>{nivelMedio?.nivel} · {NIVEL_NOMBRE[Math.floor(tramos.length/2)+1]?.label} · {nivelMedio?.porcentaje}%</div>
-                      <div style={{ fontSize:26, fontWeight:800, color:C.verde }}>{fmt(margenMedio)}</div>
-                      <div style={{ fontSize:11, color:C.gris }}>por venta</div>
-                    </div>
-                  </div>
-                  <p style={{ fontSize:13, color:C.azulTxt, marginTop:14, textAlign:'center', fontWeight:600 }}>
-                    5 ventas/mes como {NIVEL_NOMBRE[Math.floor(tramos.length/2)+1]?.label} → <span style={{ color:C.verde }}>{fmt(margenMedio * 5)} de margen bruto</span>
-                  </p>
-                </div>
+                {/* Calculador interactivo */}
+                <MultiplicadorMargen
+                  tramos={tramos}
+                  nivelNombre={NIVEL_NOMBRE}
+                  kitPrecio={KIT_PRECIO}
+                  kitNombre={KIT_NOMBRE}
+                />
               </>
             )}
           </div>

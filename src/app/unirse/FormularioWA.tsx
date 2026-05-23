@@ -22,9 +22,19 @@ export default function FormularioUnirse() {
     return Object.keys(errs).length === 0
   }
 
+  // Dispara el email de propuesta en background (no bloquea el flujo)
+  function enviarPropuesta(via: 'whatsapp' | 'demo') {
+    fetch('/api/propuesta-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, via }),
+    }).catch(() => { /* silencioso — el email es best-effort */ })
+  }
+
   // ── Camino 1: WhatsApp ────────────────────────────────────────────────────
   function irAWhatsApp() {
     if (!validar()) return
+    enviarPropuesta('whatsapp')
     const msg = encodeURIComponent(
       `Hola, quiero sumarme al Programa de Revendedores Febecos.\n\n` +
       `Nombre: ${form.nombre}\nEmail: ${form.email}\nWhatsApp: ${form.whatsapp}\nLocalidad: ${form.localidad}\n\n` +
@@ -37,6 +47,7 @@ export default function FormularioUnirse() {
   async function iniciarDemo() {
     if (!validar()) return
     setEstadoDemo('cargando')
+    enviarPropuesta('demo')
     try {
       const res = await fetch('/api/demo', {
         method: 'POST',
@@ -137,7 +148,7 @@ export default function FormularioUnirse() {
           </a>
         </p>
         <p style={{ fontSize: 11, color: C.gris, marginTop: 4, marginBottom: 0 }}>
-          Respondemos en horario comercial · Lun a Vie 9–18 hs
+          Respondemos en horario comercial · Lun a Vie 10–17 hs
         </p>
       </div>
 
