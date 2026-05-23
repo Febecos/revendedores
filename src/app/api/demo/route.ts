@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createHmac } from 'crypto'
+import { getDb } from '@/lib/db'
 
 const SECRET  = process.env.DEMO_SECRET || 'febecos-demo-secret-2025'
 const DIAS    = 7
@@ -40,8 +41,57 @@ export async function GET(req: NextRequest) {
 
 // ── POST — iniciar demo ──────────────────────────────────────────────────────
 
-export async function POST() {
-  // Si ya tiene demo activa, no sobreescribir
+export async function POST(req: NextRequest) {
+  // Leer datos del formulario (puede venir vacío si se llama sin body)
+  let nombre = '', email = '', whatsapp = '', localidad = ''
+  try {
+    const body = await req.json()
+    nombre    = body.nombre    || ''
+    email     = body.email     || ''
+    whatsapp  = body.whatsapp  || ''
+    localidad = body.localidad || ''
+  } catch { /* body vacío — ok */ }
+
+  // Guardar lead en DB (graceful — si falla, igual damos la demo)
+  if (nombre || email) {
+    try {
+      const sql = getDb()
+      await sql`
+        INSERT INTO demo_leads (nombre, email, whatsapp, localidad, creado_en)
+        VALUES (${nombre}, ${email}, ${whatsapp}, ${localidad}, NOW())
+        ON CONFLICT (email) DO UPDATE
+          SET whatsapp  = EXCLUDED.whatsapp,
+              localidad = EXCLUDED.localidad,
+              creado_en = NOW()
+      `
+    } catch (err) {
+      // La tabla puede no existir todavía — la creamos y reintentamos
+      try {
+        const sql = getDb()
+        await sql`
+          CREATE TABLE IF NOT EXISTS demo_leads (
+            id         SERIAL PRIMARY KEY,
+            nombre     TEXT,
+            email      TEXT UNIQUE,
+            whatsapp   TEXT,
+            localidad  TEXT,
+            creado_en  TIMESTAMPTZ DEFAULT NOW()
+          )
+        `
+        await sql`
+          INSERT INTO demo_leads (nombre, email, whatsapp, localidad)
+          VALUES (${nombre}, ${email}, ${whatsapp}, ${localidad})
+          ON CONFLICT (email) DO UPDATE
+            SET whatsapp  = EXCLUDED.whatsapp,
+                localidad = EXCLUDED.localidad,
+                creado_en = NOW()
+        `
+      } catch (e2) {
+        console.warn('[demo] No se pudo guardar el lead:', e2)
+      }
+    }
+  }
+
   const expires = Date.now() + DIAS * 24 * 60 * 60 * 1000
   const token = firmar(expires)
 
