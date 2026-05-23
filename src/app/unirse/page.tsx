@@ -41,6 +41,15 @@ function kitsPorUmbral(monto: number): string {
   return `≈ ${k} kit${k !== 1 ? 's' : ''}/mes`
 }
 
+// Fallback si la DB no responde o la tabla no tiene datos aún
+const TRAMOS_FALLBACK: Tramo[] = [
+  { nivel: 'Nivel 1', desde_monto: 0,          hasta_monto: 999999,    porcentaje: 7  },
+  { nivel: 'Nivel 2', desde_monto: 1_000_000,  hasta_monto: 2999999,   porcentaje: 10 },
+  { nivel: 'Nivel 3', desde_monto: 3_000_000,  hasta_monto: 6999999,   porcentaje: 12 },
+  { nivel: 'Nivel 4', desde_monto: 7_000_000,  hasta_monto: 14999999,  porcentaje: 15 },
+  { nivel: 'Nivel 5', desde_monto: 15_000_000, hasta_monto: null,       porcentaje: 20 },
+]
+
 async function getTramos(): Promise<Tramo[]> {
   try {
     const sql = getDb()
@@ -50,8 +59,8 @@ async function getTramos(): Promise<Tramo[]> {
       WHERE tipo = 'externo' AND activo = true
       ORDER BY desde_monto ASC
     `
-    return rows as Tramo[]
-  } catch { return [] }
+    return (rows as Tramo[]).length > 0 ? (rows as Tramo[]) : TRAMOS_FALLBACK
+  } catch { return TRAMOS_FALLBACK }
 }
 
 async function getModelos(): Promise<Modelo[]> {
@@ -73,53 +82,54 @@ const BENEFICIOS = [
   { emoji: '🌾', titulo: 'Mercado con demanda activa', desc: 'El 53% de los productores que consultan buscan agua para animales. La demanda ya existe; lo que falta es quien llegue primero con la solución.' },
 ]
 
-// Mockup visual del cotizador (CSS puro, sin imagen)
-function MockupCotizador() {
+// Mockup visual del portal de revendedores (CSS puro, sin imagen)
+function MockupPortal() {
   return (
     <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 32px rgba(0,61,114,.13)', maxWidth: 420, margin: '0 auto', border: `1px solid ${C.grisB}`, fontFamily: 'inherit' }}>
-      {/* Barra de título */}
-      <div style={{ background: C.azul, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Barra de navegador */}
+      <div style={{ background: '#f0f0f0', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #ddd' }}>
         <div style={{ display: 'flex', gap: 5 }}>
           {['#ff5f57','#ffbd2e','#28c840'].map(bg => <div key={bg} style={{ width: 10, height: 10, borderRadius: '50%', background: bg }} />)}
         </div>
-        <span style={{ color: 'rgba(255,255,255,.7)', fontSize: 12, marginLeft: 6 }}>selector.febecos.com</span>
+        <div style={{ flex: 1, background: '#fff', borderRadius: 6, padding: '4px 12px', fontSize: 11, color: '#666', border: '1px solid #ddd' }}>
+          🔒 revendedores.febecos.com
+        </div>
       </div>
-      {/* Contenido del cotizador */}
-      <div style={{ padding: '20px 20px 22px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: C.azul, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 12 }}>
-          ● Calculando tu equipo ideal…
+      {/* Header del portal */}
+      <div style={{ background: C.azul, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ color: C.blanco, fontWeight: 700, fontSize: 13 }}>🌱 Portal Revendedores</span>
+        <span style={{ background: C.acento, color: C.azul, borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 800 }}>Nivel 2 · Vendedor</span>
+      </div>
+      {/* Contenido del portal */}
+      <div style={{ padding: '16px 18px 18px' }}>
+        {/* Saludo */}
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.azulTxt, marginBottom: 14 }}>
+          Hola, Juan 👋 · PIN: <span style={{ fontFamily: 'monospace', background: C.grisBg, padding: '1px 6px', borderRadius: 4 }}>R-2847</span>
         </div>
-        {/* Barra de progreso */}
-        <div style={{ height: 3, background: C.grisB, borderRadius: 3, marginBottom: 18, overflow: 'hidden' }}>
-          <div style={{ width: '75%', height: '100%', background: `linear-gradient(90deg, ${C.azul}, ${C.acento})`, borderRadius: 3 }} />
-        </div>
-        {/* Datos del pozo */}
-        <div style={{ background: C.grisBg, borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
-          <div style={{ fontSize: 11, color: C.gris, fontWeight: 600, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.07em' }}>Datos del pozo</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {/* Mini form cotizador */}
+        <div style={{ background: C.grisBg, borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
+          <div style={{ fontSize: 10, color: C.gris, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Cotizador rápido</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[['Profundidad', '45 m'], ['Diámetro', '4"'], ['Litros/día', '2.000 L'], ['Uso', '🐄 Ganado']].map(([label, val]) => (
-              <div key={label}>
-                <div style={{ fontSize: 10, color: C.gris }}>{label}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.azulTxt }}>{val}</div>
+              <div key={label} style={{ background: C.blanco, border: `1px solid ${C.grisB}`, borderRadius: 6, padding: '6px 10px' }}>
+                <div style={{ fontSize: 9, color: C.gris }}>{label}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.azulTxt }}>{val}</div>
               </div>
             ))}
           </div>
         </div>
         {/* Resultado */}
-        <div style={{ background: C.acentoBg, border: `1px solid ${C.acentoBord}`, borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
-          <div style={{ fontSize: 11, color: C.verde, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.07em' }}>✓ Equipo sugerido</div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: C.azulTxt, marginBottom: 2 }}>Kit Bomba Solar 4" 500W</div>
-          <div style={{ fontSize: 12, color: C.gris }}>Cubre todo el año · 3 paneles · profundidad máx. 80m</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+        <div style={{ background: C.acentoBg, border: `1px solid ${C.acentoBord}`, borderRadius: 10, padding: '12px 14px' }}>
+          <div style={{ fontSize: 10, color: C.verde, fontWeight: 700, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.07em' }}>✓ Equipo recomendado</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.azulTxt, marginBottom: 2 }}>Kit Bomba Solar 4" 500W</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <div>
-              <div style={{ fontSize: 11, color: C.gris }}>Tu precio mayorista</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: C.azul }}>$1.954.673</div>
+              <div style={{ fontSize: 10, color: C.gris }}>Tu precio mayorista (10% off)</div>
+              <div style={{ fontSize: 19, fontWeight: 800, color: C.azul }}>$1.995.006</div>
+              <div style={{ fontSize: 10, color: C.gris, textDecoration: 'line-through' }}>Lista: $2.216.673</div>
             </div>
-            <div style={{ background: C.azul, color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700 }}>Ver cotización →</div>
+            <div style={{ background: C.azul, color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 11, fontWeight: 700 }}>Pedir →</div>
           </div>
-        </div>
-        <div style={{ fontSize: 11, color: C.gris, textAlign: 'center' }}>
-          🔒 Precio mayorista con tu descuento aplicado
         </div>
       </div>
     </div>
@@ -312,9 +322,9 @@ export default async function UnirsePage() {
               {/* Pasos */}
               <div style={{ display:'flex', flexDirection:'column', gap:28 }}>
                 {[
-                  { n:'1', emoji:'📋', titulo:'Te registrás', desc:'Completás el formulario y en menos de 24 hs hábiles recibís tu PIN de acceso al portal.' },
-                  { n:'2', emoji:'💻', titulo:'Cotizás en segundos', desc:'Ingresás profundidad del pozo, litros/día y diámetro. El sistema elige la bomba correcta y te muestra el precio mayorista con tu descuento ya aplicado.' },
-                  { n:'3', emoji:'💰', titulo:'Vendés y ganás', desc:'Vos definís el precio al cliente. La diferencia entre tu costo mayorista y lo que cobrás es tu margen.' },
+                  { n:'1', emoji:'📋', titulo:'Te registrás', desc:'Completás el formulario y en menos de 24 hs hábiles recibís tu PIN de acceso al portal exclusivo de revendedores.' },
+                  { n:'2', emoji:'💻', titulo:'Cotizás desde el portal', desc:'Ingresás los datos del pozo de tu cliente: profundidad, litros/día y diámetro. El portal te muestra el equipo correcto con tu precio mayorista y descuento ya aplicado.' },
+                  { n:'3', emoji:'💰', titulo:'Vendés y ganás', desc:'Vos definís el precio al cliente. La diferencia entre tu costo mayorista y lo que cobrás es tu margen, desde el primer kit.' },
                 ].map(p => (
                   <div key={p.n} style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
                     <div style={{ background:C.azul, color:C.blanco, width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:16, flexShrink:0 }}>
@@ -326,16 +336,16 @@ export default async function UnirsePage() {
                     </div>
                   </div>
                 ))}
-                <a href="https://selector.febecos.com" target="_blank" rel="noopener noreferrer"
+                <a href="https://revendedores.febecos.com" target="_blank" rel="noopener noreferrer"
                   style={{ display:'inline-flex', alignItems:'center', gap:8, background:C.grisBg, border:`1px solid ${C.grisB}`, borderRadius:9, padding:'11px 20px', fontSize:13, fontWeight:600, color:C.azulTxt, width:'fit-content' }}>
-                  👀 Probá el selector antes de inscribirte →
+                  🔑 Ver el portal de revendedores →
                 </a>
               </div>
-              {/* Mockup */}
+              {/* Mockup portal */}
               <div>
-                <MockupCotizador />
+                <MockupPortal />
                 <p style={{ textAlign:'center', fontSize:12, color:C.gris, marginTop:12 }}>
-                  Así se ve el cotizador en el portal de revendedores
+                  Así se ve tu portal una vez que tenés acceso
                 </p>
               </div>
             </div>
