@@ -10,7 +10,7 @@ const FEBECOS_LOGO_B64 = 'data:image/webp;base64,UklGRsA8AABXRUJQVlA4WAoAAAAQAAA
 interface Revendedor {
   id: number; nombre: string; apellido: string; empresa: string
   provincia: string; descuento_pct: number; token_acceso: string
-  tipo_usuario?: string
+  tipo_usuario?: string; puede_pedir_online?: boolean
 }
 interface ResultadoBomba {
   sugerencia: any; caudal_a_altura: any; es_fallback: boolean; nota: string; opciones: any[]
@@ -1313,11 +1313,11 @@ export default function Portal() {
               )
             })()}
             <div style={s.cardTitle}>{resultado.es_fallback ? '📋 Opción más cercana disponible' : '✅ Bombas disponibles — seleccioná la que mejor se adapta'}</div>
-            <BombaCard bomba={resultado.sugerencia} caudal={resultado.caudal_a_altura} nota={resultado.nota} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === resultado.sugerencia?.codigo} token={token} />
+            <BombaCard bomba={resultado.sugerencia} caudal={resultado.caudal_a_altura} nota={resultado.nota} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === resultado.sugerencia?.codigo} token={token} puedeOnline={!!rev.puede_pedir_online} />
             {resultado.opciones && resultado.opciones.length > 1 && (
               <>
                 {resultado.opciones.slice(1).map((b: any, i: number) => (
-                  <BombaCard key={i} bomba={b} caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: b.caudal_promedio || Math.round((b.caudal_verano + b.caudal_invierno) / 2) }} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === b.codigo} token={token} />
+                  <BombaCard key={i} bomba={b} caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: b.caudal_promedio || Math.round((b.caudal_verano + b.caudal_invierno) / 2) }} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === b.codigo} token={token} puedeOnline={!!rev.puede_pedir_online} />
                 ))}
               </>
             )}
@@ -1430,7 +1430,7 @@ export default function Portal() {
   )
 }
 
-function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostrar, wa, litros, altura, onVerDetalle, onSeleccionar, seleccionada = false, token }: any) {
+function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostrar, wa, litros, altura, onVerDetalle, onSeleccionar, seleccionada = false, token, puedeOnline = false }: any) {
   const [mostrarROI, setMostrarROI] = useState(false)
   const [provincia, setProvincia] = useState('')
   const [sistemaActual, setSistemaActual] = useState('')
@@ -1584,13 +1584,23 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
             </a>
           </div>
 
-          {/* PAGO */}
-          <button
-            onClick={() => setMostrarPago(!mostrarPago)}
-            style={{ width:'100%', padding:'10px', background: mostrarPago ? '#1e3248' : 'rgba(74,222,128,0.08)', border:`1.5px solid ${mostrarPago?'#2a4a6a':'#4ade80'}`, borderRadius:8, color: mostrarPago?'#7a9ab5':'#4ade80', fontSize:13, fontWeight:700, cursor:'pointer' }}
-          >
-            {mostrarPago ? '▲ Cerrar opciones de pago' : '💳 Opciones de pago'}
-          </button>
+          {/* PAGO — online si está habilitado, telefónico si no */}
+          {puedeOnline || mostrarPublico ? (
+            <button
+              onClick={() => setMostrarPago(!mostrarPago)}
+              style={{ width:'100%', padding:'10px', background: mostrarPago ? '#1e3248' : 'rgba(74,222,128,0.08)', border:`1.5px solid ${mostrarPago?'#2a4a6a':'#4ade80'}`, borderRadius:8, color: mostrarPago?'#7a9ab5':'#4ade80', fontSize:13, fontWeight:700, cursor:'pointer' }}
+            >
+              {mostrarPago ? '▲ Cerrar opciones de pago' : '💳 Opciones de pago'}
+            </button>
+          ) : (
+            <a
+              href={`https://wa.me/5491125750323?text=${encodeURIComponent(`Hola Febecos! Soy revendedor (${wa.nombre} ${wa.apellido||''}, ${wa.empresa||wa.provincia}).\nQuiero hacer un pedido de ${bomba.codigo}.\nPrecio mayorista acordado: ${fmt(precioMayorista(bomba.precio_full, descuento))}`)}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ width:'100%', padding:'10px', background:'rgba(74,222,128,0.08)', border:'1.5px solid #4ade80', borderRadius:8, color:'#4ade80', fontSize:13, fontWeight:700, cursor:'pointer', textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', gap:6, boxSizing:'border-box' as const }}
+            >
+              📞 Hacer pedido por WhatsApp
+            </a>
+          )}
           {mostrarPago && (
             <div style={{ background:'#0a1520', border:'1px solid #1e3248', borderRadius:10, padding:16 }}>
               {/* Tabs */}

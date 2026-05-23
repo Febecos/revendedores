@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const sql = getDb()
     const rows = await sql`
       SELECT id, nombre, apellido, empresa, provincia, descuento_pct,
-             token_acceso, tipo_usuario, skip_pin
+             token_acceso, tipo_usuario, skip_pin, puede_pedir_online
       FROM solicitudes_revendedor
       WHERE token_acceso = ${token}
         AND token_acceso_activo = true
