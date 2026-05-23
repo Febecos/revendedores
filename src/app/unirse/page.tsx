@@ -1,31 +1,48 @@
 'use client'
 import { useState } from 'react'
 
+// ── Paleta Febecos (igual que selector y catálogo) ──────────────────────────
+const C = {
+  azul:      '#003d72',
+  azulMid:   '#224a73',
+  azulTxt:   '#203b61',
+  verde:     '#2D5A27',
+  acento:    '#a8c61b',
+  acentoBg:  '#f5fadf',
+  acentoBord:'#c8df6a',
+  naranja:   '#f6861c',
+  fondo:     '#f7f9fc',
+  blanco:    '#ffffff',
+  gris:      '#5a6a7a',
+  grisB:     '#dce6f0',
+  grisBg:    '#eef3f9',
+}
+
 const PROVINCIAS = [
   'Buenos Aires','CABA','Catamarca','Chaco','Chubut','Córdoba','Corrientes',
   'Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones',
   'Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe',
-  'Santiago del Estero','Tierra del Fuego','Tucumán'
+  'Santiago del Estero','Tierra del Fuego','Tucumán',
 ]
 
 const NIVELES = [
-  { nivel: 'Nivel 1', desde: '$0',          pct: '7%',  color: '#4ade80' },
-  { nivel: 'Nivel 2', desde: '$1.000.000',  pct: '10%', color: '#34d399' },
-  { nivel: 'Nivel 3', desde: '$3.000.000',  pct: '12%', color: '#22c55e' },
-  { nivel: 'Nivel 4', desde: '$7.000.000',  pct: '15%', color: '#16a34a' },
-  { nivel: 'Nivel 5', desde: '$15.000.000', pct: '20%', color: '#15803d' },
-]
-
-const PASOS = [
-  { emoji: '📋', titulo: 'Completás el formulario', desc: 'Nombre, teléfono y provincia. En menos de 24 hs hábiles te asignamos acceso al portal con PIN personal.' },
-  { emoji: '💻', titulo: 'Cotizás desde el portal', desc: 'Ingresás profundidad, litros/día y diámetro. El sistema te devuelve la bomba correcta con tu precio mayorista.' },
-  { emoji: '💰', titulo: 'Vendés y ganás', desc: 'Le cobrás al cliente lo que decidas. La diferencia entre tu costo mayorista y el precio al público es tu margen.' },
+  { nivel: 'Nivel 1', desde: '$0',           pct: '7%',  ejemplo: '$56.000',  color: C.azulTxt },
+  { nivel: 'Nivel 2', desde: '$1.000.000',   pct: '10%', ejemplo: '$80.000',  color: C.azulMid },
+  { nivel: 'Nivel 3', desde: '$3.000.000',   pct: '12%', ejemplo: '$96.000',  color: C.verde   },
+  { nivel: 'Nivel 4', desde: '$7.000.000',   pct: '15%', ejemplo: '$120.000', color: '#1a6b35' },
+  { nivel: 'Nivel 5', desde: '$15.000.000',  pct: '20%', ejemplo: '$160.000', color: '#155a2a' },
 ]
 
 const BENEFICIOS = [
-  { emoji: '⚡', titulo: 'Margen real desde el día 1', desc: '7% de descuento inmediato al registrarte. Sin cuota de ingreso, sin stock mínimo, sin compromisos.' },
-  { emoji: '🔧', titulo: 'Herramienta técnica incluida', desc: 'Portal con cotizador: ingresás los datos del pozo y el sistema elige la bomba correcta. Fácil de usar, difícil de equivocar.' },
-  { emoji: '🌱', titulo: 'Mercado con demanda real', desc: 'El 53% de los leads son ganaderos que necesitan agua para animales. La demanda existe — lo que falta es el producto.' },
+  { emoji: '⚡', titulo: 'Margen real desde el día 1', desc: '7% de descuento inmediato al registrarte. Sin cuota de ingreso, sin stock mínimo, sin compromisos de compra.' },
+  { emoji: '🔧', titulo: 'Cotizador técnico incluido', desc: 'Portal exclusivo: ingresás profundidad, litros/día y diámetro del pozo — el sistema elige la bomba correcta y te muestra tu precio mayorista.' },
+  { emoji: '🌾', titulo: 'Mercado con demanda activa', desc: '53% de los productores que consultan buscan agua para animales. La demanda ya existe; lo que falta es quien llegue primero con la solución.' },
+]
+
+const PASOS = [
+  { n: '1', emoji: '📋', titulo: 'Te registrás', desc: 'Completás el formulario y en menos de 24 hs hábiles te asignamos acceso al portal con tu PIN personal.' },
+  { n: '2', emoji: '💻', titulo: 'Cotizás desde el portal', desc: 'Ingresás los datos del pozo del cliente. El sistema devuelve la bomba correcta con tu precio mayorista aplicado.' },
+  { n: '3', emoji: '💰', titulo: 'Vendés y ganás', desc: 'Vos definís el precio al público. La diferencia entre tu costo mayorista y lo que cobrás al cliente es tu margen.' },
 ]
 
 export default function UnirsePage() {
@@ -33,539 +50,296 @@ export default function UnirsePage() {
   const [errores, setErrores] = useState<Record<string, boolean>>({})
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
     setErrores(prev => ({ ...prev, [e.target.name]: false }))
   }
 
   const handleSubmit = () => {
-    const nuevosErrores: Record<string, boolean> = {}
-    if (!form.nombre.trim()) nuevosErrores.nombre = true
-    if (!form.email.trim()) nuevosErrores.email = true
-    if (!form.telefono.trim()) nuevosErrores.telefono = true
-    if (!form.provincia) nuevosErrores.provincia = true
-
-    if (Object.keys(nuevosErrores).length > 0) {
-      setErrores(nuevosErrores)
-      return
-    }
+    const errs: Record<string, boolean> = {}
+    if (!form.nombre.trim())    errs.nombre    = true
+    if (!form.email.trim())     errs.email     = true
+    if (!form.telefono.trim())  errs.telefono  = true
+    if (!form.provincia)        errs.provincia = true
+    if (Object.keys(errs).length) { setErrores(errs); return }
 
     const msg = encodeURIComponent(
       `Hola, me interesa el Programa de Revendedores Febecos.\n\n` +
-      `Nombre: ${form.nombre}\n` +
-      `Email: ${form.email}\n` +
-      `Teléfono: ${form.telefono}\n` +
-      `Provincia: ${form.provincia}\n\n` +
-      `Quiero saber más sobre cómo empezar.`
+      `Nombre: ${form.nombre}\nEmail: ${form.email}\nTeléfono: ${form.telefono}\nProvincia: ${form.provincia}\n\n` +
+      `¿Me pueden contar más para empezar?`
     )
     window.open(`https://wa.me/5491125750323?text=${msg}`, '_blank')
   }
 
   return (
-    <div style={s.page}>
+    <>
+      {/* Fuente Rubik + reset del body oscuro del layout global */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap');
+        #unirse-page, #unirse-page * { box-sizing: border-box; font-family: 'Rubik', system-ui, sans-serif; }
+        #unirse-page { background: ${C.fondo}; color: ${C.azulTxt}; min-height: 100vh; }
+        body { background: ${C.fondo} !important; }
+        #unirse-page a { text-decoration: none; }
+        #unirse-page input, #unirse-page select { font-family: 'Rubik', system-ui, sans-serif; }
+        #unirse-page input:focus, #unirse-page select:focus {
+          outline: none;
+          border-color: ${C.azul} !important;
+          box-shadow: 0 0 0 3px rgba(0,61,114,.12);
+        }
+        .unirse-cta-btn:hover { background: #bcd430 !important; }
+        .unirse-wa-btn:hover  { background: #1da851 !important; }
+        .unirse-back:hover    { color: ${C.azul} !important; border-color: ${C.azul} !important; }
+        @media(max-width:640px){
+          .unirse-nav-link { display: none !important; }
+          .unirse-grid3    { grid-template-columns: 1fr !important; }
+          .unirse-grid2    { grid-template-columns: 1fr !important; }
+          .unirse-ej-grid  { flex-direction: column !important; }
+          .unirse-form-grid{ grid-template-columns: 1fr !important; }
+        }
+      `}</style>
 
-      {/* ── HEADER ── */}
-      <header style={s.header}>
-        <img
-          src="https://dcdn-us.mitiendanube.com/stores/007/467/093/themes/common/logo-6209403414584676726-1775575296-91ab6514e309ebf33862eadc64bcbe161775575296-480-0.webp"
-          alt="Febecos"
-          style={{ height: 36, objectFit: 'contain' }}
-        />
-        <a href="https://revendedores.febecos.com" style={s.headerLink}>
-          Ya tengo acceso →
-        </a>
-      </header>
+      <div id="unirse-page">
 
-      {/* ── HERO ── */}
-      <section style={s.hero}>
-        <div style={s.heroInner}>
-          <div style={s.badge}>☀️ Programa de Revendedores</div>
-          <h1 style={s.heroTitle}>
-            Vendé bombas solares.<br />
-            <span style={{ color: '#4ade80' }}>Ganás vos, el campo gana.</span>
-          </h1>
-          <p style={s.heroSubtitle}>
-            Accedé a precios mayoristas, un cotizador técnico y soporte completo.
-            Sin cuota de ingreso. Sin stock mínimo.
-          </p>
-          <a href="#formulario" style={s.ctaBtn}>
-            Quiero sumarme →
-          </a>
-        </div>
-      </section>
-
-      {/* ── BENEFICIOS ── */}
-      <section style={s.section}>
-        <h2 style={s.sectionTitle}>Por qué tiene sentido</h2>
-        <div style={s.grid3}>
-          {BENEFICIOS.map(b => (
-            <div key={b.titulo} style={s.card}>
-              <div style={s.cardEmoji}>{b.emoji}</div>
-              <h3 style={s.cardTitle}>{b.titulo}</h3>
-              <p style={s.cardDesc}>{b.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── TABLA DE COMISIONES ── */}
-      <section style={{ ...s.section, background: '#0d1a2a' }}>
-        <h2 style={s.sectionTitle}>Estructura de comisiones</h2>
-        <p style={s.sectionSubtitle}>
-          A mayor volumen mensual, mayor descuento. Automático, sin negociaciones.
-        </p>
-
-        {/* Tabla desktop */}
-        <div style={s.tableWrap}>
-          <table style={s.table}>
-            <thead>
-              <tr>
-                <th style={s.th}>Nivel</th>
-                <th style={s.th}>Facturación mensual</th>
-                <th style={s.th}>Tu descuento</th>
-              </tr>
-            </thead>
-            <tbody>
-              {NIVELES.map((n, i) => (
-                <tr key={n.nivel} style={{ background: i % 2 === 0 ? '#0a1628' : '#0d1a2a' }}>
-                  <td style={{ ...s.td, color: n.color, fontWeight: 700 }}>{n.nivel}</td>
-                  <td style={s.td}>{n.desde}</td>
-                  <td style={{ ...s.td, color: n.color, fontWeight: 800, fontSize: 20 }}>{n.pct}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Ejemplo numérico */}
-        <div style={s.ejemplo}>
-          <h3 style={{ color: '#4ade80', marginBottom: 12, fontSize: 16 }}>
-            📊 Ejemplo: kit de $800.000 al cliente final
-          </h3>
-          <div style={s.ejemploGrid}>
-            <div style={s.ejemploCard}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 4 }}>Nivel 1 · 7%</div>
-              <div style={{ color: '#4ade80', fontSize: 28, fontWeight: 800 }}>$56.000</div>
-              <div style={{ color: '#94a3b8', fontSize: 12 }}>de margen por venta</div>
-            </div>
-            <div style={{ color: '#4ade80', fontSize: 24, display: 'flex', alignItems: 'center' }}>→</div>
-            <div style={{ ...s.ejemploCard, border: '2px solid #4ade80' }}>
-              <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 4 }}>Nivel 3 · 12%</div>
-              <div style={{ color: '#4ade80', fontSize: 28, fontWeight: 800 }}>$96.000</div>
-              <div style={{ color: '#94a3b8', fontSize: 12 }}>de margen por venta</div>
+        {/* ── NAV ─────────────────────────────────────────────────────────── */}
+        <nav style={{ background: C.blanco, borderBottom: `1px solid ${C.grisB}`, height: 68, display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 200 }}>
+          <div style={{ maxWidth: 1060, margin: '0 auto', width: '100%', padding: '0 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <a href="https://febecos.com" style={{ color: C.azul, fontWeight: 800, fontSize: 20, letterSpacing: -.5 }}>
+              🌱 Febecos
+            </a>
+            <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+              <a className="unirse-nav-link" href="https://febecos.com/catalogo" style={{ color: C.gris, fontSize: 13, fontWeight: 500 }}>Catálogo</a>
+              <a className="unirse-nav-link" href="https://selector.febecos.com" style={{ color: C.gris, fontSize: 13, fontWeight: 500 }}>Selector</a>
+              <a href="https://revendedores.febecos.com" style={{ background: C.grisBg, color: C.azulTxt, border: `1px solid ${C.grisB}`, borderRadius: 8, padding: '7px 16px', fontSize: 13, fontWeight: 600 }}>
+                Ya tengo acceso →
+              </a>
             </div>
           </div>
-          <p style={{ color: '#64748b', fontSize: 13, marginTop: 12, textAlign: 'center' }}>
-            A 5 ventas/mes en Nivel 3: <strong style={{ color: '#e8f0f8' }}>$480.000 de margen bruto mensual</strong>
-          </p>
-        </div>
-      </section>
+        </nav>
 
-      {/* ── CÓMO FUNCIONA ── */}
-      <section style={s.section}>
-        <h2 style={s.sectionTitle}>Cómo funciona</h2>
-        <div style={s.grid3}>
-          {PASOS.map((p, i) => (
-            <div key={p.titulo} style={s.pasoCard}>
-              <div style={s.pasoNumero}>{i + 1}</div>
-              <div style={s.pasoEmoji}>{p.emoji}</div>
-              <h3 style={s.cardTitle}>{p.titulo}</h3>
-              <p style={s.cardDesc}>{p.desc}</p>
+        {/* ── HERO ────────────────────────────────────────────────────────── */}
+        <section style={{ background: C.azul, padding: '72px 28px 64px', textAlign: 'center' }}>
+          <div style={{ maxWidth: 680, margin: '0 auto' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(168,198,27,.15)', border: `1px solid ${C.acento}`, borderRadius: 100, padding: '5px 16px', fontSize: 12, fontWeight: 700, color: C.acento, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 28 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.acento, display: 'inline-block' }} />
+              Programa de Revendedores
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── PRODUCTO ── */}
-      <section style={{ ...s.section, background: '#0d1a2a' }}>
-        <h2 style={s.sectionTitle}>El producto</h2>
-        <div style={s.grid2}>
-          <div style={s.card}>
-            <h3 style={{ ...s.cardTitle, marginBottom: 12 }}>🔋 Kit completo incluye:</h3>
-            <ul style={s.lista}>
-              {['Bomba solar sumergible (210W a 1100W)','Paneles solares','Estructura de soporte','Cable submersible + soga de seguridad','Protecciones eléctricas'].map(i => (
-                <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <span style={{ color: '#4ade80', flexShrink: 0 }}>✓</span>{i}
-                </li>
-              ))}
-            </ul>
+            <h1 style={{ fontSize: 'clamp(28px,5vw,46px)', fontWeight: 800, color: C.blanco, lineHeight: 1.15, marginBottom: 20, letterSpacing: -.5 }}>
+              Vendé bombas solares.<br />
+              <span style={{ color: C.acento }}>El campo te espera.</span>
+            </h1>
+            <p style={{ fontSize: 17, color: 'rgba(255,255,255,.8)', lineHeight: 1.75, marginBottom: 36, maxWidth: 540, margin: '0 auto 36px' }}>
+              Precios mayoristas, cotizador técnico y soporte completo de Febecos.<br />Sin cuota de ingreso. Sin stock mínimo.
+            </p>
+            <a href="#formulario" className="unirse-cta-btn" style={{ display: 'inline-block', background: C.acento, color: C.azul, padding: '15px 36px', borderRadius: 10, fontWeight: 800, fontSize: 16, transition: 'background .15s' }}>
+              Quiero sumarme →
+            </a>
           </div>
-          <div style={s.card}>
-            <h3 style={{ ...s.cardTitle, marginBottom: 12 }}>✅ Respaldo Febecos:</h3>
-            <ul style={s.lista}>
-              {['Garantía 12 meses','Soporte técnico post-venta','Curvas de performance por modelo','Cotizador automático en el portal','Acceso 24/7 a precios mayoristas'].map(i => (
-                <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <span style={{ color: '#4ade80', flexShrink: 0 }}>✓</span>{i}
-                </li>
-              ))}
-            </ul>
+        </section>
+
+        {/* ── STRIP DE DATOS ──────────────────────────────────────────────── */}
+        <div style={{ background: C.acentoBg, borderBottom: `1px solid ${C.acentoBord}`, borderTop: `1px solid ${C.acentoBord}`, padding: '18px 28px' }}>
+          <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', justifyContent: 'center', gap: 48, flexWrap: 'wrap' }}>
+            {[['53%', 'Ganaderos'], ['7-20%', 'Descuento mayorista'], ['24 hs', 'Para tener acceso'], ['12 m', 'Garantía del producto']].map(([val, label]) => (
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: C.verde }}>{val}</div>
+                <div style={{ fontSize: 12, color: C.gris, fontWeight: 500 }}>{label}</div>
+              </div>
+            ))}
           </div>
         </div>
-      </section>
 
-      {/* ── FORMULARIO ── */}
-      <section id="formulario" style={s.section}>
-        <h2 style={s.sectionTitle}>Quiero sumarme al programa</h2>
-        <p style={s.sectionSubtitle}>
-          Completá tus datos y te contactamos por WhatsApp.
-        </p>
-        <div style={s.formWrap}>
-          <div style={s.formGrid}>
-            <div style={s.campo}>
-              <label style={s.label}>Nombre completo *</label>
-              <input
-                style={{ ...s.input, borderColor: errores.nombre ? '#ef4444' : '#1e3a52' }}
-                name="nombre"
-                value={form.nombre}
-                onChange={handleChange}
-                placeholder="Juan Pérez"
-              />
-              {errores.nombre && <p style={s.errorMsg}>Campo obligatorio</p>}
+        {/* ── BENEFICIOS ──────────────────────────────────────────────────── */}
+        <section style={{ padding: '64px 28px', background: C.fondo }}>
+          <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: C.azulTxt, textAlign: 'center', marginBottom: 8 }}>Por qué tiene sentido</h2>
+            <p style={{ color: C.gris, textAlign: 'center', marginBottom: 40, fontSize: 15, lineHeight: 1.7 }}>Una línea de producto con demanda real, margen desde el día 1 y todo el respaldo técnico de Febecos.</p>
+            <div className="unirse-grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+              {BENEFICIOS.map(b => (
+                <div key={b.titulo} style={{ background: C.blanco, border: `1px solid ${C.grisB}`, borderRadius: 14, padding: '28px 24px' }}>
+                  <div style={{ fontSize: 32, marginBottom: 14 }}>{b.emoji}</div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: C.azulTxt, marginBottom: 8 }}>{b.titulo}</h3>
+                  <p style={{ fontSize: 14, color: C.gris, lineHeight: 1.65 }}>{b.desc}</p>
+                </div>
+              ))}
             </div>
-            <div style={s.campo}>
-              <label style={s.label}>Email *</label>
-              <input
-                style={{ ...s.input, borderColor: errores.email ? '#ef4444' : '#1e3a52' }}
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="juan@empresa.com"
-              />
-              {errores.email && <p style={s.errorMsg}>Campo obligatorio</p>}
+          </div>
+        </section>
+
+        {/* ── COMISIONES ──────────────────────────────────────────────────── */}
+        <section style={{ padding: '64px 28px', background: C.blanco, borderTop: `1px solid ${C.grisB}` }}>
+          <div style={{ maxWidth: 820, margin: '0 auto' }}>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: C.azulTxt, textAlign: 'center', marginBottom: 8 }}>Estructura de comisiones</h2>
+            <p style={{ color: C.gris, textAlign: 'center', marginBottom: 36, fontSize: 15, lineHeight: 1.7 }}>
+              A mayor volumen mensual, mayor descuento. Automático, sin negociaciones.
+            </p>
+
+            {/* Tabla */}
+            <div style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${C.grisB}`, marginBottom: 32 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: C.azul }}>
+                    <th style={{ padding: '12px 20px', textAlign: 'left', color: 'rgba(255,255,255,.8)', fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>Nivel</th>
+                    <th style={{ padding: '12px 20px', textAlign: 'left', color: 'rgba(255,255,255,.8)', fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>Facturación mensual</th>
+                    <th style={{ padding: '12px 20px', textAlign: 'left', color: 'rgba(255,255,255,.8)', fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>Descuento</th>
+                    <th style={{ padding: '12px 20px', textAlign: 'left', color: 'rgba(255,255,255,.8)', fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>Ganancia en kit $800k</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {NIVELES.map((n, i) => (
+                    <tr key={n.nivel} style={{ background: i % 2 === 0 ? C.blanco : C.grisBg, borderBottom: `1px solid ${C.grisB}` }}>
+                      <td style={{ padding: '14px 20px', fontWeight: 700, color: n.color, fontSize: 15 }}>{n.nivel}</td>
+                      <td style={{ padding: '14px 20px', color: C.azulTxt, fontSize: 15 }}>{n.desde}</td>
+                      <td style={{ padding: '14px 20px', fontWeight: 800, color: n.color, fontSize: 18 }}>{n.pct}</td>
+                      <td style={{ padding: '14px 20px', fontWeight: 700, color: n.color, fontSize: 15 }}>{n.ejemplo}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div style={s.campo}>
-              <label style={s.label}>Teléfono / WhatsApp *</label>
-              <input
-                style={{ ...s.input, borderColor: errores.telefono ? '#ef4444' : '#1e3a52' }}
-                name="telefono"
-                value={form.telefono}
-                onChange={handleChange}
-                placeholder="11 2345 6789"
-              />
-              {errores.telefono && <p style={s.errorMsg}>Campo obligatorio</p>}
+
+            {/* Ejemplo visual */}
+            <div style={{ background: C.acentoBg, border: `1px solid ${C.acentoBord}`, borderRadius: 12, padding: '24px 28px' }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: C.verde, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.08em' }}>📊 Ejemplo concreto — 5 kits de $800.000/mes</p>
+              <div className="unirse-ej-grid" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div style={{ background: C.blanco, border: `1px solid ${C.grisB}`, borderRadius: 10, padding: '16px 24px', textAlign: 'center', flex: 1 }}>
+                  <div style={{ fontSize: 12, color: C.gris, marginBottom: 4 }}>Nivel 1 · 7%</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: C.azulTxt }}>$280.000</div>
+                  <div style={{ fontSize: 12, color: C.gris }}>de margen en el mes</div>
+                </div>
+                <div style={{ color: C.acento, fontSize: 24, fontWeight: 800 }}>→</div>
+                <div style={{ background: C.blanco, border: `2px solid ${C.verde}`, borderRadius: 10, padding: '16px 24px', textAlign: 'center', flex: 1 }}>
+                  <div style={{ fontSize: 12, color: C.gris, marginBottom: 4 }}>Nivel 3 · 12%</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: C.verde }}>$480.000</div>
+                  <div style={{ fontSize: 12, color: C.gris }}>de margen en el mes</div>
+                </div>
+              </div>
+              <p style={{ fontSize: 13, color: C.gris, marginTop: 14, textAlign: 'center' }}>
+                El nivel sube automáticamente a medida que crece tu volumen mensual.
+              </p>
             </div>
-            <div style={s.campo}>
-              <label style={s.label}>Provincia *</label>
-              <select
-                style={{ ...s.input, borderColor: errores.provincia ? '#ef4444' : '#1e3a52' }}
-                name="provincia"
-                value={form.provincia}
-                onChange={handleChange}
+          </div>
+        </section>
+
+        {/* ── CÓMO FUNCIONA ───────────────────────────────────────────────── */}
+        <section style={{ padding: '64px 28px', background: C.fondo }}>
+          <div style={{ maxWidth: 860, margin: '0 auto' }}>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: C.azulTxt, textAlign: 'center', marginBottom: 40 }}>Cómo funciona</h2>
+            <div className="unirse-grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
+              {PASOS.map(p => (
+                <div key={p.titulo} style={{ background: C.blanco, border: `1px solid ${C.grisB}`, borderRadius: 14, padding: '32px 24px 24px', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: -14, left: 24, background: C.azul, color: C.blanco, width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14 }}>
+                    {p.n}
+                  </div>
+                  <div style={{ fontSize: 30, marginBottom: 12, marginTop: 4 }}>{p.emoji}</div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: C.azulTxt, marginBottom: 8 }}>{p.titulo}</h3>
+                  <p style={{ fontSize: 14, color: C.gris, lineHeight: 1.65 }}>{p.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── PRODUCTO ────────────────────────────────────────────────────── */}
+        <section style={{ padding: '64px 28px', background: C.blanco, borderTop: `1px solid ${C.grisB}` }}>
+          <div style={{ maxWidth: 820, margin: '0 auto' }}>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: C.azulTxt, textAlign: 'center', marginBottom: 40 }}>El producto</h2>
+            <div className="unirse-grid2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+              {[
+                { title: '🔋 Kit completo incluye:', items: ['Bomba solar sumergible (210W a 1100W)','Paneles solares','Estructura de soporte','Cable submersible + soga de seguridad','Protecciones eléctricas'] },
+                { title: '✅ Respaldo Febecos:', items: ['Garantía 12 meses','Soporte técnico post-venta','Curvas de performance por modelo','Cotizador automático en el portal','Acceso 24/7 a precios mayoristas'] },
+              ].map(col => (
+                <div key={col.title} style={{ background: C.grisBg, border: `1px solid ${C.grisB}`, borderRadius: 14, padding: '24px 24px' }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: C.azulTxt, marginBottom: 16 }}>{col.title}</h3>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {col.items.map(item => (
+                      <li key={item} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 14, color: C.gris }}>
+                        <span style={{ color: C.verde, fontWeight: 700, flexShrink: 0 }}>✓</span>{item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── FORMULARIO ──────────────────────────────────────────────────── */}
+        <section id="formulario" style={{ padding: '64px 28px', background: C.fondo, borderTop: `1px solid ${C.grisB}` }}>
+          <div style={{ maxWidth: 600, margin: '0 auto' }}>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: C.azulTxt, textAlign: 'center', marginBottom: 8 }}>Quiero sumarme</h2>
+            <p style={{ color: C.gris, textAlign: 'center', marginBottom: 32, fontSize: 15, lineHeight: 1.7 }}>
+              Completá tus datos y te contactamos por WhatsApp. Sin presión, sin compromisos.
+            </p>
+            <div style={{ background: C.blanco, border: `1px solid ${C.grisB}`, borderRadius: 16, padding: '32px 28px' }}>
+              <div className="unirse-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                {[
+                  { name: 'nombre',   label: 'Nombre completo',       type: 'text',  placeholder: 'Juan Pérez' },
+                  { name: 'email',    label: 'Email',                  type: 'email', placeholder: 'juan@empresa.com' },
+                  { name: 'telefono', label: 'Teléfono / WhatsApp',    type: 'tel',   placeholder: '11 2345 6789' },
+                ].map(f => (
+                  <div key={f.name} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.azulTxt }}>{f.label} *</label>
+                    <input
+                      name={f.name}
+                      type={f.type}
+                      placeholder={f.placeholder}
+                      value={(form as any)[f.name]}
+                      onChange={handleChange}
+                      style={{ padding: '11px 14px', border: `1.5px solid ${errores[f.name] ? '#E40044' : C.grisB}`, borderRadius: 8, fontSize: 14, color: C.azulTxt, background: C.grisBg, width: '100%' }}
+                    />
+                    {errores[f.name] && <span style={{ fontSize: 11, color: '#E40044' }}>Campo obligatorio</span>}
+                  </div>
+                ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: C.azulTxt }}>Provincia *</label>
+                  <select
+                    name="provincia"
+                    value={form.provincia}
+                    onChange={handleChange}
+                    style={{ padding: '11px 14px', border: `1.5px solid ${errores.provincia ? '#E40044' : C.grisB}`, borderRadius: 8, fontSize: 14, color: C.azulTxt, background: C.grisBg, width: '100%', appearance: 'none' }}
+                  >
+                    <option value="">Seleccioná tu provincia...</option>
+                    {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  {errores.provincia && <span style={{ fontSize: 11, color: '#E40044' }}>Seleccioná tu provincia</span>}
+                </div>
+              </div>
+              <button
+                onClick={handleSubmit}
+                className="unirse-wa-btn"
+                style={{ width: '100%', padding: '14px', background: '#25d366', color: C.blanco, border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 800, cursor: 'pointer', transition: 'background .15s' }}
               >
-                <option value="">Seleccioná...</option>
-                {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-              {errores.provincia && <p style={s.errorMsg}>Seleccioná tu provincia</p>}
+                💬 Contactarme por WhatsApp
+              </button>
+              <p style={{ fontSize: 12, color: C.gris, textAlign: 'center', marginTop: 10 }}>
+                Te abrimos WhatsApp con tus datos pre-completados. Respondemos en horario comercial.
+              </p>
             </div>
           </div>
-          <button style={s.submitBtn} onClick={handleSubmit}>
-            💬 Contactarme por WhatsApp
-          </button>
-          <p style={{ color: '#64748b', fontSize: 12, textAlign: 'center', marginTop: 12 }}>
-            Te redirigimos a WhatsApp con tus datos pre-completados. Respondemos en horario comercial.
+        </section>
+
+        {/* ── FOOTER ──────────────────────────────────────────────────────── */}
+        <footer style={{ background: C.azul, padding: '40px 28px', textAlign: 'center' }}>
+          <p style={{ color: 'rgba(255,255,255,.9)', fontWeight: 700, fontSize: 16, marginBottom: 8 }}>¿Preferís hablar primero?</p>
+          <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 14, marginBottom: 24, lineHeight: 1.7 }}>
+            Escribinos directamente y te hacemos una demo del portal. Sin compromiso.
           </p>
-        </div>
-      </section>
-
-      {/* ── CTA FINAL ── */}
-      <section style={{ ...s.section, background: '#0d1a2a', textAlign: 'center' }}>
-        <h2 style={{ ...s.sectionTitle, marginBottom: 12 }}>
-          ¿Preferís hablar primero?
-        </h2>
-        <p style={{ color: '#94a3b8', marginBottom: 24, lineHeight: 1.7 }}>
-          Escribinos directamente y te hacemos una demo del portal.<br />
-          Sin compromiso, sin presión.
-        </p>
-        <a
-          href="https://wa.me/5491125750323?text=Hola%2C%20me%20interesa%20el%20Programa%20de%20Revendedores%20Febecos.%20%C2%BFPodr%C3%ADan%20contarme%20m%C3%A1s%3F"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={s.waBtn}
-        >
-          📱 +54 9 11 2575-0323
-        </a>
-        <p style={{ color: '#334155', fontSize: 13, marginTop: 32 }}>
-          <a href="https://revendedores.febecos.com" style={{ color: '#60a5fa', textDecoration: 'none' }}>
-            revendedores.febecos.com
+          <a
+            href="https://wa.me/5491125750323?text=Hola%2C%20me%20interesa%20el%20Programa%20de%20Revendedores%20Febecos.%20%C2%BFPodr%C3%ADan%20contarme%20m%C3%A1s%3F"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="unirse-wa-btn"
+            style={{ display: 'inline-block', background: '#25d366', color: C.blanco, padding: '13px 32px', borderRadius: 10, fontWeight: 800, fontSize: 15, transition: 'background .15s', marginBottom: 28 }}
+          >
+            📱 +54 9 11 2575-0323
           </a>
-          {' · '}
-          <a href="https://febecos.com" style={{ color: '#60a5fa', textDecoration: 'none' }}>
-            febecos.com
-          </a>
-        </p>
-      </section>
+          <div style={{ borderTop: `1px solid rgba(255,255,255,.1)`, paddingTop: 20, display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {[['revendedores.febecos.com','https://revendedores.febecos.com'], ['febecos.com','https://febecos.com'], ['selector.febecos.com','https://selector.febecos.com']].map(([label, href]) => (
+              <a key={href} href={href} style={{ color: 'rgba(255,255,255,.45)', fontSize: 13 }}>{label}</a>
+            ))}
+          </div>
+        </footer>
 
-    </div>
+      </div>
+    </>
   )
-}
-
-const s: Record<string, React.CSSProperties> = {
-  page: {
-    minHeight: '100vh',
-    background: '#0a1628',
-    color: '#e8f0f8',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-  },
-
-  // Header
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '16px 24px',
-    borderBottom: '1px solid #1a2d45',
-    position: 'sticky' as const,
-    top: 0,
-    background: '#0a1628',
-    zIndex: 100,
-  },
-  headerLink: {
-    color: '#4ade80',
-    textDecoration: 'none',
-    fontSize: 14,
-    fontWeight: 600,
-  },
-
-  // Hero
-  hero: {
-    padding: '80px 24px 64px',
-    textAlign: 'center' as const,
-    background: 'linear-gradient(180deg, #0a1628 0%, #0d1a2a 100%)',
-  },
-  heroInner: {
-    maxWidth: 680,
-    margin: '0 auto',
-  },
-  badge: {
-    display: 'inline-block',
-    background: '#0d2a1a',
-    color: '#4ade80',
-    border: '1px solid #166534',
-    borderRadius: 20,
-    padding: '4px 16px',
-    fontSize: 13,
-    fontWeight: 600,
-    marginBottom: 24,
-  },
-  heroTitle: {
-    fontSize: 'clamp(28px, 5vw, 48px)' as unknown as number,
-    fontWeight: 800,
-    lineHeight: 1.2,
-    marginBottom: 20,
-    color: '#e8f0f8',
-  },
-  heroSubtitle: {
-    fontSize: 18,
-    color: '#94a3b8',
-    lineHeight: 1.7,
-    marginBottom: 36,
-  },
-  ctaBtn: {
-    display: 'inline-block',
-    background: '#4ade80',
-    color: '#0a1628',
-    padding: '14px 32px',
-    borderRadius: 10,
-    fontWeight: 800,
-    fontSize: 16,
-    textDecoration: 'none',
-    transition: 'transform 0.15s',
-  },
-
-  // Sections
-  section: {
-    padding: '64px 24px',
-    background: '#0a1628',
-  },
-  sectionTitle: {
-    fontSize: 28,
-    fontWeight: 800,
-    textAlign: 'center' as const,
-    marginBottom: 12,
-    color: '#e8f0f8',
-  },
-  sectionSubtitle: {
-    color: '#94a3b8',
-    textAlign: 'center' as const,
-    marginBottom: 40,
-    lineHeight: 1.7,
-    maxWidth: 560,
-    margin: '0 auto 40px',
-  },
-
-  // Grid
-  grid3: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-    gap: 20,
-    maxWidth: 960,
-    margin: '0 auto',
-  },
-  grid2: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: 20,
-    maxWidth: 800,
-    margin: '0 auto',
-  },
-
-  // Cards
-  card: {
-    background: '#0d1a2a',
-    border: '1px solid #1a2d45',
-    borderRadius: 12,
-    padding: '28px 24px',
-  },
-  cardEmoji: { fontSize: 32, marginBottom: 12 },
-  cardTitle: { fontSize: 16, fontWeight: 700, color: '#e8f0f8', marginBottom: 8 },
-  cardDesc: { fontSize: 14, color: '#94a3b8', lineHeight: 1.6 },
-
-  // Pasos
-  pasoCard: {
-    background: '#0d1a2a',
-    border: '1px solid #1a2d45',
-    borderRadius: 12,
-    padding: '28px 24px',
-    position: 'relative' as const,
-  },
-  pasoNumero: {
-    position: 'absolute' as const,
-    top: -14,
-    left: 24,
-    background: '#4ade80',
-    color: '#0a1628',
-    width: 28,
-    height: 28,
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 800,
-    fontSize: 14,
-  },
-  pasoEmoji: { fontSize: 32, marginBottom: 12, marginTop: 8 },
-
-  // Tabla
-  tableWrap: {
-    maxWidth: 640,
-    margin: '0 auto 32px',
-    borderRadius: 12,
-    overflow: 'hidden',
-    border: '1px solid #1a2d45',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse' as const,
-  },
-  th: {
-    background: '#1a2d45',
-    color: '#60a5fa',
-    padding: '12px 16px',
-    textAlign: 'left' as const,
-    fontSize: 13,
-    fontWeight: 700,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
-  },
-  td: {
-    padding: '14px 16px',
-    fontSize: 15,
-    color: '#e8f0f8',
-    borderBottom: '1px solid #1a2d45',
-  },
-
-  // Ejemplo
-  ejemplo: {
-    maxWidth: 500,
-    margin: '0 auto',
-    background: '#0a1628',
-    border: '1px solid #1a2d45',
-    borderRadius: 12,
-    padding: '24px',
-  },
-  ejemploGrid: {
-    display: 'flex',
-    gap: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ejemploCard: {
-    background: '#0d1a2a',
-    border: '1px solid #1a2d45',
-    borderRadius: 10,
-    padding: '16px 20px',
-    textAlign: 'center' as const,
-    flex: 1,
-  },
-
-  // Lista
-  lista: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 10,
-    color: '#94a3b8',
-    fontSize: 14,
-  },
-
-
-  // Formulario
-  formWrap: {
-    maxWidth: 600,
-    margin: '0 auto',
-    background: '#0d1a2a',
-    border: '1px solid #1a2d45',
-    borderRadius: 16,
-    padding: '32px',
-  },
-  formGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: 16,
-    marginBottom: 24,
-  },
-  campo: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
-  label: { fontSize: 13, fontWeight: 600, color: '#94a3b8' },
-  input: {
-    background: '#0a1628',
-    border: '1.5px solid #1e3a52',
-    borderRadius: 8,
-    padding: '10px 12px',
-    color: '#e8f0f8',
-    fontSize: 14,
-    outline: 'none',
-    width: '100%',
-    boxSizing: 'border-box' as const,
-  },
-  submitBtn: {
-    width: '100%',
-    padding: '14px',
-    background: '#25d366',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 10,
-    fontSize: 16,
-    fontWeight: 800,
-    cursor: 'pointer',
-  },
-  errorMsg: {
-    color: '#ef4444',
-    fontSize: 11,
-    margin: 0,
-    fontWeight: 500,
-  },
-
-  // WA button
-  waBtn: {
-    display: 'inline-block',
-    background: '#25d366',
-    color: '#fff',
-    padding: '14px 32px',
-    borderRadius: 10,
-    fontWeight: 800,
-    fontSize: 16,
-    textDecoration: 'none',
-  },
 }
