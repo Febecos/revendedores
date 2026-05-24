@@ -202,8 +202,11 @@ export default async function UnirsePage() {
         #up { background:${C.fondo}; color:${C.azulTxt}; min-height:100vh; }
         body { background:${C.fondo} !important; }
         #up a { text-decoration:none; }
+        html { scroll-behavior:smooth; }
         .u-cta:hover { background:#bcd430 !important; }
         .u-wa:hover  { background:#1da851 !important; }
+        .u-secnav a { display:inline-block; padding:14px 16px; font-size:13px; font-weight:600; color:#6b7280; text-decoration:none; white-space:nowrap; border-bottom:2px solid transparent; transition:color .15s, border-color .15s; }
+        .u-secnav a:hover { color:#0f2a4e; border-bottom-color:#0f2a4e; }
         @media(max-width:680px){
           .u-nav-l { display:none !important; }
           .u-g3 { grid-template-columns:1fr !important; }
@@ -245,7 +248,7 @@ export default async function UnirsePage() {
               Vendé bombas solares.<br /><span style={{ color:C.acento }}>El campo te espera.</span>
             </h1>
             <p style={{ fontSize:17, color:'rgba(255,255,255,.8)', lineHeight:1.75, marginBottom:36, maxWidth:540, margin:'0 auto 36px' }}>
-              Precios mayoristas, cotizador técnico y soporte completo de Febecos.<br />Sin cuota de ingreso. Sin stock mínimo.
+              Precios mayoristas, cotizador técnico y soporte completo.<br />Sin cuota de ingreso. Sin stock mínimo.
             </p>
             <a href="#formulario" className="u-cta" style={{ display:'inline-block', background:C.acento, color:C.azul, padding:'15px 36px', borderRadius:10, fontWeight:800, fontSize:16, transition:'background .15s' }}>
               Quiero probar online →
@@ -268,8 +271,25 @@ export default async function UnirsePage() {
           </div>
         </div>
 
+        {/* ── NAVEGACIÓN RÁPIDA ── */}
+        <nav className="u-secnav" style={{ background:C.blanco, borderBottom:`1px solid ${C.grisB}`, padding:'0 28px', overflowX:'auto' as const }}>
+          <div style={{ maxWidth:900, margin:'0 auto', display:'flex', gap:0 }}>
+            {[
+              { href:'#demanda',       label:'📡 Demanda' },
+              { href:'#ganas',         label:'💰 Cuánto ganás' },
+              { href:'#beneficios',    label:'✅ Por qué' },
+              { href:'#margen',        label:'🧮 Calculá' },
+              { href:'#como-funciona', label:'⚙️ Cómo funciona' },
+              { href:'#equipos',       label:'⚡ Equipos' },
+              { href:'#formulario',    label:'🚀 Empezá' },
+            ].map(({ href, label }) => (
+              <a key={href} href={href}>{label}</a>
+            ))}
+          </div>
+        </nav>
+
         {/* ── DEMANDA EN VIVO ── */}
-        <section style={{ padding:'40px 28px', background:C.fondo }}>
+        <section id="demanda" style={{ padding:'40px 28px', background:C.fondo }}>
           <div style={{ maxWidth:900, margin:'0 auto' }}>
             <p style={{ textAlign:'center', fontSize:12, fontWeight:700, color:C.gris, textTransform:'uppercase', letterSpacing:'.1em', marginBottom:24 }}>
               📡 Qué está pasando ahora mismo
@@ -296,7 +316,7 @@ export default async function UnirsePage() {
         </section>
 
         {/* ── CUÁNTO GANÁS ── */}
-        <section style={{ padding:'48px 28px', background:C.blanco, borderTop:`1px solid ${C.grisB}` }}>
+        <section id="ganas" style={{ padding:'48px 28px', background:C.blanco, borderTop:`1px solid ${C.grisB}` }}>
           <div style={{ maxWidth:860, margin:'0 auto' }}>
             <p style={{ textAlign:'center', fontSize:12, fontWeight:700, color:C.gris, textTransform:'uppercase', letterSpacing:'.1em', marginBottom:24 }}>
               💰 ¿Cuánto ganás?
@@ -352,7 +372,7 @@ export default async function UnirsePage() {
         </section>
 
         {/* ── BENEFICIOS ── */}
-        <section style={{ padding:'64px 28px', background:C.fondo }}>
+        <section id="beneficios" style={{ padding:'64px 28px', background:C.fondo }}>
           <div style={{ maxWidth:1000, margin:'0 auto' }}>
             <h2 style={{ fontSize:28, fontWeight:800, color:C.azulTxt, textAlign:'center', marginBottom:8 }}>Por qué tiene sentido</h2>
             <p style={{ color:C.gris, textAlign:'center', marginBottom:40, fontSize:15, lineHeight:1.7 }}>Una línea de producto con demanda real, margen desde el día 1 y todo el respaldo técnico de Febecos.</p>
@@ -369,7 +389,7 @@ export default async function UnirsePage() {
         </section>
 
         {/* ── CALCULADOR DE MARGEN ── */}
-        <section style={{ padding:'64px 28px', background:C.blanco, borderTop:`1px solid ${C.grisB}` }}>
+        <section id="margen" style={{ padding:'64px 28px', background:C.blanco, borderTop:`1px solid ${C.grisB}` }}>
           <div style={{ maxWidth:940, margin:'0 auto' }}>
             <h2 style={{ fontSize:28, fontWeight:800, color:C.azulTxt, textAlign:'center', marginBottom:8 }}>Calculá tu margen</h2>
             <p style={{ color:C.gris, textAlign:'center', marginBottom:36, fontSize:15, lineHeight:1.7 }}>
@@ -387,7 +407,7 @@ export default async function UnirsePage() {
         </section>
 
         {/* ── CÓMO FUNCIONA + MOCKUP ── */}
-        <section style={{ padding:'64px 28px', background:C.fondo }}>
+        <section id="como-funciona" style={{ padding:'64px 28px', background:C.fondo }}>
           <div style={{ maxWidth:1000, margin:'0 auto' }}>
             <h2 style={{ fontSize:28, fontWeight:800, color:C.azulTxt, textAlign:'center', marginBottom:8 }}>Cómo funciona</h2>
             <p style={{ color:C.gris, textAlign:'center', marginBottom:48, fontSize:15, lineHeight:1.7 }}>
@@ -424,7 +444,7 @@ export default async function UnirsePage() {
         </section>
 
         {/* ── MODELOS ── */}
-        <section style={{ padding:'64px 28px', background:C.blanco, borderTop:`1px solid ${C.grisB}` }}>
+        <section id="equipos" style={{ padding:'64px 28px', background:C.blanco, borderTop:`1px solid ${C.grisB}` }}>
           <div style={{ maxWidth:1000, margin:'0 auto' }}>
             <h2 style={{ fontSize:28, fontWeight:800, color:C.azulTxt, textAlign:'center', marginBottom:8 }}>Los equipos</h2>
             <p style={{ color:C.gris, textAlign:'center', marginBottom:40, fontSize:15, lineHeight:1.7 }}>
