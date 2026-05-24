@@ -475,7 +475,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 }
 
 
-function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revToken, revEmail }: any) {
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [nroPresup, setNroPresup] = useState<string | null>(null)
@@ -668,11 +668,10 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
 </div>
 ${tieneCliente
       ? `<div class="cliente-box">
-          <div class="cliente-etiqueta">Presupuesto para</div>
-          <div class="cliente-nombre">${cd?.nombre || ''} ${cd?.apellido || ''}</div>
+          <div class="cliente-nombre">Sr./Sra. ${cd?.nombre || ''} ${cd?.apellido || ''}</div>
           <div class="cliente-detalle">${cd?.telefono ? `📱 ${cd.telefono}` : ''}${cd?.zona ? `&nbsp;&nbsp;·&nbsp;&nbsp;📍 ${cd.zona}` : ''}</div>
         </div>`
-      : `<div class="atendido">✅ Atendido por: <strong>${revendedor}</strong></div>`
+      : ''
     }
 <h3>Equipo de bombeo solar</h3>
 <div class="specs-grid">
@@ -699,8 +698,12 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
 <table style="table-layout:fixed"><thead><tr><th style="width:45%">Componente</th><th style="width:10%;text-align:center">Cant.</th><th style="width:45%">Componente</th><th style="width:10%;text-align:center">Cant.</th></tr></thead>
 <tbody>${kitHtml2Col}</tbody></table>` : ''}
 <div class="footer">
-  ${tieneCliente ? `Asesor: <strong>${revendedor}</strong> &nbsp;·&nbsp; ` : ''}Febecos — Bombeo Solar Argentina · febecos.com<br>
-  Este presupuesto es válido por 48 horas desde la fecha de emisión. Sujeto a disponibilidad de stock.
+  ${revTipo === 'admin'
+    ? `Asesor Febecos: <strong>${revendedor}</strong>`
+    : `Revendedor: <strong>${revendedor}</strong>${revProvincia ? ` &nbsp;·&nbsp; ${revProvincia}` : ''}`
+  }<br>
+  Cotización realizada a través de la plataforma de cotizaciones de <strong>febecos.com</strong> · Bombeo Solar Argentina<br>
+  Válido por 48 horas desde la fecha de emisión. Sujeto a disponibilidad de stock.
 </div>
 </body></html>`
 
@@ -1303,7 +1306,9 @@ export default function Portal() {
           descuento={rev.descuento_pct}
           mostrarPublico={mostrarPublico}
           onClose={() => setModalCodigo(null)}
-          revendedor={`${rev.nombre} ${rev.apellido}${rev.empresa ? ' — ' + rev.empresa : ''}`}
+          revendedor={`${rev.nombre} ${rev.apellido}`}
+          revProvincia={rev.provincia || ''}
+          revTipo={rev.tipo_usuario || 'revendedor'}
           revToken={token}
           revEmail={rev.email}
         />
