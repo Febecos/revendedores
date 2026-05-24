@@ -84,12 +84,13 @@ async function getProvinciasLibres(): Promise<number> {
     const sql = getDb()
     const rows = await sql`
       SELECT COUNT(DISTINCT provincia) AS cubiertas
-      FROM revendedores
-      WHERE activo = true AND provincia IS NOT NULL AND provincia <> ''
+      FROM solicitudes_revendedor
+      WHERE estado IN ('aprobado','activo')
+        AND provincia IS NOT NULL AND provincia <> ''
     `
     const cubiertas = Number((rows[0] as any)?.cubiertas ?? 0)
     return Math.max(0, TOTAL_PROVINCIAS - cubiertas)
-  } catch { return 8 /* fallback */ }
+  } catch { return 21 /* fallback */ }
 }
 
 async function getConsultasSemanales(): Promise<string> {
