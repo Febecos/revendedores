@@ -101,11 +101,8 @@ async function getConsultasSemanales(): Promise<string> {
       WHERE created_at >= NOW() - INTERVAL '7 days'
     `
     const total = Number((rows[0] as any)?.total ?? 0)
-    if (total === 0) return '80–120'
-    // Redondear a rango aproximado
-    const base = Math.floor(total / 10) * 10
-    return `${base}–${base + 20}`
-  } catch { return '80–120' }
+    return total > 0 ? `${total}` : '—'
+  } catch { return '—' }
 }
 
 async function getModelos(): Promise<Modelo[]> {
