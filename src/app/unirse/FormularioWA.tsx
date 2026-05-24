@@ -118,20 +118,6 @@ export default function FormularioUnirse() {
           {estadoDemo === 'cargando' ? '⏳ Abriendo el portal...' : '🚀 Ver el portal gratis — 7 días'}
         </button>
 
-        {/* CTA secundario: WhatsApp */}
-        <button
-          onClick={irAWhatsApp}
-          style={{
-            width: '100%', padding: '13px',
-            background: '#25d366', color: C.blanco,
-            border: 'none', borderRadius: 10,
-            fontSize: 15, fontWeight: 700, cursor: 'pointer',
-            fontFamily: 'inherit', transition: 'background .15s',
-          }}
-        >
-          💬 Contactarme por WhatsApp
-        </button>
-
         {estadoDemo === 'error' && (
           <p style={{ fontSize: 12, color: '#E40044', textAlign: 'center', margin: 0 }}>
             Error al iniciar el portal. Intentá de nuevo.
@@ -139,18 +125,14 @@ export default function FormularioUnirse() {
         )}
       </div>
 
-      {/* Llamada telefónica */}
-      <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.grisB}`, textAlign: 'center' }}>
-        <p style={{ fontSize: 13, color: C.gris, margin: 0 }}>
-          ¿Preferís hablar primero?{' '}
-          <a href="tel:+5491125750323" style={{ color: C.azulTxt, fontWeight: 700, textDecoration: 'none' }}>
-            📞 +54 9 11 2575-0323
-          </a>
-        </p>
-        <p style={{ fontSize: 11, color: C.gris, marginTop: 4, marginBottom: 0 }}>
-          Respondemos en horario comercial · Lun a Vie 10–17 hs
-        </p>
-      </div>
+      {/* Texto legal */}
+      <p style={{ marginTop: 16, fontSize: 11, color: C.gris, textAlign: 'center', lineHeight: 1.5 }}>
+        Al continuar aceptás los{' '}
+        <a href="/terminos" target="_blank" style={{ color: C.azulTxt, fontWeight: 600 }}>Términos y Condiciones</a>
+        {' '}y la{' '}
+        <a href="/terminos#privacidad" target="_blank" style={{ color: C.azulTxt, fontWeight: 600 }}>Política de Privacidad</a>
+        {' '}de Febecos.
+      </p>
 
     </div>
   )
