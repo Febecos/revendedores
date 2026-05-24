@@ -475,11 +475,19 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 }
 
 
-function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor }: any) {
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revToken, revEmail }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [nroPresup, setNroPresup] = useState<string | null>(null)
   const [generandoPDF, setGenerandoPDF] = useState(false)
+
+  // ── Datos del cliente (solo cuando mostrarPublico=true) ───────────────────
+  const [showClienteForm, setShowClienteForm] = useState(false)
+  const [clienteNombre, setClienteNombre] = useState('')
+  const [clienteApellido, setClienteApellido] = useState('')
+  const [clienteTelefono, setClienteTelefono] = useState('')
+  const [clienteZona, setClienteZona] = useState('')
+  const [clienteReady, setClienteReady] = useState(false) // true una vez confirmados
 
   async function obtenerNroPresupuesto(): Promise<string> {
     try {
@@ -499,7 +507,49 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor }
     } catch { return `PREV-${new Date().getFullYear()}-XXXX` }
   }
 
-  async function generarPDF() {
+  // Guarda el presupuesto en la base de datos en background (best-effort)
+  function guardarPresupuestoDB(
+    nro: string,
+    precio: number | null,
+    cdData: { nombre: string; apellido: string; telefono: string; zona: string } | null
+  ) {
+    const precioPublico = data?.bomba?.precio_full || null
+    const tieneCliente = !!(cdData?.nombre || cdData?.apellido || cdData?.telefono)
+    fetch('/api/presupuestos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        numero: nro,
+        revendedor_token: revToken || null,
+        revendedor_nombre: revendedor || null,
+        revendedor_email: revEmail || null,
+        bomba_codigo: codigo,
+        bomba_descripcion: data?.bomba ? `${data.bomba.marca} ${data.bomba.watts}W` : null,
+        bomba_watts: data?.bomba?.watts || null,
+        bomba_marca: data?.bomba?.marca || null,
+        litros_dia: null,
+        altura_m: null,
+        longitud_total_m: null,
+        tipo_precio: mostrarPublico ? 'publico' : 'mayorista',
+        precio_publico: precioPublico,
+        precio_ofrecido: precio,
+        descuento_pct: mostrarPublico ? null : descuento,
+        cliente_nombre: tieneCliente ? cdData?.nombre : null,
+        cliente_apellido: tieneCliente ? cdData?.apellido : null,
+        cliente_telefono: tieneCliente ? cdData?.telefono : null,
+        cliente_zona: tieneCliente ? cdData?.zona : null,
+      }),
+    }).catch(() => { /* silencioso */ })
+  }
+
+  async function generarPDF(forceClienteData?: { nombre: string; apellido: string; telefono: string; zona: string }) {
+    // Si es precio público y aún no tenemos datos del cliente, mostrar formulario
+    if (mostrarPublico && !clienteReady && !forceClienteData) {
+      setShowClienteForm(true)
+      return
+    }
+
+    setShowClienteForm(false)
     setGenerandoPDF(true)
     let nro = nroPresup
     if (!nro) {
@@ -509,6 +559,13 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor }
     const precio = data?.bomba?.precio_full
       ? (mostrarPublico ? data.bomba.precio_full : precioMayorista(data.bomba.precio_full, descuento))
       : null
+
+    // Datos del cliente a usar (pueden venir del form en esta llamada o del state)
+    const cd = forceClienteData || (clienteReady ? { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona } : null)
+    const tieneCliente = !!(cd?.nombre || cd?.apellido || cd?.telefono)
+
+    // Guardar en DB (best-effort, en background)
+    guardarPresupuestoDB(nro, precio, cd)
     const fecha = new Date().toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' })
     const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
 
@@ -605,7 +662,13 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor }
     <p>⏱ Válido por 48 horas</p>
   </div>
 </div>
-<div class="atendido">✅ Atendido por: <strong>${revendedor}</strong></div>
+${tieneCliente
+      ? `<div class="atendido" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span>✅ Revendedor: <strong>${revendedor}</strong></span>
+          <span style="color:#1a4a8a;border-left:1px solid #b8ddc8;padding-left:12px">👤 Cliente: <strong>${cd?.nombre || ''} ${cd?.apellido || ''}</strong>${cd?.telefono ? ` · 📱 ${cd.telefono}` : ''}${cd?.zona ? ` · 📍 ${cd.zona}` : ''}</span>
+        </div>`
+      : `<div class="atendido">✅ Atendido por: <strong>${revendedor}</strong></div>`
+    }
 <h3>Equipo de bombeo solar</h3>
 <div class="specs-grid">
   <div class="spec"><span class="spec-label">Marca</span><span class="spec-val">${data?.bomba?.marca || '—'}</span></div>
@@ -698,6 +761,56 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
             <button onClick={onClose} style={{ width: 32, height: 32, background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
           </div>
         </div>
+
+        {/* ── Formulario datos del cliente (precio público) ─────────────────── */}
+        {showClienteForm && (
+          <div style={{ background: '#132233', borderBottom: '1px solid #1e3248', padding: '16px 22px' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#e8681a', marginBottom: 4 }}>
+              👤 Datos del cliente
+            </div>
+            <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 14 }}>
+              El presupuesto saldrá a nombre del cliente. El teléfono nos ayuda a saber si este cliente ya nos contactó antes.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginBottom: 12 }}>
+              {[
+                { label: 'Nombre *', val: clienteNombre, set: setClienteNombre, ph: 'Juan' },
+                { label: 'Apellido *', val: clienteApellido, set: setClienteApellido, ph: 'Pérez' },
+                { label: 'Teléfono / WhatsApp *', val: clienteTelefono, set: setClienteTelefono, ph: '11 2345 6789', grid: '1/-1' },
+                { label: 'Ciudad / Zona', val: clienteZona, set: setClienteZona, ph: 'Mendoza', grid: '1/-1' },
+              ].map(f => (
+                <div key={f.label} style={{ gridColumn: (f as any).grid }}>
+                  <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>{f.label}</div>
+                  <input
+                    value={f.val}
+                    onChange={e => f.set(e.target.value)}
+                    placeholder={f.ph}
+                    style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {
+                  const cd = { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona }
+                  setClienteReady(true)
+                  setShowClienteForm(false)
+                  generarPDF(cd)
+                }}
+                disabled={!clienteNombre.trim() || !clienteApellido.trim() || !clienteTelefono.trim()}
+                style={{ flex: 1, padding: '10px', background: (!clienteNombre.trim() || !clienteApellido.trim() || !clienteTelefono.trim()) ? '#1e3248' : '#e8681a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: (!clienteNombre.trim() || !clienteApellido.trim() || !clienteTelefono.trim()) ? 'not-allowed' : 'pointer' }}
+              >
+                📄 Confirmar y generar PDF
+              </button>
+              <button
+                onClick={() => { setShowClienteForm(false); generarPDF({ nombre: '', apellido: '', telefono: '', zona: '' }) }}
+                style={{ padding: '10px 14px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', fontSize: 12, cursor: 'pointer' }}
+              >
+                Saltar
+              </button>
+            </div>
+          </div>
+        )}
 
         <div style={{ padding: '20px 22px' }}>
           {loading && <div style={{ textAlign: 'center', padding: 40, color: '#7a9ab5' }}>⏳ Cargando datos...</div>}
@@ -1153,6 +1266,8 @@ export default function Portal() {
           mostrarPublico={mostrarPublico}
           onClose={() => setModalCodigo(null)}
           revendedor={`${rev.nombre} ${rev.apellido}${rev.empresa ? ' — ' + rev.empresa : ''}`}
+          revToken={token}
+          revEmail={rev.email}
         />
       )}
 
