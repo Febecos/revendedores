@@ -120,10 +120,10 @@ async function getModelos(): Promise<Modelo[]> {
 }
 
 async function getTotalCatalogo(): Promise<number> {
-  // Total de bombas en catálogo sin filtrar por precio ni stock
+  // Total de modelos en la tabla pumps (sin filtrar por flags)
   try {
     const sql = getDb()
-    const rows = await sql`SELECT COUNT(*) AS total FROM pumps WHERE activo_catalogo = true`
+    const rows = await sql`SELECT COUNT(*) AS total FROM pumps`
     return Number((rows[0] as any)?.total ?? 0)
   } catch { return 0 }
 }
