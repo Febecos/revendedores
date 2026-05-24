@@ -797,22 +797,35 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
               El presupuesto saldrá a nombre del cliente. El teléfono nos ayuda a saber si este cliente ya nos contactó antes.
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginBottom: 12 }}>
-              {[
-                { label: 'Nombre *', val: clienteNombre, set: setClienteNombre, ph: 'Juan' },
-                { label: 'Apellido *', val: clienteApellido, set: setClienteApellido, ph: 'Pérez' },
-                { label: 'Teléfono / WhatsApp *', val: clienteTelefono, set: setClienteTelefono, ph: '11 2345 6789', grid: '1/-1' },
-                { label: 'Ciudad / Zona', val: clienteZona, set: setClienteZona, ph: 'Mendoza', grid: '1/-1' },
-              ].map(f => (
-                <div key={f.label} style={{ gridColumn: (f as any).grid }}>
-                  <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>{f.label}</div>
-                  <input
-                    value={f.val}
-                    onChange={e => f.set(e.target.value)}
-                    placeholder={f.ph}
-                    style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }}
-                  />
-                </div>
-              ))}
+              {/* Nombre */}
+              <div>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Nombre *</div>
+                <input autoFocus value={clienteNombre} onChange={e => setClienteNombre(e.target.value)} placeholder="Juan"
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
+              {/* Apellido */}
+              <div>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Apellido *</div>
+                <input value={clienteApellido} onChange={e => setClienteApellido(e.target.value)} placeholder="Pérez"
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
+              {/* Teléfono */}
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Teléfono / WhatsApp *</div>
+                <input value={clienteTelefono} onChange={e => setClienteTelefono(e.target.value)} placeholder="11 2345 6789" type="tel"
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
+              {/* Provincia */}
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Provincia</div>
+                <select value={clienteZona} onChange={e => setClienteZona(e.target.value)}
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: clienteZona ? '#e8f0f8' : '#3a5a7a', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }}>
+                  <option value="">— Seleccionar provincia —</option>
+                  {['Buenos Aires','CABA','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán'].map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
