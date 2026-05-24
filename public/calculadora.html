@@ -508,7 +508,7 @@ const CATALOGO_IMGS={'HD-2SS 1.5-75-36-210':{img:'https://dcdn-us.mitiendanube.c
 function getKitInfo(codigo){if(!codigo)return null;if(CATALOGO_IMGS[codigo])return CATALOGO_IMGS[codigo];for(const[key,val]of Object.entries(CATALOGO_IMGS)){if(codigo.includes(key)||key.includes(codigo.split(' ')[0]))return val;}return null;}
 
 const ZONAS_SOLAR=[{region:'Norte (NOA/NEA)',factor:0.95,diasUso:347,provincias:['Salta','Jujuy','Tucumán','Santiago del Estero','Formosa','Chaco','Misiones','Corrientes'],hspVerano:7.5,hspInvierno:5.5,hspPromedio:6.5},{region:'Centro-Litoral',factor:0.85,diasUso:311,provincias:['Santa Fe','Entre Ríos','Córdoba','Buenos Aires','CABA'],hspVerano:6.5,hspInvierno:3.8,hspPromedio:5.2},{region:'Cuyo',factor:0.82,diasUso:299,provincias:['Mendoza','San Juan','La Rioja','Catamarca','San Luis'],hspVerano:7.0,hspInvierno:4.8,hspPromedio:5.9},{region:'Pampeana sur',factor:0.75,diasUso:274,provincias:['La Pampa'],hspVerano:6.5,hspInvierno:3.2,hspPromedio:4.9},{region:'Patagonia norte',factor:0.65,diasUso:237,provincias:['Río Negro','Neuquén'],hspVerano:6.8,hspInvierno:2.8,hspPromedio:4.8},{region:'Patagonia sur',factor:0.55,diasUso:201,provincias:['Chubut','Santa Cruz','Tierra del Fuego'],hspVerano:5.5,hspInvierno:2.5,hspPromedio:4.0}];
-const SUGGEST_API='https://simulador-roi-seven.vercel.app/api/suggest-pump';
+const SUGGEST_API='https://roi.febecos.com/api/suggest-pump';
 const DIAM_TO_PULG={'63mm':2,'75mm':2,'80-90mm':3,'100mm':3,'110-115mm':4,'6ormas':6};
 let solarDiamPerf='100mm',solarMCA=null,solarCaudal=null;
 
