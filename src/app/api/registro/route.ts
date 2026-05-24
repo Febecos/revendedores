@@ -45,7 +45,8 @@ export async function POST(req: NextRequest) {
 
     // Email de verificación al solicitante
     await resend.emails.send({
-      from: 'Febecos <ventas@febecos.com>',
+      from: 'Febecos Revendedores <revende@febecos.com>',
+      replyTo: 'revende@febecos.com',
       to: email,
       subject: 'Verificá tu email — Portal Revendedores Febecos',
       html: `<!DOCTYPE html>
@@ -89,7 +90,8 @@ export async function POST(req: NextRequest) {
     const adminEmail = process.env.AGENT_EMAIL
     if (adminEmail) {
       await resend.emails.send({
-        from: 'Febecos <ventas@febecos.com>',
+        from: 'Febecos Revendedores <revende@febecos.com>',
+        replyTo: 'revende@febecos.com',
         to: adminEmail,
         subject: `Nueva solicitud revendedor — ${nombre} ${apellido || ''} (${provincia})`,
         html: `

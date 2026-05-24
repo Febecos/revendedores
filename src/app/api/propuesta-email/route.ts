@@ -294,7 +294,8 @@ export async function POST(req: NextRequest) {
 
     // ── 1. Email al lead ─────────────────────────────────────────────────────
     await resend.emails.send({
-      from: 'Febecos Revendedores <ventas@febecos.com>',
+      from: 'Febecos Revendedores <revende@febecos.com>',
+      replyTo: 'revende@febecos.com',
       to: email,
       subject: `${nombre ? nombre.split(' ')[0] + ', tu' : 'Tu'} propuesta de revendedor Febecos ✅`,
       html: htmlPropuesta(nombre || 'Hola'),
@@ -304,7 +305,8 @@ export async function POST(req: NextRequest) {
     const adminEmail = process.env.AGENT_EMAIL
     if (adminEmail) {
       await resend.emails.send({
-        from: 'Febecos <ventas@febecos.com>',
+        from: 'Febecos Revendedores <revende@febecos.com>',
+        replyTo: 'revende@febecos.com',
         to: adminEmail,
         subject: `[Lead] ${nombre || email} — ${localidad || 'sin localidad'} (${via})`,
         html: htmlAdmin(nombre, email, whatsapp, localidad, via),
