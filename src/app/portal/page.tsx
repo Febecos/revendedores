@@ -1596,6 +1596,14 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
             >
               {mostrarPago ? '▲ Cerrar opciones de pago' : '💳 Opciones de pago'}
             </button>
+          ) : diasDemo !== null ? (
+            /* Demo: no puede hacer pedidos — invitar a registrarse */
+            <a
+              href="/unirse#formulario"
+              style={{ width:'100%', padding:'10px', background:'rgba(168,198,27,0.10)', border:'1.5px solid #a8c61b', borderRadius:8, color:'#a8c61b', fontSize:13, fontWeight:700, textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', gap:6, boxSizing:'border-box' as const }}
+            >
+              🔒 Registrate para hacer pedidos →
+            </a>
           ) : (
             <a
               href={`https://wa.me/5491125750323?text=${encodeURIComponent(`Hola Febecos! Soy revendedor (${wa.nombre} ${wa.apellido||''}, ${wa.empresa||wa.provincia}).\nQuiero hacer un pedido de ${bomba.codigo}.\nPrecio mayorista acordado: ${fmt(precioMayorista(bomba.precio_full, descuento))}`)}`}

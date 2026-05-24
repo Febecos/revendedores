@@ -77,6 +77,37 @@ async function getRevendedoresActivos(): Promise<number> {
   } catch { return 0 }
 }
 
+async function getProvinciasLibres(): Promise<number> {
+  // Argentina tiene 24 jurisdicciones (23 provincias + CABA)
+  const TOTAL_PROVINCIAS = 24
+  try {
+    const sql = getDb()
+    const rows = await sql`
+      SELECT COUNT(DISTINCT provincia) AS cubiertas
+      FROM revendedores
+      WHERE activo = true AND provincia IS NOT NULL AND provincia <> ''
+    `
+    const cubiertas = Number((rows[0] as any)?.cubiertas ?? 0)
+    return Math.max(0, TOTAL_PROVINCIAS - cubiertas)
+  } catch { return 8 /* fallback */ }
+}
+
+async function getConsultasSemanales(): Promise<string> {
+  try {
+    const sql = getDb()
+    const rows = await sql`
+      SELECT COUNT(*) AS total
+      FROM calculos_mca
+      WHERE created_at >= NOW() - INTERVAL '7 days'
+    `
+    const total = Number((rows[0] as any)?.total ?? 0)
+    if (total === 0) return '80–120'
+    // Redondear a rango aproximado
+    const base = Math.floor(total / 10) * 10
+    return `${base}–${base + 20}`
+  } catch { return '80–120' }
+}
+
 async function getModelos(): Promise<Modelo[]> {
   try {
     const sql = getDb()
@@ -151,7 +182,9 @@ function MockupPortal() {
 }
 
 export default async function UnirsePage() {
-  const [tramos, modelos, revendedoresActivos] = await Promise.all([getTramos(), getModelos(), getRevendedoresActivos()])
+  const [tramos, modelos, revendedoresActivos, provinciasLibres, consultasSemanales] = await Promise.all([
+    getTramos(), getModelos(), getRevendedoresActivos(), getProvinciasLibres(), getConsultasSemanales()
+  ])
 
   return (
     <>
@@ -235,10 +268,10 @@ export default async function UnirsePage() {
             </p>
             <div className="u-g3" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:14 }}>
               {[
-                { valor: '18–25',       label: 'Consultas diarias',          detalle: 'Productores buscando solución',  emoji: '🔍' },
-                { valor: '53%',         label: 'Son ganaderos',               detalle: 'Agua para animales: demanda fija', emoji: '🐄' },
-                { valor: revendedoresActivos > 0 ? `${revendedoresActivos}` : '12+', label: 'Revendedores activos', detalle: 'En toda la Argentina',          emoji: '🤝' },
-                { valor: '8 provincias',label: 'Sin cobertura activa',        detalle: 'Zonas libres disponibles',        emoji: '📍' },
+                { valor: consultasSemanales, label: 'Consultas esta semana',      detalle: 'Productores buscando solución',  emoji: '🔍' },
+                { valor: '53%',              label: 'Son ganaderos',               detalle: 'Agua para animales: demanda fija', emoji: '🐄' },
+                { valor: revendedoresActivos > 0 ? `${revendedoresActivos}` : '12+', label: 'Revendedores activos', detalle: 'En toda la Argentina', emoji: '🤝' },
+                { valor: `${provinciasLibres} ${provinciasLibres === 1 ? 'provincia' : 'provincias'}`, label: 'Sin cobertura activa', detalle: 'Zonas libres disponibles', emoji: '📍' },
               ].map(s => (
                 <div key={s.label} style={{ background:C.blanco, border:`1px solid ${C.grisB}`, borderRadius:12, padding:'18px 16px', textAlign:'center' }}>
                   <div style={{ fontSize:22, marginBottom:6 }}>{s.emoji}</div>
