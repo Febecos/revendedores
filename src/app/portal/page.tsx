@@ -635,6 +635,10 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   .presup-num h2 { font-size: 16px; margin: 0; color: #1a1a18; }
   .presup-num p { margin: 3px 0; color: #666; font-size: 11px; }
   .atendido { background: #f0f9f4; border: 1px solid #b8ddc8; border-radius: 6px; padding: 8px 14px; margin-bottom: 14px; font-size: 12px; color: #1a6b3c; }
+  .cliente-box { background: #f0f9f4; border: 2px solid #1a6b3c; border-radius: 10px; padding: 14px 20px; margin-bottom: 16px; }
+  .cliente-etiqueta { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #4a7a5a; font-weight: 700; margin-bottom: 6px; }
+  .cliente-nombre { font-size: 22px; font-weight: 800; color: #1a1a18; margin-bottom: 5px; line-height: 1.2; }
+  .cliente-detalle { font-size: 13px; color: #1a6b3c; font-weight: 600; }
   h3 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #666; border-bottom: 1px solid #e2e0d8; padding-bottom: 4px; margin: 14px 0 10px; }
   .specs-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px 16px; }
   .spec { display: flex; flex-direction: column; }
@@ -663,9 +667,10 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   </div>
 </div>
 ${tieneCliente
-      ? `<div class="atendido" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-          <span>✅ Revendedor: <strong>${revendedor}</strong></span>
-          <span style="color:#1a4a8a;border-left:1px solid #b8ddc8;padding-left:12px">👤 Cliente: <strong>${cd?.nombre || ''} ${cd?.apellido || ''}</strong>${cd?.telefono ? ` · 📱 ${cd.telefono}` : ''}${cd?.zona ? ` · 📍 ${cd.zona}` : ''}</span>
+      ? `<div class="cliente-box">
+          <div class="cliente-etiqueta">Presupuesto para</div>
+          <div class="cliente-nombre">${cd?.nombre || ''} ${cd?.apellido || ''}</div>
+          <div class="cliente-detalle">${cd?.telefono ? `📱 ${cd.telefono}` : ''}${cd?.zona ? `&nbsp;&nbsp;·&nbsp;&nbsp;📍 ${cd.zona}` : ''}</div>
         </div>`
       : `<div class="atendido">✅ Atendido por: <strong>${revendedor}</strong></div>`
     }
@@ -694,7 +699,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
 <table style="table-layout:fixed"><thead><tr><th style="width:45%">Componente</th><th style="width:10%;text-align:center">Cant.</th><th style="width:45%">Componente</th><th style="width:10%;text-align:center">Cant.</th></tr></thead>
 <tbody>${kitHtml2Col}</tbody></table>` : ''}
 <div class="footer">
-  Febecos — Bombeo Solar Argentina · febecos.com · cotiza@febecos.com<br>
+  ${tieneCliente ? `Asesor: <strong>${revendedor}</strong> &nbsp;·&nbsp; ` : ''}Febecos — Bombeo Solar Argentina · febecos.com<br>
   Este presupuesto es válido por 48 horas desde la fecha de emisión. Sujeto a disponibilidad de stock.
 </div>
 </body></html>`
