@@ -758,6 +758,19 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
             <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 2 }}>Detalle del equipo — datos en tiempo real desde Febecos</div>
           </div>
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            {data?.ok && mostrarPublico && clienteReady && !showClienteForm && (
+              <button
+                onClick={() => {
+                  setClienteReady(false)
+                  setNroPresup(null)
+                  setShowClienteForm(true)
+                }}
+                style={{ padding:'7px 10px', background:'transparent', border:'1px solid #3a5a7a', borderRadius:8, color:'#7a9ab5', fontSize:11, cursor:'pointer' }}
+                title="Cambiar datos del cliente"
+              >
+                👤 Cambiar cliente
+              </button>
+            )}
             {data?.ok && (
               <button onClick={() => generarPDF()} disabled={generandoPDF} style={{ padding:'7px 14px', background:'#e8681a', border:'none', borderRadius:8, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
                 📄 {generandoPDF ? 'Generando...' : nroPresup ? `PDF ${nroPresup}` : 'Generar PDF'}
