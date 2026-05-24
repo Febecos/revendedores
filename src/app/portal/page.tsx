@@ -10,7 +10,7 @@ const FEBECOS_LOGO_B64 = 'data:image/webp;base64,UklGRsA8AABXRUJQVlA4WAoAAAAQAAA
 interface Revendedor {
   id: number; nombre: string; apellido: string; empresa: string
   provincia: string; descuento_pct: number; token_acceso: string
-  tipo_usuario?: string; puede_pedir_online?: boolean
+  tipo_usuario?: string; puede_pedir_online?: boolean; email?: string
 }
 interface ResultadoBomba {
   sugerencia: any; caudal_a_altura: any; es_fallback: boolean; nota: string; opciones: any[]
@@ -754,7 +754,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
           </div>
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
             {data?.ok && (
-              <button onClick={generarPDF} disabled={generandoPDF} style={{ padding:'7px 14px', background:'#e8681a', border:'none', borderRadius:8, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
+              <button onClick={() => generarPDF()} disabled={generandoPDF} style={{ padding:'7px 14px', background:'#e8681a', border:'none', borderRadius:8, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
                 📄 {generandoPDF ? 'Generando...' : nroPresup ? `PDF ${nroPresup}` : 'Generar PDF'}
               </button>
             )}
