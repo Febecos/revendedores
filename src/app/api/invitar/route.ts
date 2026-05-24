@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
     }
 
     const resend = getResend()
-    const { error } = await resend.emails.send({
+    const result = await resend.emails.send({
       from: 'Febecos Revendedores <revende@febecos.com>',
       replyTo: 'revende@febecos.com',
       to: email,
@@ -167,11 +167,7 @@ export async function POST(req: NextRequest) {
       html: htmlInvitacion(nombre, token, descuento),
     })
 
-    if (error) {
-      console.error('[invitar] Resend error:', error)
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
-    }
-
+    console.log('[invitar] Resend result:', JSON.stringify(result))
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[invitar] Error:', err)
