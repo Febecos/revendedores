@@ -95,9 +95,10 @@ async function getProvinciasLibres(): Promise<number> {
 async function getConsultasSemanales(): Promise<string> {
   try {
     const sql = getDb()
+    // Misma fuente que el admin dashboard: tabla "leads" del selector público
     const rows = await sql`
       SELECT COUNT(*) AS total
-      FROM calculos_mca
+      FROM leads
       WHERE created_at >= NOW() - INTERVAL '7 days'
     `
     const total = Number((rows[0] as any)?.total ?? 0)
