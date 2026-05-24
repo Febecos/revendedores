@@ -56,39 +56,20 @@ export async function POST(req: NextRequest) {
   if (nombre || email) {
     try {
       const sql = getDb()
-      await sql`
-        INSERT INTO demo_leads (nombre, email, whatsapp, localidad, creado_en)
-        VALUES (${nombre}, ${email}, ${whatsapp}, ${localidad}, NOW())
-        ON CONFLICT (email) DO UPDATE
-          SET whatsapp  = EXCLUDED.whatsapp,
-              localidad = EXCLUDED.localidad,
-              creado_en = NOW()
+      // Solo insertar si no hay ya un registro activo/aprobado para este email
+      const existing = await sql`
+        SELECT id FROM solicitudes_revendedor
+        WHERE email = ${email} AND estado IN ('aprobado','activo')
+        LIMIT 1
       `
-    } catch (err) {
-      // La tabla puede no existir todavía — la creamos y reintentamos
-      try {
-        const sql = getDb()
+      if (existing.length === 0) {
         await sql`
-          CREATE TABLE IF NOT EXISTS demo_leads (
-            id         SERIAL PRIMARY KEY,
-            nombre     TEXT,
-            email      TEXT UNIQUE,
-            whatsapp   TEXT,
-            localidad  TEXT,
-            creado_en  TIMESTAMPTZ DEFAULT NOW()
-          )
+          INSERT INTO solicitudes_revendedor (nombre, email, whatsapp, localidad, estado)
+          VALUES (${nombre}, ${email}, ${whatsapp}, ${localidad}, 'demo')
         `
-        await sql`
-          INSERT INTO demo_leads (nombre, email, whatsapp, localidad)
-          VALUES (${nombre}, ${email}, ${whatsapp}, ${localidad})
-          ON CONFLICT (email) DO UPDATE
-            SET whatsapp  = EXCLUDED.whatsapp,
-                localidad = EXCLUDED.localidad,
-                creado_en = NOW()
-        `
-      } catch (e2) {
-        console.warn('[demo] No se pudo guardar el lead:', e2)
       }
+    } catch (e) {
+      console.warn('[demo] No se pudo guardar en solicitudes_revendedor:', e)
     }
   }
 

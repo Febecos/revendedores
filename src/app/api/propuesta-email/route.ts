@@ -228,7 +228,7 @@ function htmlPropuesta(nombre: string): string {
 
     <!-- CTA -->
     <div class="cta-wrap">
-      <a href="https://revendedores.febecos.com/unirse#formulario" class="cta-btn">
+      <a href="https://revendedores.febecos.com/portal" class="cta-btn">
         🚀 Ver el portal gratis — 7 días
       </a>
       <br />
