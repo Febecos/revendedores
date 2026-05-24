@@ -119,6 +119,15 @@ async function getModelos(): Promise<Modelo[]> {
   } catch { return [] }
 }
 
+async function getTotalCatalogo(): Promise<number> {
+  // Total de bombas en catálogo sin filtrar por precio ni stock
+  try {
+    const sql = getDb()
+    const rows = await sql`SELECT COUNT(*) AS total FROM pumps WHERE activo_catalogo = true`
+    return Number((rows[0] as any)?.total ?? 0)
+  } catch { return 0 }
+}
+
 const BENEFICIOS = [
   { emoji: '⚡', titulo: 'Margen real desde la primera venta', desc: 'Descuento inmediato al registrarte. Sin cuota de ingreso, sin stock mínimo, sin compromisos de compra.' },
   { emoji: '🔧', titulo: 'Cotizador técnico incluido', desc: 'Portal exclusivo: ingresás profundidad del pozo, litros/día y diámetro — el sistema elige la bomba correcta y te muestra tu precio mayorista en segundos.' },
@@ -180,8 +189,8 @@ function MockupPortal() {
 }
 
 export default async function UnirsePage() {
-  const [tramos, modelos, revendedoresActivos, provinciasLibres, consultasSemanales] = await Promise.all([
-    getTramos(), getModelos(), getRevendedoresActivos(), getProvinciasLibres(), getConsultasSemanales()
+  const [tramos, modelos, revendedoresActivos, provinciasLibres, consultasSemanales, totalCatalogo] = await Promise.all([
+    getTramos(), getModelos(), getRevendedoresActivos(), getProvinciasLibres(), getConsultasSemanales(), getTotalCatalogo()
   ])
 
   return (
@@ -248,7 +257,7 @@ export default async function UnirsePage() {
           <div className="u-strip" style={{ maxWidth:860, margin:'0 auto', display:'flex', justifyContent:'center', gap:48, flexWrap:'wrap' }}>
             {[
               [`${tramos[0]?.porcentaje ?? 7}–${tramos[tramos.length-1]?.porcentaje ?? 20}%`, 'Descuento mayorista'],
-              [`${modelos.length || '—'} bombas`, 'En catálogo'], ['24 hs', 'Para tener acceso'], ['12 m', 'Garantía del producto'],
+              [`${totalCatalogo || modelos.length || '—'} bombas`, 'En catálogo'], ['24 hs', 'Para tener acceso'], ['12 m', 'Garantía del producto'],
             ].map(([v, l]) => (
               <div key={l as string} style={{ textAlign:'center' }}>
                 <div style={{ fontSize:22, fontWeight:800, color:C.verde }}>{v}</div>
