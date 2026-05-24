@@ -217,11 +217,14 @@ function htmlPropuesta(nombre: string): string {
 
     <!-- CÓMO EMPEZAR -->
     <h2>🚀 Cómo empezar</h2>
-    <ol style="padding-left:20px;font-size:14px;color:#2d3f55;line-height:2;margin-bottom:28px;">
-      <li>Contactate con nosotros por WhatsApp o completá el formulario</li>
-      <li>Recibís tu PIN de acceso al portal exclusivo en menos de 24 hs</li>
-      <li>Empezás a cotizar y vender desde el día 1 — sin cuota de ingreso</li>
+    <ol style="padding-left:20px;font-size:14px;color:#2d3f55;line-height:2;margin-bottom:16px;">
+      <li>Completá el formulario o contactanos por WhatsApp</li>
+      <li>Revisamos tu solicitud — en algunos casos te llamamos antes de activar el acceso</li>
+      <li>Recibís tu acceso al portal y empezás a cotizar desde el día 1</li>
     </ol>
+    <p style="font-size:13px;color:#5a6f84;background:#f7f9fc;border-left:3px solid #a8c61b;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:28px;">
+      ⏱ La activación es manual y personalizada. Si tenemos alguna consulta sobre tu perfil, te contactamos primero.
+    </p>
 
     <!-- CTA -->
     <div class="cta-wrap">
@@ -232,7 +235,7 @@ function htmlPropuesta(nombre: string): string {
       <a href="https://wa.me/5491125750323?text=Hola%20Guillermo%2C%20recib%C3%AD%20la%20propuesta%20de%20revendedores%20Febecos%20y%20quiero%20empezar." class="cta-wa">
         💬 Hablar con Guillermo por WhatsApp
       </a>
-      <p class="note">Sin cuota de ingreso · Sin stock mínimo · Acceso al portal en 24 hs</p>
+      <p class="note">Sin cuota de ingreso · Sin stock mínimo · Activación manual y personalizada</p>
     </div>
 
   </div>
@@ -242,9 +245,7 @@ function htmlPropuesta(nombre: string): string {
     <p>
       <strong>Guillermo Sandler</strong> · Febecos Bombas Solares<br />
       <a href="tel:+5491125750323">+54 9 11 2575-0323</a> ·
-      <a href="mailto:ventas@febecos.com">ventas@febecos.com</a><br />
-      <a href="https://febecos.com">febecos.com</a> ·
-      <a href="https://revendedores.febecos.com">revendedores.febecos.com</a>
+      <a href="https://febecos.com">febecos.com</a>
     </p>
     <p style="margin-top:12px;">Lun a Vie 10–17 hs · Respondemos en el día</p>
   </div>
