@@ -1,4 +1,4 @@
-// GET  /api/demo  — verifica si hay demo activa, devuelve diasRestantes
+// GET  /api/demo  — verifica si hay demo activa, devuelve diasRestantes + email
 // POST /api/demo  — crea una demo de 7 días (cookie HttpOnly firmada con HMAC)
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,24 +10,27 @@ const DIAS    = 7
 const COOKIE  = 'febecos_demo'
 
 // ── helpers ─────────────────────────────────────────────────────────────────
+// Formato de cookie: "expires|email.sig"  (sig cubre "expires|email")
 
-function firmar(expires: number): string {
-  const payload = String(expires)
+function firmar(expires: number, email: string): string {
+  const payload = `${expires}|${email}`
   const sig = createHmac('sha256', SECRET).update(payload).digest('hex').slice(0, 20)
   return `${payload}.${sig}`
 }
 
-function verificar(valor: string): { ok: boolean; expired: boolean; diasRestantes: number } {
-  const parts = valor.split('.')
-  if (parts.length !== 2) return { ok: false, expired: false, diasRestantes: 0 }
-  const [payload, sig] = parts
+function verificar(valor: string): { ok: boolean; expired: boolean; diasRestantes: number; email: string } {
+  const lastDot = valor.lastIndexOf('.')
+  if (lastDot < 0) return { ok: false, expired: false, diasRestantes: 0, email: '' }
+  const payload = valor.slice(0, lastDot)
+  const sig     = valor.slice(lastDot + 1)
   const expected = createHmac('sha256', SECRET).update(payload).digest('hex').slice(0, 20)
-  if (sig !== expected) return { ok: false, expired: false, diasRestantes: 0 }
-  const expires = Number(payload)
-  if (isNaN(expires)) return { ok: false, expired: false, diasRestantes: 0 }
-  if (Date.now() > expires) return { ok: false, expired: true, diasRestantes: 0 }
+  if (sig !== expected) return { ok: false, expired: false, diasRestantes: 0, email: '' }
+  const [expiresStr, email = ''] = payload.split('|')
+  const expires = Number(expiresStr)
+  if (isNaN(expires)) return { ok: false, expired: false, diasRestantes: 0, email: '' }
+  if (Date.now() > expires) return { ok: false, expired: true, diasRestantes: 0, email }
   const diasRestantes = Math.ceil((expires - Date.now()) / (1000 * 60 * 60 * 24))
-  return { ok: true, expired: false, diasRestantes }
+  return { ok: true, expired: false, diasRestantes, email }
 }
 
 // ── GET — chequear demo activa ───────────────────────────────────────────────
@@ -42,7 +45,6 @@ export async function GET(req: NextRequest) {
 // ── POST — iniciar demo ──────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // Leer datos del formulario (puede venir vacío si se llama sin body)
   let nombre = '', email = '', whatsapp = '', localidad = ''
   try {
     const body = await req.json()
@@ -52,11 +54,10 @@ export async function POST(req: NextRequest) {
     localidad = body.localidad || ''
   } catch { /* body vacío — ok */ }
 
-  // Guardar lead en DB (graceful — si falla, igual damos la demo)
+  // Guardar en solicitudes_revendedor con estado='demo' (para analytics en admin)
   if (nombre || email) {
     try {
       const sql = getDb()
-      // Solo insertar si no hay ya un registro activo/aprobado para este email
       const existing = await sql`
         SELECT id FROM solicitudes_revendedor
         WHERE email = ${email} AND estado IN ('aprobado','activo')
@@ -74,9 +75,9 @@ export async function POST(req: NextRequest) {
   }
 
   const expires = Date.now() + DIAS * 24 * 60 * 60 * 1000
-  const token = firmar(expires)
+  const token = firmar(expires, email)
 
-  const res = NextResponse.json({ ok: true, diasRestantes: DIAS })
+  const res = NextResponse.json({ ok: true, diasRestantes: DIAS, email })
   res.cookies.set(COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

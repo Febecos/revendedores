@@ -1002,8 +1002,9 @@ export default function Portal() {
         .then(data => {
           if (data.ok) {
             // Demo válida — acceso completo con banner
-            setToken('DEMO')
-            setRev({ id: 0, nombre: 'Demo', apellido: '', empresa: 'Portal Demo', provincia: 'Buenos Aires', descuento_pct: 7, token_acceso: 'DEMO', tipo_usuario: 'demo' })
+            const demoToken = data.email ? `DEMO-${data.email}` : 'DEMO'
+            setToken(demoToken)
+            setRev({ id: 0, nombre: 'Demo', apellido: '', empresa: 'Portal Demo', provincia: 'Buenos Aires', descuento_pct: 7, token_acceso: demoToken, tipo_usuario: 'demo' })
             setDiasDemo(data.diasRestantes)
             setPinEstado('ok')
           } else if (data.expired) {
