@@ -216,6 +216,8 @@ export default async function UnirsePage() {
           .u-paso { grid-template-columns:1fr !important; }
           .u-tbl { font-size:12px !important; }
           .u-tbl td, .u-tbl th { padding:10px 10px !important; }
+          .u-gej { grid-template-columns:1fr !important; }
+          .u-gej-left { border-right:none !important; border-bottom:1px solid #dde3ec !important; }
         }
       `}</style>
 
@@ -321,9 +323,9 @@ export default async function UnirsePage() {
             <p style={{ textAlign:'center', fontSize:12, fontWeight:700, color:C.gris, textTransform:'uppercase', letterSpacing:'.1em', marginBottom:24 }}>
               💰 ¿Cuánto ganás?
             </p>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:0, background:C.grisBg, border:`1.5px solid ${C.grisB}`, borderRadius:16, overflow:'hidden', maxWidth:680, margin:'0 auto' }}>
+            <div className="u-gej" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:0, background:C.grisBg, border:`1.5px solid ${C.grisB}`, borderRadius:16, overflow:'hidden', maxWidth:680, margin:'0 auto' }}>
               {/* Ejemplo concreto */}
-              <div style={{ padding:'32px 28px', borderRight:`1px solid ${C.grisB}` }}>
+              <div className="u-gej-left" style={{ padding:'32px 28px', borderRight:`1px solid ${C.grisB}` }}>
                 <div style={{ fontSize:12, fontWeight:700, color:C.verde, textTransform:'uppercase', letterSpacing:'.08em', marginBottom:12 }}>Ejemplo real — equipo base</div>
                 <div style={{ fontSize:16, fontWeight:800, color:C.azulTxt, marginBottom:20 }}>Kit Bomba Solar 4&quot; 500W</div>
                 <div style={{ display:'flex', flexDirection:'column' as const, gap:10 }}>
