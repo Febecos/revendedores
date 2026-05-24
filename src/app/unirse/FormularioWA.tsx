@@ -128,9 +128,9 @@ export default function FormularioUnirse() {
       {/* Texto legal */}
       <p style={{ marginTop: 16, fontSize: 11, color: C.gris, textAlign: 'center', lineHeight: 1.5 }}>
         Al continuar aceptás los{' '}
-        <a href="/terminos" target="_blank" style={{ color: C.azulTxt, fontWeight: 600 }}>Términos y Condiciones</a>
+        <a href="https://febecos.com/terminos" target="_blank" style={{ color: C.azulTxt, fontWeight: 600 }}>Términos y Condiciones</a>
         {' '}y la{' '}
-        <a href="/terminos#privacidad" target="_blank" style={{ color: C.azulTxt, fontWeight: 600 }}>Política de Privacidad</a>
+        <a href="https://febecos.com/terminos#privacidad" target="_blank" style={{ color: C.azulTxt, fontWeight: 600 }}>Política de Privacidad</a>
         {' '}de Febecos.
       </p>
 

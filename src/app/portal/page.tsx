@@ -1658,11 +1658,11 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
                   />
                   <label htmlFor={`tc-${bomba.codigo}`} style={{ fontSize:11, color:'#7a9ab5', lineHeight:1.5, cursor:'pointer' }}>
                     Leí y acepto los{' '}
-                    <a href="/terminos#revendedores" target="_blank" rel="noopener noreferrer" style={{ color:'#4ade80', fontWeight:600 }}>
+                    <a href="https://febecos.com/terminos#revendedores" target="_blank" rel="noopener noreferrer" style={{ color:'#4ade80', fontWeight:600 }}>
                       Términos del Programa de Revendedores
                     </a>{' '}
                     y la{' '}
-                    <a href="/terminos#privacidad" target="_blank" rel="noopener noreferrer" style={{ color:'#4ade80', fontWeight:600 }}>
+                    <a href="https://febecos.com/terminos#privacidad" target="_blank" rel="noopener noreferrer" style={{ color:'#4ade80', fontWeight:600 }}>
                       Política de Privacidad
                     </a>.
                   </label>
