@@ -25,8 +25,8 @@ interface Modelo {
 }
 
 // Precio real Kit 2" 210W — base para los ejemplos
-const KIT_PRECIO = 1_580_820
-const KIT_NOMBRE = 'Kit Solar 2" 210W'
+const KIT_PRECIO = 2_216_673
+const KIT_NOMBRE = 'Kit Bomba Solar 4" 500W'
 
 // Nombre comercial por número de nivel
 const NIVEL_NOMBRE: Record<number, { label: string; desc: string }> = {
@@ -295,6 +295,62 @@ export default async function UnirsePage() {
           </div>
         </section>
 
+        {/* ── CUÁNTO GANÁS ── */}
+        <section style={{ padding:'48px 28px', background:C.blanco, borderTop:`1px solid ${C.grisB}` }}>
+          <div style={{ maxWidth:860, margin:'0 auto' }}>
+            <p style={{ textAlign:'center', fontSize:12, fontWeight:700, color:C.gris, textTransform:'uppercase', letterSpacing:'.1em', marginBottom:24 }}>
+              💰 ¿Cuánto ganás?
+            </p>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:0, background:C.grisBg, border:`1.5px solid ${C.grisB}`, borderRadius:16, overflow:'hidden', maxWidth:680, margin:'0 auto' }}>
+              {/* Ejemplo concreto */}
+              <div style={{ padding:'32px 28px', borderRight:`1px solid ${C.grisB}` }}>
+                <div style={{ fontSize:12, fontWeight:700, color:C.verde, textTransform:'uppercase', letterSpacing:'.08em', marginBottom:12 }}>Ejemplo real — equipo base</div>
+                <div style={{ fontSize:16, fontWeight:800, color:C.azulTxt, marginBottom:20 }}>Kit Bomba Solar 4&quot; 500W</div>
+                <div style={{ display:'flex', flexDirection:'column' as const, gap:10 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:14, color:C.gris }}>
+                    <span>Precio público</span>
+                    <span style={{ fontWeight:600, color:C.azulTxt }}>$2.216.673</span>
+                  </div>
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:14, color:C.gris }}>
+                    <span>Tu costo mayorista (7%)</span>
+                    <span style={{ fontWeight:600, color:C.azulTxt }}>$2.061.506</span>
+                  </div>
+                  <div style={{ height:1, background:C.grisB, margin:'4px 0' }} />
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:18, fontWeight:800 }}>
+                    <span style={{ color:C.azulTxt }}>Tu margen</span>
+                    <span style={{ color:C.verde }}>$155.167</span>
+                  </div>
+                  <div style={{ fontSize:11, color:C.gris, marginTop:4 }}>
+                    por venta · nivel de entrada · sin experiencia previa
+                  </div>
+                </div>
+              </div>
+              {/* Promesa de crecimiento */}
+              <div style={{ padding:'32px 28px', background:C.azul }}>
+                <div style={{ fontSize:12, fontWeight:700, color:C.acento, textTransform:'uppercase', letterSpacing:'.08em', marginBottom:12 }}>Vendiendo más</div>
+                <div style={{ display:'flex', flexDirection:'column' as const, gap:14 }}>
+                  {[
+                    { label:'2 bombas/mes', pct:'12%', margen:'$266.001' },
+                    { label:'5 bombas/mes', pct:'15%', margen:'$332.501' },
+                    { label:'10+ bombas/mes', pct:'20%', margen:'$443.335' },
+                  ].map(r => (
+                    <div key={r.label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                      <div>
+                        <div style={{ fontSize:13, color:'rgba(255,255,255,.7)' }}>{r.label}</div>
+                        <div style={{ fontSize:11, color:C.acento, fontWeight:600 }}>{r.pct} de descuento</div>
+                      </div>
+                      <div style={{ fontSize:16, fontWeight:800, color:'#fff' }}>{r.margen}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop:20, fontSize:11, color:'rgba(255,255,255,.45)', lineHeight:1.5 }}>
+                  El nivel sube automáticamente con el volumen mensual.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── BENEFICIOS ── */}
         <section style={{ padding:'64px 28px', background:C.fondo }}>
           <div style={{ maxWidth:1000, margin:'0 auto' }}>
@@ -312,65 +368,20 @@ export default async function UnirsePage() {
           </div>
         </section>
 
-        {/* ── COMISIONES ── */}
+        {/* ── CALCULADOR DE MARGEN ── */}
         <section style={{ padding:'64px 28px', background:C.blanco, borderTop:`1px solid ${C.grisB}` }}>
           <div style={{ maxWidth:940, margin:'0 auto' }}>
-            <h2 style={{ fontSize:28, fontWeight:800, color:C.azulTxt, textAlign:'center', marginBottom:8 }}>Niveles y comisiones</h2>
+            <h2 style={{ fontSize:28, fontWeight:800, color:C.azulTxt, textAlign:'center', marginBottom:8 }}>Calculá tu margen</h2>
             <p style={{ color:C.gris, textAlign:'center', marginBottom:36, fontSize:15, lineHeight:1.7 }}>
-              A mayor volumen mensual, mayor descuento. El nivel sube automáticamente.
+              A mayor volumen, mayor descuento. El nivel sube automáticamente.
             </p>
-
             {tramos.length > 0 && (
-              <>
-                <div style={{ borderRadius:14, overflow:'hidden', border:`1px solid ${C.grisB}`, marginBottom:32 }}>
-                  <table className="u-tbl" style={{ width:'100%', borderCollapse:'collapse' }}>
-                    <thead>
-                      <tr style={{ background:C.azul }}>
-                        {['Nivel', 'Rol', 'Facturación/mes', 'Kits aprox.', 'Descuento', `Margen · ${KIT_NOMBRE}`].map(h => (
-                          <th key={h} style={{ padding:'12px 16px', textAlign:'left', color:'rgba(255,255,255,.8)', fontSize:11, fontWeight:700, letterSpacing:'.07em', textTransform:'uppercase' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tramos.map((t, i) => {
-                        const num = i + 1
-                        const info = NIVEL_NOMBRE[num] ?? { label: t.nivel, desc: '' }
-                        const margen = KIT_PRECIO * t.porcentaje / 100
-                        const colores = ['#203b61','#224a73','#2D5A27','#1a6b35','#155a2a']
-                        const col = colores[i] ?? C.azulTxt
-                        return (
-                          <tr key={t.nivel} style={{ background: i % 2 === 0 ? C.blanco : C.grisBg, borderBottom:`1px solid ${C.grisB}` }}>
-                            <td style={{ padding:'13px 16px', fontWeight:700, color:col, fontSize:14 }}>{t.nivel}</td>
-                            <td style={{ padding:'13px 16px' }}>
-                              <div style={{ fontWeight:700, color:col, fontSize:14 }}>{info.label}</div>
-                              <div style={{ fontSize:11, color:C.gris, marginTop:2 }}>{info.desc}</div>
-                            </td>
-                            <td style={{ padding:'13px 16px', color:C.azulTxt, fontSize:13 }}>
-                              {t.desde_monto === 0 ? '$0' : fmt(t.desde_monto)}
-                              {t.hasta_monto != null
-                                ? <> — {fmt(t.hasta_monto)}</>
-                                : <span style={{ color:C.gris }}> en adelante</span>}
-                            </td>
-                            <td style={{ padding:'13px 16px', color:C.gris, fontSize:13 }}>
-                              {kitsPorUmbral(t.desde_monto)}
-                            </td>
-                            <td style={{ padding:'13px 16px', fontWeight:800, color:col, fontSize:20 }}>{t.porcentaje}%</td>
-                            <td style={{ padding:'13px 16px', fontWeight:700, color:col, fontSize:14 }}>{fmt(margen)}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Calculador interactivo */}
-                <MultiplicadorMargen
-                  tramos={tramos}
-                  nivelNombre={NIVEL_NOMBRE}
-                  kitPrecio={KIT_PRECIO}
-                  kitNombre={KIT_NOMBRE}
-                />
-              </>
+              <MultiplicadorMargen
+                tramos={tramos}
+                nivelNombre={NIVEL_NOMBRE}
+                kitPrecio={KIT_PRECIO}
+                kitNombre={KIT_NOMBRE}
+              />
             )}
           </div>
         </section>
@@ -400,10 +411,6 @@ export default async function UnirsePage() {
                     </div>
                   </div>
                 ))}
-                <a href="https://revendedores.febecos.com" target="_blank" rel="noopener noreferrer"
-                  style={{ display:'inline-flex', alignItems:'center', gap:8, background:C.grisBg, border:`1px solid ${C.grisB}`, borderRadius:9, padding:'11px 20px', fontSize:13, fontWeight:600, color:C.azulTxt, width:'fit-content' }}>
-                  🔑 Ver el portal de revendedores →
-                </a>
               </div>
               {/* Mockup animado del selector */}
               <div>
@@ -441,13 +448,10 @@ export default async function UnirsePage() {
                       {m.titulo_comercial ?? `Kit ${m.diam_bomba} ${m.watts}W`}
                     </div>
                     <div style={{ marginTop:'auto', paddingTop:10, borderTop:`1px solid ${C.grisB}` }}>
-                      <div style={{ fontSize:18, fontWeight:800, color:C.azul }}>{fmt(m.precio_full)}</div>
-                      {m.cuota_mensual && (
-                        <div style={{ fontSize:11, color:C.gris }}>o {fmt(m.cuota_mensual)}/mes</div>
-                      )}
-                    </div>
-                    <div style={{ fontSize:11, fontWeight:600, color: sinStock ? '#d4870a' : C.verde }}>
-                      {sinStock ? '⚠ Sin stock — consultar' : `✓ ${m.stock} disponible${Number(m.stock) !== 1 ? 's' : ''}`}
+                      <div style={{ fontSize:12, fontWeight:700, color: sinStock ? '#d4870a' : C.verde }}>
+                        {sinStock ? '⚠ Consultar disponibilidad' : `✓ Disponible`}
+                      </div>
+                      <div style={{ fontSize:11, color:C.gris, marginTop:2 }}>Precio mayorista en el portal</div>
                     </div>
                   </div>
                 )
@@ -464,27 +468,16 @@ export default async function UnirsePage() {
           <div style={{ maxWidth:600, margin:'0 auto' }}>
             <h2 style={{ fontSize:28, fontWeight:800, color:C.azulTxt, textAlign:'center', marginBottom:8 }}>Empezá ahora</h2>
             <p style={{ color:C.gris, textAlign:'center', marginBottom:32, fontSize:15, lineHeight:1.7 }}>
-              Completá tus datos y elegí cómo continuar — probá el portal gratis 7 días o hablá con nosotros por WhatsApp.
+              Completá tus datos y empezá a explorar el portal sin costo — 7 días gratis, sin compromiso.
             </p>
             <FormularioWA />
           </div>
         </section>
 
         {/* ── FOOTER ── */}
-        <footer style={{ background:C.azul, padding:'40px 28px', textAlign:'center' }}>
-          <p style={{ color:'rgba(255,255,255,.9)', fontWeight:700, fontSize:16, marginBottom:8 }}>¿Preferís hablar primero?</p>
-          <p style={{ color:'rgba(255,255,255,.6)', fontSize:14, marginBottom:24, lineHeight:1.7 }}>
-            Escribinos directamente y te hacemos una demo del portal. Sin compromiso.
-          </p>
-          <a href="https://wa.me/5491125750323?text=Hola%2C%20me%20interesa%20el%20Programa%20de%20Revendedores%20Febecos."
-            target="_blank" rel="noopener noreferrer" className="u-wa"
-            style={{ display:'inline-block', background:'#25d366', color:C.blanco, padding:'13px 32px', borderRadius:10, fontWeight:800, fontSize:15, transition:'background .15s', marginBottom:28 }}>
-            📱 +54 9 11 2575-0323
-          </a>
+        <footer style={{ background:C.azul, padding:'32px 28px', textAlign:'center' }}>
           <div style={{ borderTop:'1px solid rgba(255,255,255,.1)', paddingTop:20, display:'flex', gap:20, justifyContent:'center', flexWrap:'wrap' }}>
-            {[['revendedores.febecos.com','https://revendedores.febecos.com'],['febecos.com','https://febecos.com'],['selector.febecos.com','https://selector.febecos.com']].map(([l,h]) => (
-              <a key={h} href={h} style={{ color:'rgba(255,255,255,.45)', fontSize:13 }}>{l}</a>
-            ))}
+            <a href="https://febecos.com" style={{ color:'rgba(255,255,255,.45)', fontSize:13 }}>febecos.com</a>
           </div>
         </footer>
 
