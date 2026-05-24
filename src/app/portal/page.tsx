@@ -723,15 +723,22 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
     ? (mostrarPublico ? data.bomba.precio_full : precioMayorista(data.bomba.precio_full, descuento))
     : null
 
-  // Agrupar kit por familia
+  // Agrupar kit por familia — jabalina va en protecciones (caja), no en otros
   const familias: Record<string, any[]> = {}
   if (data?.kit) {
     for (const item of data.kit) {
-      const f = item.familia || 'otro'
+      let f = item.familia || 'otro'
+      if (item.nombre?.toLowerCase().includes('jabalina')) f = 'caja'
       if (!familias[f]) familias[f] = []
       familias[f].push(item)
     }
   }
+
+  // Orden explícito de familias: bomba → panel → soporte → protecciones → cables → otros
+  const FAMILIA_ORDEN = ['bomba', 'panel', 'soporte', 'caja', 'cable', 'accesorio', 'otro']
+  const familiasOrdenadas = FAMILIA_ORDEN
+    .filter(f => familias[f]?.length > 0)
+    .map(f => [f, familias[f]] as [string, any[]])
 
   // Panel solar del kit
   const panelKit = data?.kit?.find((i: any) => i.familia === 'panel')
@@ -743,8 +750,8 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
   const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
 
   const nombreFamilia: Record<string, string> = {
-    panel: '☀️ Paneles solares', soporte: '🔩 Soportes', cable: '🔌 Cables',
-    bomba: '⬇️ Bomba', caja: '📦 Controlador', accesorio: '🔧 Accesorios', otro: '📋 Otros'
+    bomba: '⬇️ Bomba', panel: '☀️ Paneles solares', soporte: '🔩 Soportes',
+    caja: '🛡️ Protecciones', cable: '🔌 Cables', accesorio: '🔧 Accesorios', otro: '📋 Otros'
   }
 
   return (
@@ -917,7 +924,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
               {data.kit?.length > 0 && (
                 <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 12 }}>Kit completo incluido</div>
-                  {Object.entries(familias).map(([familia, items]) => (
+                  {familiasOrdenadas.map(([familia, items]) => (
                     <div key={familia} style={{ marginBottom: 12 }}>
                       <div style={{ fontSize: 11, color: '#3a5a7a', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
                         {nombreFamilia[familia] || familia}
