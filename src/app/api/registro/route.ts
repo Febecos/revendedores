@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 import { randomBytes } from 'crypto'
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-})
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +13,8 @@ export async function POST(req: NextRequest) {
     const {
       nombre, apellido, email, whatsapp, empresa,
       provincia, localidad, cuit, tipo_revendedor,
-      experiencia_anos, experiencia_solar, equipos_mes
+      experiencia_anos, experiencia_solar, equipos_mes,
+      acepta_terminos, acepta_marketing, version_terminos
     } = body
 
     if (!nombre || !email || !whatsapp || !provincia) {
@@ -33,21 +28,24 @@ export async function POST(req: NextRequest) {
       INSERT INTO solicitudes_revendedor
         (nombre, apellido, email, whatsapp, empresa, provincia, localidad, cuit,
          tipo_revendedor, experiencia_anos, experiencia_solar, equipos_mes,
-         estado, email_verificado, token_verificacion, aprobado)
+         estado, email_verificado, token_verificacion, aprobado,
+         acepta_terminos, acepta_marketing, version_terminos)
       VALUES
         (${nombre}, ${apellido || null}, ${email}, ${whatsapp}, ${empresa || null},
          ${provincia}, ${localidad || null}, ${cuit || null},
          ${tipo_revendedor || null}, ${experiencia_anos || null},
          ${experiencia_solar || null}, ${equipos_mes || null},
-         'pendiente', false, ${token}, false)
+         'pendiente', false, ${token}, false,
+         ${acepta_terminos ?? false}, ${acepta_marketing ?? false}, ${version_terminos || '1.1'})
     `
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://revendedores.febecos.com'
     const verificarUrl = `${baseUrl}/api/verificar?token=${token}`
+    const resend = getResend()
 
     // Email de verificación al solicitante
-    await transporter.sendMail({
-      from: `Febecos <${process.env.SMTP_FROM}>`,
+    await resend.emails.send({
+      from: 'Febecos <ventas@febecos.com>',
       to: email,
       subject: 'Verificá tu email — Portal Revendedores Febecos',
       html: `<!DOCTYPE html>
@@ -77,7 +75,7 @@ export async function POST(req: NextRequest) {
     <p style="margin:0;color:#aaa;font-size:12px;text-align:center">Si no pediste este acceso, ignorá este email.</p>
   </td></tr>
   <tr><td style="background:#f7f6f2;padding:16px 32px;border-top:1px solid #eee;text-align:center">
-    <p style="margin:0;color:#aaa;font-size:12px">Febecos · cotiza@febecos.com</p>
+    <p style="margin:0;color:#aaa;font-size:12px">Febecos · ventas@febecos.com</p>
   </td></tr>
 </table>
 </td></tr>
@@ -88,22 +86,25 @@ export async function POST(req: NextRequest) {
 
     // Notificación a Guille
     const tiposLabel = (tipo_revendedor || []).join(', ')
-    await transporter.sendMail({
-      from: `Febecos <${process.env.SMTP_FROM}>`,
-      to: process.env.AGENT_EMAIL,
-      subject: `Nueva solicitud revendedor — ${nombre} ${apellido || ''} (${provincia})`,
-      html: `
-        <h2 style="color:#1a3a5c">Nueva solicitud de revendedor</h2>
-        <table style="border-collapse:collapse;width:100%;font-family:sans-serif">
-          <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Nombre</td><td style="padding:8px;border:1px solid #ddd">${nombre} ${apellido || ''}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Email</td><td style="padding:8px;border:1px solid #ddd">${email}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">WhatsApp</td><td style="padding:8px;border:1px solid #ddd"><a href="https://wa.me/54${whatsapp.replace(/\D/g,'')}">${whatsapp}</a></td></tr>
-          <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Rol</td><td style="padding:8px;border:1px solid #ddd">${tiposLabel || '—'}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Provincia</td><td style="padding:8px;border:1px solid #ddd">${provincia} — ${localidad || '—'}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Empresa</td><td style="padding:8px;border:1px solid #ddd">${empresa || '—'}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">CUIT</td><td style="padding:8px;border:1px solid #ddd">${cuit || '—'}</td></tr>
-        </table>`,
-    })
+    const adminEmail = process.env.AGENT_EMAIL
+    if (adminEmail) {
+      await resend.emails.send({
+        from: 'Febecos <ventas@febecos.com>',
+        to: adminEmail,
+        subject: `Nueva solicitud revendedor — ${nombre} ${apellido || ''} (${provincia})`,
+        html: `
+          <h2 style="color:#1a3a5c">Nueva solicitud de revendedor</h2>
+          <table style="border-collapse:collapse;width:100%;font-family:sans-serif">
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Nombre</td><td style="padding:8px;border:1px solid #ddd">${nombre} ${apellido || ''}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Email</td><td style="padding:8px;border:1px solid #ddd">${email}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">WhatsApp</td><td style="padding:8px;border:1px solid #ddd"><a href="https://wa.me/54${whatsapp.replace(/\D/g,'')}">${whatsapp}</a></td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Rol</td><td style="padding:8px;border:1px solid #ddd">${tiposLabel || '—'}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Provincia</td><td style="padding:8px;border:1px solid #ddd">${provincia} — ${localidad || '—'}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Empresa</td><td style="padding:8px;border:1px solid #ddd">${empresa || '—'}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">CUIT</td><td style="padding:8px;border:1px solid #ddd">${cuit || '—'}</td></tr>
+          </table>`,
+      })
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {

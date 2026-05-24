@@ -3,18 +3,10 @@
 // Llamado desde FormularioWA.tsx en ambos flujos (WA y demo).
 
 import { NextRequest, NextResponse } from 'next/server'
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
-function crearTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  })
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
 }
 
 function htmlPropuesta(nombre: string): string {
@@ -40,30 +32,25 @@ function htmlPropuesta(nombre: string): string {
     .greeting { font-size: 16px; line-height: 1.7; color: #2d3f55; margin-bottom: 28px; }
     .greeting strong { color: #003d72; }
     h2 { font-size: 16px; font-weight: 800; color: #003d72; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #e8edf2; text-transform: uppercase; letter-spacing: .05em; }
-    /* Tabla de márgenes */
     .margin-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size: 14px; }
     .margin-table th { background: #003d72; color: rgba(255,255,255,.85); padding: 11px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
     .margin-table td { padding: 11px 14px; border-bottom: 1px solid #e8edf2; color: #2d3f55; }
     .margin-table tr:nth-child(even) td { background: #f7f9fc; }
     .margin-table .num { font-weight: 800; color: #1a6b35; font-size: 15px; }
-    /* Tabla de volumen */
     .vol-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size: 14px; }
     .vol-table th { background: #1a6b35; color: rgba(255,255,255,.9); padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
     .vol-table td { padding: 10px 14px; border-bottom: 1px solid #e8edf2; }
     .vol-table tr:last-child td { border-bottom: none; }
     .vol-table .nivel { font-weight: 700; color: #003d72; }
     .vol-table .margen { font-weight: 800; color: #1a6b35; font-size: 15px; }
-    /* Beneficios */
     .beneficios { display: table; width: 100%; margin-bottom: 28px; }
     .ben-row { display: table-row; }
     .ben-icon { display: table-cell; width: 44px; padding: 0 0 16px 0; vertical-align: top; font-size: 24px; }
     .ben-text { display: table-cell; padding: 0 0 16px 12px; vertical-align: top; }
     .ben-text strong { display: block; font-size: 14px; color: #003d72; margin-bottom: 2px; }
     .ben-text span { font-size: 13px; color: #5a6f84; line-height: 1.6; }
-    /* Kit incluye */
     .kit-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
     .kit-item { background: #f0f4f8; border: 1px solid #d6e0ea; border-radius: 6px; padding: 7px 13px; font-size: 13px; font-weight: 600; color: #003d72; }
-    /* Niveles */
     .niveles { border-radius: 10px; overflow: hidden; border: 1px solid #d6e0ea; margin-bottom: 28px; }
     .nivel-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px; border-bottom: 1px solid #e8edf2; }
     .nivel-row:last-child { border-bottom: none; }
@@ -71,7 +58,6 @@ function htmlPropuesta(nombre: string): string {
     .nivel-name { font-size: 13px; font-weight: 700; color: #2d3f55; }
     .nivel-desc { font-size: 12px; color: #5a6f84; }
     .nivel-pct { font-size: 18px; font-weight: 800; color: #003d72; }
-    /* CTA */
     .cta-wrap { text-align: center; padding: 28px 0; }
     .cta-btn { display: inline-block; background: #a8c61b; color: #003d72; padding: 15px 36px; border-radius: 10px; font-weight: 800; font-size: 16px; text-decoration: none; letter-spacing: -.2px; }
     .cta-wa  { display: inline-block; background: #25d366; color: #ffffff; padding: 13px 32px; border-radius: 10px; font-weight: 700; font-size: 14px; text-decoration: none; margin-top: 12px; }
@@ -187,10 +173,10 @@ function htmlPropuesta(nombre: string): string {
     <h2>⬆️ Niveles de comisión (automáticos)</h2>
     <div class="niveles">
       <div class="nivel-row"><div><div class="nivel-name">Nivel 1 · Recomendador</div><div class="nivel-desc">Primeras ventas · Desde $0</div></div><div class="nivel-pct">7%</div></div>
-      <div class="nivel-row"><div><div class="nivel-name">Nivel 2 · Vendedor</div><div class="nivel-desc">Cartera activa · Desde $1.000.000/mes</div></div><div class="nivel-pct">10%</div></div>
-      <div class="nivel-row"><div><div class="nivel-name">Nivel 3 · Vendedor Instalador</div><div class="nivel-desc">Vendés e instalás · Desde $3.000.000/mes</div></div><div class="nivel-pct">12%</div></div>
-      <div class="nivel-row"><div><div class="nivel-name">Nivel 4 · Vendedor Experto</div><div class="nivel-desc">Alto volumen · Desde $7.000.000/mes</div></div><div class="nivel-pct">15%</div></div>
-      <div class="nivel-row"><div><div class="nivel-name">Nivel 5 · Distribuidor</div><div class="nivel-desc">Red consolidada · Desde $15.000.000/mes</div></div><div class="nivel-pct">20%</div></div>
+      <div class="nivel-row"><div><div class="nivel-name">Nivel 2 · Vendedor</div><div class="nivel-desc">Cartera activa · Desde $5.000.000/mes</div></div><div class="nivel-pct">10%</div></div>
+      <div class="nivel-row"><div><div class="nivel-name">Nivel 3 · Vendedor Instalador</div><div class="nivel-desc">Vendés e instalás · Desde $10.000.000/mes</div></div><div class="nivel-pct">12%</div></div>
+      <div class="nivel-row"><div><div class="nivel-name">Nivel 4 · Vendedor Experto</div><div class="nivel-desc">Alto volumen · Desde $20.000.000/mes</div></div><div class="nivel-pct">15%</div></div>
+      <div class="nivel-row"><div><div class="nivel-name">Nivel 5 · Distribuidor</div><div class="nivel-desc">Red consolidada · Desde $40.000.000/mes</div></div><div class="nivel-pct">20%</div></div>
     </div>
     <p style="font-size:13px;color:#5a6f84;margin-bottom:28px;">
       Los niveles suben automáticamente según tu facturación mensual. No hay cuota de ingreso, no hay stock mínimo para empezar.
@@ -304,11 +290,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const transporter = crearTransporter()
+    const resend = getResend()
 
     // ── 1. Email al lead ─────────────────────────────────────────────────────
-    await transporter.sendMail({
-      from: `Febecos Revendedores <${process.env.SMTP_FROM}>`,
+    await resend.emails.send({
+      from: 'Febecos Revendedores <ventas@febecos.com>',
       to: email,
       subject: `${nombre ? nombre.split(' ')[0] + ', tu' : 'Tu'} propuesta de revendedor Febecos ✅`,
       html: htmlPropuesta(nombre || 'Hola'),
@@ -317,8 +303,8 @@ export async function POST(req: NextRequest) {
     // ── 2. Notificación al admin ─────────────────────────────────────────────
     const adminEmail = process.env.AGENT_EMAIL
     if (adminEmail) {
-      await transporter.sendMail({
-        from: `Febecos <${process.env.SMTP_FROM}>`,
+      await resend.emails.send({
+        from: 'Febecos <ventas@febecos.com>',
         to: adminEmail,
         subject: `[Lead] ${nombre || email} — ${localidad || 'sin localidad'} (${via})`,
         html: htmlAdmin(nombre, email, whatsapp, localidad, via),
@@ -327,7 +313,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[propuesta-email] Error SMTP:', err)
+    console.error('[propuesta-email] Error Resend:', err)
     return NextResponse.json({ ok: false, error: 'error al enviar' }, { status: 500 })
   }
 }
