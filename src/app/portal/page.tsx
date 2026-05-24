@@ -1317,11 +1317,11 @@ export default function Portal() {
               )
             })()}
             <div style={s.cardTitle}>{resultado.es_fallback ? '📋 Opción más cercana disponible' : '✅ Bombas disponibles — seleccioná la que mejor se adapta'}</div>
-            <BombaCard bomba={resultado.sugerencia} caudal={resultado.caudal_a_altura} nota={resultado.nota} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === resultado.sugerencia?.codigo} token={token} puedeOnline={!!rev.puede_pedir_online} />
+            <BombaCard bomba={resultado.sugerencia} caudal={resultado.caudal_a_altura} nota={resultado.nota} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === resultado.sugerencia?.codigo} token={token} puedeOnline={!!rev.puede_pedir_online} esDemo={diasDemo !== null} />
             {resultado.opciones && resultado.opciones.length > 1 && (
               <>
                 {resultado.opciones.slice(1).map((b: any, i: number) => (
-                  <BombaCard key={i} bomba={b} caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: b.caudal_promedio || Math.round((b.caudal_verano + b.caudal_invierno) / 2) }} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === b.codigo} token={token} puedeOnline={!!rev.puede_pedir_online} />
+                  <BombaCard key={i} bomba={b} caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: b.caudal_promedio || Math.round((b.caudal_verano + b.caudal_invierno) / 2) }} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === b.codigo} token={token} puedeOnline={!!rev.puede_pedir_online} esDemo={diasDemo !== null} />
                 ))}
               </>
             )}
@@ -1434,7 +1434,7 @@ export default function Portal() {
   )
 }
 
-function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostrar, wa, litros, altura, onVerDetalle, onSeleccionar, seleccionada = false, token, puedeOnline = false }: any) {
+function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostrar, wa, litros, altura, onVerDetalle, onSeleccionar, seleccionada = false, token, puedeOnline = false, esDemo = false }: any) {
   const [mostrarROI, setMostrarROI] = useState(false)
   const [provincia, setProvincia] = useState('')
   const [sistemaActual, setSistemaActual] = useState('')
@@ -1596,7 +1596,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
             >
               {mostrarPago ? '▲ Cerrar opciones de pago' : '💳 Opciones de pago'}
             </button>
-          ) : diasDemo !== null ? (
+          ) : esDemo ? (
             /* Demo: no puede hacer pedidos — invitar a registrarse */
             <a
               href="/unirse#formulario"
