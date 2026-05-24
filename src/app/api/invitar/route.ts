@@ -167,8 +167,12 @@ export async function POST(req: NextRequest) {
       html: htmlInvitacion(nombre, token, descuento),
     })
 
-    console.log('[invitar] Resend result:', JSON.stringify(result))
-    return NextResponse.json({ ok: true })
+    if (result.error) {
+      console.error('[invitar] Resend error:', result.error)
+      return NextResponse.json({ ok: false, error: result.error.message, detail: result.error }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true, id: result.data?.id })
   } catch (err) {
     console.error('[invitar] Error:', err)
     return NextResponse.json({ ok: false, error: 'error interno' }, { status: 500 })
