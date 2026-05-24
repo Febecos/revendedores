@@ -1157,15 +1157,18 @@ export default function Portal() {
 
       {/* ── BANNER DEMO ─────────────────────────────────────────────────────── */}
       {diasDemo !== null && (
-        <div style={{ background: '#a8c61b', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{
+          background: diasDemo <= 1 ? '#c0392b' : diasDemo <= 2 ? '#e67e22' : '#a8c61b',
+          padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16 }}>👀</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#003d72' }}>
-              Modo demo · {diasDemo} día{diasDemo !== 1 ? 's' : ''} restante{diasDemo !== 1 ? 's' : ''}
+            <span style={{ fontSize: 16 }}>{diasDemo <= 1 ? '🚨' : diasDemo <= 2 ? '⚠️' : '👀'}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: diasDemo <= 2 ? '#fff' : '#003d72' }}>
+              {diasDemo <= 1 ? '¡Último día de prueba!' : diasDemo <= 2 ? `Te queda ${diasDemo} día — ¡registrate ahora!` : `Modo demo · ${diasDemo} días restantes`}
             </span>
-            <span style={{ fontSize: 12, color: '#2d4a00' }}>— Estás viendo el portal completo con descuento Nivel 1 (7%)</span>
+            {diasDemo > 2 && <span style={{ fontSize: 12, color: '#2d4a00' }}>— Estás viendo el portal completo con descuento Nivel 1 (7%)</span>}
           </div>
-          <a href="/unirse#formulario" style={{ background: '#003d72', color: '#fff', borderRadius: 7, padding: '6px 16px', fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
+          <a href="/unirse#formulario" style={{ background: diasDemo <= 2 ? '#fff' : '#003d72', color: diasDemo <= 2 ? '#c0392b' : '#fff', borderRadius: 7, padding: '6px 16px', fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
             Registrarme para acceso permanente →
           </a>
         </div>
