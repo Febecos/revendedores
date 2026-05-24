@@ -248,7 +248,7 @@ export default async function UnirsePage() {
           <div className="u-strip" style={{ maxWidth:860, margin:'0 auto', display:'flex', justifyContent:'center', gap:48, flexWrap:'wrap' }}>
             {[
               [`${tramos[0]?.porcentaje ?? 7}–${tramos[tramos.length-1]?.porcentaje ?? 20}%`, 'Descuento mayorista'],
-              ['53%', 'Leads ganaderos'], ['24 hs', 'Para tener acceso'], ['12 m', 'Garantía del producto'],
+              [`${modelos.length || '—'} bombas`, 'En catálogo'], ['24 hs', 'Para tener acceso'], ['12 m', 'Garantía del producto'],
             ].map(([v, l]) => (
               <div key={l as string} style={{ textAlign:'center' }}>
                 <div style={{ fontSize:22, fontWeight:800, color:C.verde }}>{v}</div>
