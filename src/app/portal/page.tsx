@@ -491,20 +491,16 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
 
   async function obtenerNroPresupuesto(): Promise<string> {
     try {
+      // Incremento atómico — un solo POST, sin race conditions
+      const res = await fetch('/api/presupuestos-counter', { method: 'POST' })
+      const data = await res.json()
+      if (data?.numero) return data.numero
+      // fallback
       const anio = new Date().getFullYear()
-      // Leer el último número
-      const res = await fetch(`/api/presupuestos-counter?anio=${anio}`)
-      const row = await res.json()
-      if (!row?.id) return `PREV-${anio}-0001`
-      const nuevo = (row.ultimo_numero || 0) + 1
-      // Actualizar el contador
-      await fetch('/api/presupuestos-counter', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: row.id, ultimo_numero: nuevo })
-      })
-      return `PREV-${anio}-${String(nuevo).padStart(4, '0')}`
-    } catch { return `PREV-${new Date().getFullYear()}-XXXX` }
+      return `PREV-${anio}-XXXX`
+    } catch {
+      return `PREV-${new Date().getFullYear()}-XXXX`
+    }
   }
 
   // Guarda el presupuesto en la base de datos en background (best-effort)
