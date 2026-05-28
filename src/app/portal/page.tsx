@@ -121,7 +121,7 @@ function AccCounter({ label, val, onChange }: { label: string; val: number; onCh
   )
 }
 
-function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUsar, onReset }: any) {
+function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUsar, onReset, profundidad = 0 }: any) {
   return (
     <div style={{ background:'#0a2e18', borderRadius:10, padding:16, marginTop:12 }}>
       <div style={{ display:'flex', gap:10, marginBottom:12, flexWrap:'wrap' as const }}>
@@ -141,7 +141,7 @@ function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUs
           ))}
         </div>
       )}
-      <button onClick={() => onUsar(mca, litrosDia, diamPerf)} style={{ width:'100%', padding:'12px', background:'#e8681a', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
+      <button onClick={() => onUsar(mca, litrosDia, diamPerf, profundidad)} style={{ width:'100%', padding:'12px', background:'#e8681a', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
         Usar esta MCA para buscar bomba →
       </button>
       <button onClick={onReset} style={{ width:'100%', padding:'10px', background:'transparent', border:'1px solid #1e3248', borderRadius:8, fontSize:13, fontWeight:600, color:'#7a9ab5', cursor:'pointer' }}>
@@ -151,7 +151,7 @@ function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUs
   )
 }
 
-function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: number, litros: number, diam: string) => void; token: string | null; revendedor: string }) {
+function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: number, litros: number, diam: string, prof: number) => void; token: string | null; revendedor: string }) {
   const [tab, setTab] = useState<'simple'|'avanzado'>('simple')
   const [tipo, setTipo] = useState<'sumergible'|'superficial'|'riego'>('sumergible')
   const [nivDin, setNivDin] = useState(10)
@@ -221,7 +221,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
     tramosCalc.push({ nombre: tipo==='superficial'?'Impulsión':'Cañería', diam, ...r2 })
     const fricTotal = parseFloat(tramosCalc.reduce((s,t)=>s+t.perdida,0).toFixed(2))
     const mca = parseFloat((altGeoSimple + fricTotal + presionM).toFixed(2))
-    setResSimple({ altGeo: altGeoSimple, friccion: fricTotal, mca, tramos: tramosCalc })
+    setResSimple({ altGeo: altGeoSimple, friccion: fricTotal, mca, tramos: tramosCalc, profundidad: tipo === 'sumergible' ? nivDin : 0 })
     guardar(mca, fricTotal, tipo, tramosCalc)
   }
 
@@ -238,7 +238,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
     const altGeoTotal = parseFloat(((primerTramo.profundidad||10) + (primerTramo.alturaTanque||2) + fricTotal + presionKgAv*10).toFixed(2))
     const mca = parseFloat((altGeoAv + fricTotal + presionKgAv*10).toFixed(2))
     const litTot = tramos[0]?.caudalLdia || 3000
-    setResAv({ altGeo: altGeoAv, friccion: fricTotal, mca, tramos: tramosCalc, litrosDia: litTot })
+    setResAv({ altGeo: altGeoAv, friccion: fricTotal, mca, tramos: tramosCalc, litrosDia: litTot, profundidad: tramos[0]?.profundidad || 0 })
     guardar(mca, fricTotal, 'multiples_tramos', tramosCalc)
   }
 
@@ -475,11 +475,12 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 }
 
 
-function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail }: any) {
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, profundidadInicial = 0 }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [nroPresup, setNroPresup] = useState<string | null>(null)
   const [generandoPDF, setGenerandoPDF] = useState(false)
+  const [profInput, setProfInput] = useState<number>(profundidadInicial)
 
   // ── Datos del cliente (solo cuando mostrarPublico=true) ───────────────────
   const [showClienteForm, setShowClienteForm] = useState(false)
@@ -555,13 +556,14 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     const precio = data?.bomba?.precio_full
       ? (mostrarPublico ? data.bomba.precio_full : precioMayorista(data.bomba.precio_full, descuento))
       : null
+    const precioPDF = precio != null ? precio + extrasTotal : null
 
     // Datos del cliente a usar (pueden venir del form en esta llamada o del state)
     const cd = forceClienteData || (clienteReady ? { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona } : null)
     const tieneCliente = !!(cd?.nombre || cd?.apellido || cd?.telefono)
 
     // Guardar en DB (best-effort, en background)
-    guardarPresupuestoDB(nro, precio, cd)
+    guardarPresupuestoDB(nro, precioPDF, cd)
     const fecha = new Date().toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' })
     const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
 
@@ -680,12 +682,17 @@ ${tieneCliente
   <div class="spec"><span class="spec-label">Diám. perf. mín.</span><span class="spec-val">${data?.bomba?.diam_perf || '—'}</span></div>
   <div class="spec"><span class="spec-label">Disponibilidad</span><span class="spec-val ${data?.bomba?.stock > 0 ? 'stock-ok' : 'stock-no'}">${data?.bomba?.stock > 0 ? `✅ ${data.bomba.stock} en stock` : '⚠ Sin stock'}</span></div>
 </div>
-${precio ? `<div class="precio-box">
+${precioPDF ? `<div class="precio-box">
   <div>
     <div class="precio-label">${mostrarPublico ? 'Precio público' : `Precio especial (${descuento}% descuento)`}</div>
-    <div class="precio-val">${fmt(precio)}</div>
+    <div class="precio-val">${fmt(precioPDF)}</div>
   </div>
   ${!mostrarPublico && data?.bomba?.precio_full ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(data.bomba.precio_full)}</div>` : ''}
+</div>` : ''}
+${esPozosProfundo ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px">
+  <strong>⚠️ Pozo profundo (${profInput}m) — Extras incluidos en el precio:</strong><br>
+  🔌 Cable sumergible ${metrosExtra}m (prof. + 10m seguridad): <strong>${fmt(extraCable)}</strong><br>
+  🪢 Soga anti-UV ${metrosExtra}m: <strong>${fmt(extraSoga)}</strong>
 </div>` : ''}
 ${curvasHtml ? `<h3>Rendimiento (L/día por altura)</h3>
 <table><thead><tr><th>Altura</th><th>☀️ Verano (${HSP.verano}h)</th><th>📅 Promedio (${HSP.promedio}h)</th><th>❄️ Invierno (${HSP.invierno}h)</th><th>L/hora</th></tr></thead>
@@ -721,6 +728,20 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
   const precio = data?.bomba?.precio_full
     ? (mostrarPublico ? data.bomba.precio_full : precioMayorista(data.bomba.precio_full, descuento))
     : null
+
+  // ── Cable + soga para pozos > 30m ──────────────────────────────────────────
+  const esPozosProfundo = profInput > 30 && data?.bomba?.tipo?.toLowerCase()?.includes('sumergi')
+  const metrosExtra = esPozosProfundo ? profInput + 10 : 0
+  // Precios por metro desde el kit (fallback a precios de Neon conocidos)
+  const cabItem = data?.kit?.find((i: any) => i.familia === 'cable' && i.nombre?.toLowerCase().includes('sumergible'))
+  const sogaItem = data?.kit?.find((i: any) => i.nombre?.toLowerCase().includes('soga') || i.nombre?.toLowerCase().includes('anti-uv'))
+  const precioCableM = cabItem?.precio_ars ?? 5668.79
+  const precioSogaM  = sogaItem?.precio_ars ?? 1809.59
+  const factorDesc   = mostrarPublico ? 1 : (1 - descuento / 100)
+  const extraCable   = esPozosProfundo ? Math.round(precioCableM * metrosExtra * factorDesc) : 0
+  const extraSoga    = esPozosProfundo ? Math.round(precioSogaM  * metrosExtra * factorDesc) : 0
+  const extrasTotal  = extraCable + extraSoga
+  const precioConExtras = precio != null ? precio + extrasTotal : null
 
   // Agrupar kit por familia — jabalina va en protecciones (caja), no en otros
   const familias: Record<string, any[]> = {}
@@ -878,13 +899,50 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
                 </div>
               </div>
 
+              {/* Profundidad del pozo */}
+              <div style={{ background: '#132233', borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 8 }}>
+                  Profundidad del pozo
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input
+                    type="number" min={0} step={1} value={profInput}
+                    onChange={e => setProfInput(Number(e.target.value))}
+                    style={{ width: 90, padding: '8px 10px', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 8, color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit' }}
+                  />
+                  <span style={{ fontSize: 13, color: '#7a9ab5' }}>metros</span>
+                  {profInput > 30 && (
+                    <span style={{ fontSize: 11, color: '#fbbf24', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 6, padding: '3px 8px' }}>
+                      ⚠️ Pozo profundo — se agrega cable y soga
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Precio */}
-              {precio && (
+              {precioConExtras != null && (
                 <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 8 }}>
                     {mostrarPublico ? 'Precio público' : `Precio mayorista (${descuento}% OFF)`}
                   </div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: '#4ade80' }}>{fmt(precio)}</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: '#4ade80' }}>{fmt(precioConExtras)}</div>
+                  {esPozosProfundo && (
+                    <div style={{ marginTop: 10, borderTop: '1px solid #1e3248', paddingTop: 10 }}>
+                      <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 6 }}>Incluye extras por pozo &gt;30m ({metrosExtra}m = profundidad + 10m seguridad):</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#e8f0f8', padding: '3px 0' }}>
+                        <span>🔌 Cable sumergible {metrosExtra}m</span>
+                        <span style={{ fontFamily: 'monospace', color: '#4ade80' }}>{fmt(extraCable)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#e8f0f8', padding: '3px 0' }}>
+                        <span>🪢 Soga anti-UV {metrosExtra}m</span>
+                        <span style={{ fontFamily: 'monospace', color: '#4ade80' }}>{fmt(extraSoga)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#7a9ab5', padding: '3px 0', borderTop: '1px solid #162030', marginTop: 4 }}>
+                        <span>Kit base</span>
+                        <span style={{ fontFamily: 'monospace' }}>{fmt(precio!)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -987,6 +1045,7 @@ export default function Portal() {
   const [mostrarCalculadora, setMostrarCalculadora] = useState(false)
   const [modalCodigo, setModalCodigo] = useState<string | null>(null)
   const [bombaSel, setBombaSel] = useState<string | null>(null)
+  const [profundidad, setProfundidad] = useState(0)
 
   // ── PIN DE SEGURIDAD ──────────────────────────────────────────────────────
   // Estados posibles: 'ok' | 'pedir_nuevo' | 'pedir_existente' | 'verificando'
@@ -1178,10 +1237,11 @@ export default function Portal() {
     }).catch(() => {})
   }, [])
 
-  function usarMCA(mca: number, litros: number, diam: string) {
+  function usarMCA(mca: number, litros: number, diam: string, prof: number = 0) {
     setAltura(String(mca))
     setLitros(String(litros))
     setDiametro(diam)
+    setProfundidad(prof)
     setMostrarCalculadora(false)
     // Scroll a la calculadora de búsqueda
     setTimeout(() => {
@@ -1307,6 +1367,7 @@ export default function Portal() {
           revTipo={rev.tipo_usuario || 'revendedor'}
           revToken={token}
           revEmail={rev.email}
+          profundidadInicial={profundidad}
         />
       )}
 
