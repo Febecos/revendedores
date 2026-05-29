@@ -47,7 +47,6 @@ export default function Home() {
   const [estado, setEstado] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
   const [errores, setErrores] = useState<Record<string, boolean>>({})
   const [aceptaTerminos, setAceptaTerminos] = useState(false)
-  const [aceptaMarketing, setAceptaMarketing] = useState(false)
 
   const toggleTipo = (id: string) => {
     setTipos(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
@@ -95,7 +94,6 @@ export default function Home() {
           experiencia_solar: expSolar,
           equipos_mes: equiposMes,
           acepta_terminos: aceptaTerminos,
-          acepta_marketing: aceptaMarketing,
           version_terminos: '1.1',
         })
       })
@@ -352,23 +350,6 @@ export default function Home() {
           </label>
         </div>
         {errores.terminos && <p style={{ ...s.errorMsg, marginBottom: 10 }}>Debés aceptar los términos y condiciones para continuar.</p>}
-
-        {/* Checkbox marketing — optativo */}
-        <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20,
-          padding: '10px 14px', borderRadius: 8, background: '#f9f9f9', border: '1.5px solid #e0e0e0',
-        }}>
-          <input
-            type="checkbox"
-            id="acepta-marketing"
-            checked={aceptaMarketing}
-            onChange={e => setAceptaMarketing(e.target.checked)}
-            style={{ marginTop: 2, width: 16, height: 16, cursor: 'pointer', accentColor: '#1a3a5c', flexShrink: 0 }}
-          />
-          <label htmlFor="acepta-marketing" style={{ fontSize: 12, color: '#888', lineHeight: 1.5, cursor: 'pointer' }}>
-            Acepto recibir comunicaciones comerciales de Febecos. <em style={{ fontSize: 11 }}>(opcional)</em>
-          </label>
-        </div>
 
         <button
           style={{ ...s.boton, opacity: estado === 'loading' ? 0.7 : 1 }}
