@@ -110,7 +110,7 @@ export default function Home() {
         {/* Logo en pantalla de éxito */}
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
           <img
-            src="https://dcdn-us.mitiendanube.com/stores/007/467/093/themes/common/logo-6209403414584676726-1775575296-91ab6514e309ebf33862eadc64bcbe161775575296-480-0.webp"
+            src="https://selector.febecos.com/images/febecos-logo.png"
             alt="Febecos"
             style={{ height: 40, objectFit: 'contain' }}
           />
@@ -149,7 +149,7 @@ export default function Home() {
         {/* ── LOGO ── */}
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
           <img
-            src="https://dcdn-us.mitiendanube.com/stores/007/467/093/themes/common/logo-6209403414584676726-1775575296-91ab6514e309ebf33862eadc64bcbe161775575296-480-0.webp"
+            src="https://selector.febecos.com/images/febecos-logo.png"
             alt="Febecos · Bombas Solares"
             style={{ height: 44, objectFit: 'contain' }}
           />
