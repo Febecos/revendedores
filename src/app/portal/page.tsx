@@ -488,6 +488,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [pdfPrecio, setPdfPrecio] = useState<number|null>(null)
   const [pdfCliente, setPdfCliente] = useState<{nombre:string;apellido:string;telefono:string;zona:string;razonSocial?:string;cuit?:string}|null>(null)
   const [profInput, setProfInput] = useState<number>(profundidadInicial)
+  const [cableMetros, setCableMetros] = useState<number | null>(null) // override manual de metros de cable (null = automático prof+10)
 
   // ── Datos del cliente (solo cuando mostrarPublico=true) ───────────────────
   const [showClienteForm, setShowClienteForm] = useState(false)
@@ -590,19 +591,25 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     // Kit — usa nombres reales + notas del kit, ordenado por familia
     const FAM_ORDEN: Record<string, number> = { bomba:0, panel:1, soporte:2, caja:3, proteccion:3, cable:4, accesorio:5, otros:6, otro:6 }
     const esBombaItem = (n: string) => (n||'').toLowerCase().includes('bomba')
-    const kitOrdenado: {nombre: string, notas: string, cantidad: number, _f: number}[] = []
-    kitOrdenado.push({ nombre: `Bomba ${data?.bomba?.marca || ''} ${data?.bomba?.watts || ''}W — ${data?.bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, _f: 0 })
+    const kitOrdenado: {nombre: string, notas: string, cantidad: number, unidad: string, _f: number}[] = []
+    kitOrdenado.push({ nombre: `Bomba ${data?.bomba?.marca || ''} ${data?.bomba?.watts || ''}W — ${data?.bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, unidad: 'unidad', _f: 0 })
     if (data?.kit) {
       for (const item of data.kit) {
         if (esBombaItem(item.nombre)) continue
         const f = FAM_ORDEN[(item.familia || '').toLowerCase()] ?? 6
-        kitOrdenado.push({ nombre: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''), notas: item.notas || '', cantidad: item.cantidad, _f: f })
+        // Cable/soga: los metros mostrados reflejan el largo real del pozo (base del kit + adicional)
+        const esCableLargo = item.unidad === 'metro' && item.nombre?.toLowerCase().includes('sumergible')
+        const esSogaLargo  = item.unidad === 'metro' && (item.nombre?.toLowerCase().includes('soga') || item.nombre?.toLowerCase().includes('anti-uv'))
+        const cant = esPozosProfundo && esCableLargo ? Math.max(item.cantidad, metrosTotal)
+                   : esPozosProfundo && esSogaLargo  ? Math.max(item.cantidad, metrosTotal)
+                   : item.cantidad
+        kitOrdenado.push({ nombre: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''), notas: item.notas || '', cantidad: cant, unidad: item.unidad || 'unidad', _f: f })
       }
     }
     kitOrdenado.sort((a, b) => a._f - b._f)
     const kitHtml2Col = kitOrdenado.map(it => `<tr>
       <td style="padding:4px 8px;font-size:11px">${it.nombre}${it.notas ? `<span style="color:#888;font-size:9.5px"> — ${it.notas}</span>` : ''}</td>
-      <td style="text-align:center;padding:4px 8px;white-space:nowrap">×${it.cantidad}</td></tr>`).join('')
+      <td style="text-align:center;padding:4px 8px;white-space:nowrap">${it.unidad === 'metro' ? `${it.cantidad} m` : `×${it.cantidad}`}</td></tr>`).join('')
 
     const curvasHtml = data?.curvas?.length > 0
       ? data.curvas.map((c: any) => `<tr><td>${c.altura_m}m</td><td>${c.litros_verano.toLocaleString('es-AR')}</td><td>${c.litros_promedio.toLocaleString('es-AR')}</td><td>${c.litros_invierno.toLocaleString('es-AR')}</td><td>${c.litros_hora.toLocaleString('es-AR')}</td></tr>`).join('')
@@ -675,9 +682,10 @@ ${precioPDF ? `<div class="precio-box">
   ${!mostrarPublico && data?.bomba?.precio_full ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(data.bomba.precio_full)}</div>` : ''}
 </div>` : ''}
 ${esPozosProfundo ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px">
-  <strong>⚠️ Pozo profundo (${profInput}m) — Extras incluidos en el precio:</strong><br>
-  🔌 Cable sumergible ${metrosExtra}m (prof. + 10m seguridad): <strong>${fmt(extraCable)}</strong><br>
-  🪢 Soga anti-UV ${metrosExtra}m: <strong>${fmt(extraSoga)}</strong>
+  <strong>⚠️ Pozo profundo (${profInput}m) — Cable y soga: ${metrosTotal}m totales</strong><br>
+  <span style="color:#888">El kit ya incluye ${metrosBaseCable}m de cable y ${metrosBaseSoga}m de soga. Se agregan solo los metros adicionales:</span><br>
+  🔌 Cable sumergible +${metrosExtraCable}m: <strong>${fmt(extraCable)}</strong><br>
+  🪢 Soga anti-UV +${metrosExtraSoga}m: <strong>${fmt(extraSoga)}</strong>
 </div>` : ''}
 ${curvasHtml ? `<h3>Rendimiento (L/día por altura)</h3>
 <table><thead><tr><th>Altura</th><th>☀️ Verano (${HSP.verano}h)</th><th>📅 Promedio (${HSP.promedio}h)</th><th>❄️ Invierno (${HSP.invierno}h)</th><th>L/hora</th></tr></thead>
@@ -718,15 +726,23 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
 
   // ── Cable + soga para pozos > 30m ──────────────────────────────────────────
   const esPozosProfundo = profInput > 30 && data?.bomba?.tipo?.toLowerCase()?.includes('sumergi')
-  const metrosExtra = esPozosProfundo ? profInput + 10 : 0
-  // Precios por metro desde el kit (fallback a precios de Neon conocidos)
+  // Precios y metros base desde el kit (fallback a precios de Neon conocidos)
   const cabItem = data?.kit?.find((i: any) => i.familia === 'cable' && i.nombre?.toLowerCase().includes('sumergible'))
   const sogaItem = data?.kit?.find((i: any) => i.nombre?.toLowerCase().includes('soga') || i.nombre?.toLowerCase().includes('anti-uv'))
-  const precioCableM = cabItem?.precio_ars ?? 5668.79
+  const precioCableM = cabItem?.precio_ars ?? 7699.45
   const precioSogaM  = sogaItem?.precio_ars ?? 1809.59
+  // Metros YA incluidos en el kit base (no se vuelven a cobrar)
+  const metrosBaseCable = cabItem?.cantidad ?? 30
+  const metrosBaseSoga  = sogaItem?.cantidad ?? 30
+  // Metros totales que necesita el equipo (profundidad + 10m seguridad), editable por el revendedor
+  const metrosNecesarios = profInput + 10
+  const metrosTotal = esPozosProfundo ? (cableMetros ?? metrosNecesarios) : 0
+  // Solo se cobran los metros ADICIONALES por encima de los que ya trae el kit
+  const metrosExtraCable = esPozosProfundo ? Math.max(0, metrosTotal - metrosBaseCable) : 0
+  const metrosExtraSoga  = esPozosProfundo ? Math.max(0, metrosTotal - metrosBaseSoga)  : 0
   const factorDesc   = mostrarPublico ? 1 : (1 - descuento / 100)
-  const extraCable   = esPozosProfundo ? Math.round(precioCableM * metrosExtra * factorDesc) : 0
-  const extraSoga    = esPozosProfundo ? Math.round(precioSogaM  * metrosExtra * factorDesc) : 0
+  const extraCable   = Math.round(precioCableM * metrosExtraCable * factorDesc)
+  const extraSoga    = Math.round(precioSogaM  * metrosExtraSoga  * factorDesc)
   const extrasTotal  = extraCable + extraSoga
   const precioConExtras = precio != null ? precio + extrasTotal : null
 
@@ -905,7 +921,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 8 }}>
                   Profundidad del pozo
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
                   <input
                     type="number" min={0} step={1} value={profInput}
                     onChange={e => setProfInput(Number(e.target.value))}
@@ -918,6 +934,33 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
                     </span>
                   )}
                 </div>
+
+                {/* Metros de cable — editable (por defecto = profundidad + 10m de seguridad) */}
+                {esPozosProfundo && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #1e3248' }}>
+                    <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 6 }}>
+                      Metros de cable y soga
+                      <span style={{ color: '#3a5a7a' }}> · podés ajustarlo si el pozo necesita otro largo</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
+                      <input
+                        type="number" min={0} step={1} value={metrosTotal}
+                        onChange={e => setCableMetros(Math.max(0, Number(e.target.value)))}
+                        style={{ width: 90, padding: '8px 10px', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 8, color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit' }}
+                      />
+                      <span style={{ fontSize: 13, color: '#7a9ab5' }}>metros</span>
+                      {cableMetros != null && cableMetros !== metrosNecesarios && (
+                        <button
+                          onClick={() => setCableMetros(null)}
+                          style={{ fontSize: 11, color: '#7a9ab5', background: 'transparent', border: '1px solid #3a5a7a', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}
+                          title={`Volver al automático (${metrosNecesarios}m)`}
+                        >
+                          ↺ Auto ({metrosNecesarios}m)
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Precio */}
@@ -929,13 +972,15 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
                   <div style={{ fontSize: 28, fontWeight: 800, color: '#4ade80' }}>{fmt(precioConExtras)}</div>
                   {esPozosProfundo && (
                     <div style={{ marginTop: 10, borderTop: '1px solid #1e3248', paddingTop: 10 }}>
-                      <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 6 }}>Incluye extras por pozo &gt;30m ({metrosExtra}m = profundidad + 10m seguridad):</div>
+                      <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 6 }}>
+                        Cable y soga: <strong style={{ color: '#e8f0f8' }}>{metrosTotal}m totales</strong> · el kit ya incluye {metrosBaseCable}m de cable y {metrosBaseSoga}m de soga (solo se cobran los metros adicionales).
+                      </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#e8f0f8', padding: '3px 0' }}>
-                        <span>🔌 Cable sumergible {metrosExtra}m</span>
+                        <span>🔌 Cable sumergible <span style={{ color: '#7a9ab5' }}>+{metrosExtraCable}m</span></span>
                         <span style={{ fontFamily: 'monospace', color: '#4ade80' }}>{fmt(extraCable)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#e8f0f8', padding: '3px 0' }}>
-                        <span>🪢 Soga anti-UV {metrosExtra}m</span>
+                        <span>🪢 Soga anti-UV <span style={{ color: '#7a9ab5' }}>+{metrosExtraSoga}m</span></span>
                         <span style={{ fontFamily: 'monospace', color: '#4ade80' }}>{fmt(extraSoga)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#7a9ab5', padding: '3px 0', borderTop: '1px solid #162030', marginTop: 4 }}>
@@ -1007,7 +1052,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
                             {item.potencia_w && <span style={{ fontSize: 11, color: '#4ade80', marginLeft: 8 }}>{item.potencia_w}W</span>}
                             {item.notas && <span style={{ fontSize: 11, color: '#3a5a7a', marginLeft: 8 }}>({item.notas})</span>}
                           </div>
-                          <span style={{ fontSize: 12, color: '#7a9ab5', fontFamily: 'monospace', fontWeight: 600 }}>×{item.cantidad}</span>
+                          <span style={{ fontSize: 12, color: '#7a9ab5', fontFamily: 'monospace', fontWeight: 600 }}>{item.unidad === 'metro' ? `${item.cantidad} m` : `×${item.cantidad}`}</span>
                         </div>
                       ))}
                     </div>

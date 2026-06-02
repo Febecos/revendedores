@@ -39,11 +39,11 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const cliente = [p.cliente_nombre, p.cliente_apellido].filter(Boolean).join(' ')
 
   // Kit: bomba + items reales con notas, ordenado por familia
-  const items: { nombre: string; notas: string; cantidad: number; _f: number }[] = []
-  items.push({ nombre: `Bomba ${bomba?.marca || p.bomba_marca || ''} ${bomba?.watts || p.bomba_watts || ''}W — ${bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, _f: 0 })
+  const items: { nombre: string; notas: string; cantidad: number; unidad: string; _f: number }[] = []
+  items.push({ nombre: `Bomba ${bomba?.marca || p.bomba_marca || ''} ${bomba?.watts || p.bomba_watts || ''}W — ${bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, unidad: 'unidad', _f: 0 })
   for (const it of kit) {
     if ((it.nombre || '').toLowerCase().includes('bomba')) continue
-    items.push({ nombre: it.nombre + (it.potencia_w ? ` ${it.potencia_w}W` : ''), notas: it.notas || '', cantidad: it.cantidad, _f: FAM_ORDEN[(it.familia || '').toLowerCase()] ?? 6 })
+    items.push({ nombre: it.nombre + (it.potencia_w ? ` ${it.potencia_w}W` : ''), notas: it.notas || '', cantidad: it.cantidad, unidad: it.unidad || 'unidad', _f: FAM_ORDEN[(it.familia || '').toLowerCase()] ?? 6 })
   }
   items.sort((a, b) => a._f - b._f)
 
@@ -110,7 +110,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
                   {items.map((it, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ padding: '4px 8px', fontSize: 11 }}>{it.nombre}{it.notas && <span style={{ color: '#888', fontSize: 9.5 }}> — {it.notas}</span>}</td>
-                      <td style={{ textAlign: 'center', padding: '4px 8px', whiteSpace: 'nowrap' }}>×{it.cantidad}</td>
+                      <td style={{ textAlign: 'center', padding: '4px 8px', whiteSpace: 'nowrap' }}>{it.unidad === 'metro' ? `${it.cantidad} m` : `×${it.cantidad}`}</td>
                     </tr>
                   ))}
                 </tbody>
