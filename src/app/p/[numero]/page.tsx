@@ -75,7 +75,11 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
             <div style={{ background: '#f0f9f4', border: '2px solid #1a6b3c', borderRadius: 10, padding: '12px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#4a7a5a', fontWeight: 700, marginBottom: 5 }}>Presupuesto para</div>
               <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{cliente}</div>
-              {p.cliente_zona && <div style={{ fontSize: 13, color: '#1a6b3c', fontWeight: 600, marginTop: 3 }}>{p.cliente_zona}</div>}
+              <div style={{ fontSize: 13, color: '#1a6b3c', fontWeight: 600, marginTop: 3 }}>
+                {p.cliente_telefono && <>📱 {p.cliente_telefono}</>}
+                {p.cliente_telefono && p.cliente_zona && <>&nbsp;&nbsp;·&nbsp;&nbsp;</>}
+                {p.cliente_zona && <>📍 {p.cliente_zona}</>}
+              </div>
             </div>
           )}
 

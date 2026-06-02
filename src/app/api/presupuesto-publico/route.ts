@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       SELECT numero, created_at, revendedor_nombre,
              bomba_codigo, bomba_descripcion, bomba_watts, bomba_marca,
              tipo_precio, precio_publico, precio_ofrecido, descuento_pct,
-             cliente_nombre, cliente_apellido, cliente_zona
+             cliente_nombre, cliente_apellido, cliente_telefono, cliente_zona
       FROM presupuestos
       WHERE numero = ${numero}
       ORDER BY created_at DESC LIMIT 1`
