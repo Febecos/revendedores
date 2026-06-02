@@ -483,6 +483,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [showShareModal, setShowShareModal] = useState(false)
   const [pdfHtml, setPdfHtml] = useState('')
   const [pdfNro, setPdfNro] = useState<string|null>(null)
+  const [presupToken, setPresupToken] = useState<string|null>(null) // token aleatorio para el link público
+  const [pdfToken, setPdfToken] = useState<string|null>(null)
   const [pdfPrecio, setPdfPrecio] = useState<number|null>(null)
   const [pdfCliente, setPdfCliente] = useState<{nombre:string;apellido:string;telefono:string;zona:string;razonSocial?:string;cuit?:string}|null>(null)
   const [profInput, setProfInput] = useState<number>(profundidadInicial)
@@ -515,7 +517,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   function guardarPresupuestoDB(
     nro: string,
     precio: number | null,
-    cdData: { nombre: string; apellido: string; telefono: string; zona: string; razonSocial?: string; cuit?: string } | null
+    cdData: { nombre: string; apellido: string; telefono: string; zona: string; razonSocial?: string; cuit?: string } | null,
+    publicToken?: string | null
   ) {
     const precioPublico = data?.bomba?.precio_full || null
     const tieneCliente = !!(cdData?.nombre || cdData?.apellido || cdData?.telefono || cdData?.razonSocial)
@@ -544,6 +547,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
         cliente_zona: tieneCliente ? cdData?.zona : null,
         cliente_razon_social: cdData?.razonSocial || null,
         cliente_cuit: cdData?.cuit || null,
+        public_token: publicToken || null,
       }),
     }).catch(() => { /* silencioso */ })
   }
@@ -558,9 +562,15 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     setShowClienteForm(false)
     setGenerandoPDF(true)
     let nro = nroPresup
+    let tok = presupToken
     if (!nro) {
       nro = await obtenerNroPresupuesto()
       setNroPresup(nro)
+    }
+    if (!tok) {
+      // token aleatorio no adivinable para el link público (seguridad)
+      tok = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2, 12))
+      setPresupToken(tok)
     }
     const precio = data?.bomba?.precio_full
       ? (mostrarPublico ? data.bomba.precio_full : precioMayorista(data.bomba.precio_full, descuento))
@@ -572,7 +582,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     const tieneCliente = !!(cd?.nombre || cd?.apellido || cd?.telefono)
 
     // Guardar en DB (best-effort, en background)
-    guardarPresupuestoDB(nro, precioPDF, cd)
+    guardarPresupuestoDB(nro, precioPDF, cd, tok)
     const fecha = new Date().toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' })
     const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
 
@@ -688,6 +698,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
     // Guardar HTML en estado para el modal de compartir
     setPdfHtml(html)
     setPdfNro(nro)
+    setPdfToken(tok)
     setPdfPrecio(precioPDF)
     setPdfCliente(cd)
     setShowShareModal(true)
@@ -1030,7 +1041,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
               <button onClick={() => {
                 const nombre = pdfCliente?.nombre ? ` para ${pdfCliente.nombre}${pdfCliente.apellido ? ' '+pdfCliente.apellido : ''}` : ''
                 const precio = pdfPrecio ? ` — Precio: $${Math.round(pdfPrecio).toLocaleString('es-AR')}` : ''
-                const link = `${window.location.origin}/p/${pdfNro}`
+                const link = `${window.location.origin}/p/${pdfToken || pdfNro}`
                 const msg = `Hola! Te comparto el presupuesto de bomba solar Febecos${nombre}${precio}.\n\nMirá el detalle completo y descargá el PDF acá:\n${link}\n\nPresupuesto N° ${pdfNro} — Febecos Bombeo Solar.`
                 window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
               }} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#0a2a1a', border:'1px solid #25d366', borderRadius:10, color:'#25d366', fontSize:14, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
@@ -1041,7 +1052,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
                 <button onClick={async () => {
                   const nombre = pdfCliente?.nombre ? ` para ${pdfCliente.nombre}` : ''
                   const precio = pdfPrecio ? ` · $${Math.round(pdfPrecio).toLocaleString('es-AR')}` : ''
-                  const link = `${window.location.origin}/p/${pdfNro}`
+                  const link = `${window.location.origin}/p/${pdfToken || pdfNro}`
                   try { await navigator.share({ title: `Presupuesto Febecos ${pdfNro}`, text: `Presupuesto de bomba solar Febecos${nombre}${precio} — N° ${pdfNro}`, url: link }) } catch(_) {}
                 }} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#1e3248', border:'1px solid #2a4a6a', borderRadius:10, color:'#e8f0f8', fontSize:14, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
                   <span style={{ fontSize:22 }}>📤</span>

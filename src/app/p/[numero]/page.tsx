@@ -6,6 +6,7 @@ const fmt = (n: number | null | undefined) =>
 
 const FAM_ORDEN: Record<string, number> = { bomba: 0, panel: 1, soporte: 2, caja: 3, proteccion: 3, cable: 4, accesorio: 5, otros: 6, otro: 6 }
 
+// El segmento [numero] de la URL ahora lleva un TOKEN aleatorio (no el número correlativo) por seguridad.
 export default function PresupuestoPublico({ params }: { params: { numero: string } }) {
   const [p, setP] = useState<any>(null)
   const [bomba, setBomba] = useState<any>(null)
@@ -15,7 +16,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/presupuesto-publico?numero=${encodeURIComponent(params.numero)}`)
+    fetch(`/api/presupuesto-publico?t=${encodeURIComponent(params.numero)}`)
       .then(r => (r.ok ? r.json() : Promise.reject()))
       .then(async d => {
         setP(d.presupuesto)

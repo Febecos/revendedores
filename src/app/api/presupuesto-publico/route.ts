@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 
-// GET /api/presupuesto-publico?numero=PREV-2026-0060
-// Devuelve los datos públicos de un presupuesto para mostrarlo en /p/[numero].
-// NO expone teléfono del cliente, email ni token del revendedor (privacidad).
+// GET /api/presupuesto-publico?t=<token>
+// Busca por TOKEN aleatorio (no por número) → no se puede enumerar (seguridad).
+// NO expone email ni token del revendedor.
 export async function GET(req: NextRequest) {
-  const numero = req.nextUrl.searchParams.get('numero')
-  if (!numero) return NextResponse.json({ error: 'numero requerido' }, { status: 400 })
+  const token = req.nextUrl.searchParams.get('t')
+  if (!token || token.length < 8) return NextResponse.json({ error: 'token inválido' }, { status: 400 })
   try {
     const sql = getDb()
     const rows = await sql`
@@ -16,8 +16,8 @@ export async function GET(req: NextRequest) {
              cliente_nombre, cliente_apellido, cliente_telefono, cliente_zona,
              cliente_razon_social, cliente_cuit
       FROM presupuestos
-      WHERE numero = ${numero}
-      ORDER BY created_at DESC LIMIT 1`
+      WHERE public_token = ${token}
+      LIMIT 1`
     if (!rows.length) return NextResponse.json({ error: 'no encontrado' }, { status: 404 })
     return NextResponse.json({ ok: true, presupuesto: rows[0] })
   } catch (err: any) {

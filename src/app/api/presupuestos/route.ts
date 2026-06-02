@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       litros_dia, altura_m, longitud_total_m,
       tipo_precio, precio_publico, precio_ofrecido, descuento_pct,
       cliente_nombre, cliente_apellido, cliente_telefono, cliente_zona,
-      cliente_razon_social, cliente_cuit,
+      cliente_razon_social, cliente_cuit, public_token,
     } = body
 
     if (!numero) return NextResponse.json({ error: 'numero requerido' }, { status: 400 })
@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
     // Columnas de empresa (opcionales) — migración idempotente
     await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_razon_social TEXT`
     await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_cuit TEXT`
+    await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS public_token TEXT`
+    await sql`CREATE INDEX IF NOT EXISTS idx_presupuestos_token ON presupuestos(public_token)`
 
     const rows = await sql`
       INSERT INTO presupuestos (
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
         litros_dia, altura_m, longitud_total_m,
         tipo_precio, precio_publico, precio_ofrecido, descuento_pct,
         cliente_nombre, cliente_apellido, cliente_telefono, cliente_zona,
-        cliente_razon_social, cliente_cuit
+        cliente_razon_social, cliente_cuit, public_token
       ) VALUES (
         ${numero},
         ${revendedor_token || null}, ${revendedor_nombre || null}, ${revendedor_email || null},
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
         ${precio_publico || null}, ${precio_ofrecido || null}, ${descuento_pct || null},
         ${cliente_nombre || null}, ${cliente_apellido || null},
         ${cliente_telefono || null}, ${cliente_zona || null},
-        ${cliente_razon_social || null}, ${cliente_cuit || null}
+        ${cliente_razon_social || null}, ${cliente_cuit || null}, ${public_token || null}
       )
       RETURNING id, numero, created_at
     `
