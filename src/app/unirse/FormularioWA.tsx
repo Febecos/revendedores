@@ -35,6 +35,8 @@ export default function FormularioUnirse() {
   function irAWhatsApp() {
     if (!validar()) return
     enviarPropuesta('whatsapp')
+    // Pixel: Lead — se registró como revendedor por WA
+    try{ if((window as any).fbq) (window as any).fbq('track','Lead',{content_name:'revendedor_whatsapp'}); }catch(_){}
     const msg = encodeURIComponent(
       `Hola, quiero sumarme al Programa de Revendedores Febecos.\n\n` +
       `Nombre: ${form.nombre}\nEmail: ${form.email}\nWhatsApp: ${form.whatsapp}\nLocalidad: ${form.localidad}\n\n` +
@@ -55,6 +57,8 @@ export default function FormularioUnirse() {
         body: JSON.stringify(form),
       })
       if (res.ok) {
+        // Pixel: Lead — se registró como revendedor por Demo
+        try{ if((window as any).fbq) (window as any).fbq('track','Lead',{content_name:'revendedor_demo'}); }catch(_){}
         window.location.href = '/portal'
       } else {
         setEstadoDemo('error')
