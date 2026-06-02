@@ -573,56 +573,22 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
 
     // Orden y nombres del kit según especificación Febecos
-    const KIT_ORDEN = ['bomba','panel','soporte','caja','cable_sumergi','cable_sensor','cable_solar','cable_tierra','jabalina','soga']
-    const KIT_LABELS: Record<string,string> = {
-      bomba: 'Bomba sumergible',
-      panel: 'Panel solar',
-      soporte: 'Soporte para paneles',
-      caja: 'Caja de control (incl. prot. CC, interruptor 20A y descarga 500V)',
-      cable_sumergi: 'Cable sumergible',
-      cable_sensor: 'Cable de sensor',
-      cable_solar: 'Cable solar',
-      cable_tierra: 'Cable de tierra',
-      jabalina: 'Jabalina puesta a tierra',
-      soga: 'Soga anti-UV',
-    }
-    function clasificarItem(nombre: string): string {
-      const n = nombre.toLowerCase()
-      if (n.includes('bomba')) return 'bomba'
-      if (n.includes('soporte') || n.includes('estructura')) return 'soporte'
-      if (n.includes('panel')) return 'panel'
-      if (n.includes('caja') || n.includes('controlador') || n.includes('mppt') || n.includes('ip65')) return 'caja'
-      if (n.includes('sumergible')) return 'cable_sumergi'
-      if (n.includes('sensor')) return 'cable_sensor'
-      if (n.includes('solar') && n.includes('cable')) return 'cable_solar'
-      if (n.includes('tierra') && n.includes('cable')) return 'cable_tierra'
-      if (n.includes('jabalina')) return 'jabalina'
-      if (n.includes('soga') || n.includes('anti-uv') || n.includes('cuerda')) return 'soga'
-      return 'otro'
-    }
-    // Agrupar items del kit
-    const kitAgrupado: Record<string, {nombre: string, cantidad: number}> = {}
-    // Agregar la bomba primero desde los datos de la bomba
-    kitAgrupado['bomba'] = { nombre: `Bomba ${data?.bomba?.marca || ''} ${data?.bomba?.watts || ''}W — ${data?.bomba?.impulsor || 'centrifuga'}`, cantidad: 1 }
+    // Kit — usa nombres reales + notas del kit, ordenado por familia
+    const FAM_ORDEN: Record<string, number> = { bomba:0, panel:1, soporte:2, caja:3, proteccion:3, cable:4, accesorio:5, otros:6, otro:6 }
+    const esBombaItem = (n: string) => (n||'').toLowerCase().includes('bomba')
+    const kitOrdenado: {nombre: string, notas: string, cantidad: number, _f: number}[] = []
+    kitOrdenado.push({ nombre: `Bomba ${data?.bomba?.marca || ''} ${data?.bomba?.watts || ''}W — ${data?.bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, _f: 0 })
     if (data?.kit) {
       for (const item of data.kit) {
-        const tipo = clasificarItem(item.nombre)
-        if (tipo === 'bomba') continue // ya la agregamos
-        const label = KIT_LABELS[tipo] || item.nombre
-        if (!kitAgrupado[tipo]) {
-          kitAgrupado[tipo] = { nombre: label, cantidad: item.cantidad }
-        }
+        if (esBombaItem(item.nombre)) continue
+        const f = FAM_ORDEN[(item.familia || '').toLowerCase()] ?? 6
+        kitOrdenado.push({ nombre: item.nombre, notas: item.notas || '', cantidad: item.cantidad, _f: f })
       }
     }
-    const kitOrdenado = KIT_ORDEN.map(k => kitAgrupado[k]).filter(Boolean)
-    const kitHtml2Col = (() => {
-      const rows = []
-      for (let i = 0; i < kitOrdenado.length; i += 2) {
-        const a = kitOrdenado[i], b = kitOrdenado[i+1]
-        rows.push(`<tr><td style="padding:3px 8px;font-size:11px">${a.nombre}</td><td style="text-align:center;padding:3px 8px">×${a.cantidad}</td><td style="padding:3px 8px;font-size:11px">${b ? b.nombre : ''}</td><td style="text-align:center;padding:3px 8px">${b ? '×'+b.cantidad : ''}</td></tr>`)
-      }
-      return rows.join('')
-    })()
+    kitOrdenado.sort((a, b) => a._f - b._f)
+    const kitHtml2Col = kitOrdenado.map(it => `<tr>
+      <td style="padding:4px 8px;font-size:11px">${it.nombre}${it.notas ? `<span style="color:#888;font-size:9.5px"> — ${it.notas}</span>` : ''}</td>
+      <td style="text-align:center;padding:4px 8px;white-space:nowrap">×${it.cantidad}</td></tr>`).join('')
 
     const curvasHtml = data?.curvas?.length > 0
       ? data.curvas.map((c: any) => `<tr><td>${c.altura_m}m</td><td>${c.litros_verano.toLocaleString('es-AR')}</td><td>${c.litros_promedio.toLocaleString('es-AR')}</td><td>${c.litros_invierno.toLocaleString('es-AR')}</td><td>${c.litros_hora.toLocaleString('es-AR')}</td></tr>`).join('')
@@ -703,7 +669,7 @@ ${curvasHtml ? `<h3>Rendimiento (L/día por altura)</h3>
 <table><thead><tr><th>Altura</th><th>☀️ Verano (${HSP.verano}h)</th><th>📅 Promedio (${HSP.promedio}h)</th><th>❄️ Invierno (${HSP.invierno}h)</th><th>L/hora</th></tr></thead>
 <tbody>${curvasHtml}</tbody></table>` : ''}
 ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
-<table style="table-layout:fixed"><thead><tr><th style="width:45%">Componente</th><th style="width:10%;text-align:center">Cant.</th><th style="width:45%">Componente</th><th style="width:10%;text-align:center">Cant.</th></tr></thead>
+<table style="table-layout:fixed;width:100%"><thead><tr><th style="width:88%">Componente</th><th style="width:12%;text-align:center">Cant.</th></tr></thead>
 <tbody>${kitHtml2Col}</tbody></table>` : ''}
 <div class="footer">
   ${revTipo === 'admin'
