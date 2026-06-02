@@ -71,11 +71,17 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
           </div>
 
           {/* Cliente */}
-          {cliente && (
+          {(cliente || p.cliente_razon_social) && (
             <div style={{ background: '#f0f9f4', border: '2px solid #1a6b3c', borderRadius: 10, padding: '12px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#4a7a5a', fontWeight: 700, marginBottom: 5 }}>Presupuesto para</div>
-              <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{cliente}</div>
+              {p.cliente_razon_social
+                ? <>
+                    <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{p.cliente_razon_social}</div>
+                    {cliente && <div style={{ fontSize: 12, color: '#1a6b3c', fontWeight: 600, marginTop: 2 }}>Contacto: {cliente}</div>}
+                  </>
+                : <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{cliente}</div>}
               <div style={{ fontSize: 13, color: '#1a6b3c', fontWeight: 600, marginTop: 3 }}>
+                {p.cliente_cuit && <>🏢 CUIT {p.cliente_cuit}&nbsp;&nbsp;·&nbsp;&nbsp;</>}
                 {p.cliente_telefono && <>📱 {p.cliente_telefono}</>}
                 {p.cliente_telefono && p.cliente_zona && <>&nbsp;&nbsp;·&nbsp;&nbsp;</>}
                 {p.cliente_zona && <>📍 {p.cliente_zona}</>}

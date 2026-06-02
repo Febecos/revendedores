@@ -484,7 +484,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [pdfHtml, setPdfHtml] = useState('')
   const [pdfNro, setPdfNro] = useState<string|null>(null)
   const [pdfPrecio, setPdfPrecio] = useState<number|null>(null)
-  const [pdfCliente, setPdfCliente] = useState<{nombre:string;apellido:string;telefono:string;zona:string}|null>(null)
+  const [pdfCliente, setPdfCliente] = useState<{nombre:string;apellido:string;telefono:string;zona:string;razonSocial?:string;cuit?:string}|null>(null)
   const [profInput, setProfInput] = useState<number>(profundidadInicial)
 
   // ── Datos del cliente (solo cuando mostrarPublico=true) ───────────────────
@@ -493,6 +493,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [clienteApellido, setClienteApellido] = useState('')
   const [clienteTelefono, setClienteTelefono] = useState('')
   const [clienteZona, setClienteZona] = useState('')
+  const [clienteRazonSocial, setClienteRazonSocial] = useState('') // opcional (empresa)
+  const [clienteCuit, setClienteCuit] = useState('')               // opcional (empresa)
   const [clienteReady, setClienteReady] = useState(false) // true una vez confirmados
 
   async function obtenerNroPresupuesto(): Promise<string> {
@@ -513,10 +515,10 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   function guardarPresupuestoDB(
     nro: string,
     precio: number | null,
-    cdData: { nombre: string; apellido: string; telefono: string; zona: string } | null
+    cdData: { nombre: string; apellido: string; telefono: string; zona: string; razonSocial?: string; cuit?: string } | null
   ) {
     const precioPublico = data?.bomba?.precio_full || null
-    const tieneCliente = !!(cdData?.nombre || cdData?.apellido || cdData?.telefono)
+    const tieneCliente = !!(cdData?.nombre || cdData?.apellido || cdData?.telefono || cdData?.razonSocial)
     fetch('/api/presupuestos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -540,11 +542,13 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
         cliente_apellido: tieneCliente ? cdData?.apellido : null,
         cliente_telefono: tieneCliente ? cdData?.telefono : null,
         cliente_zona: tieneCliente ? cdData?.zona : null,
+        cliente_razon_social: cdData?.razonSocial || null,
+        cliente_cuit: cdData?.cuit || null,
       }),
     }).catch(() => { /* silencioso */ })
   }
 
-  async function generarPDF(forceClienteData?: { nombre: string; apellido: string; telefono: string; zona: string }) {
+  async function generarPDF(forceClienteData?: { nombre: string; apellido: string; telefono: string; zona: string; razonSocial?: string; cuit?: string }) {
     // Si es precio público y aún no tenemos datos del cliente, mostrar formulario
     if (mostrarPublico && !clienteReady && !forceClienteData) {
       setShowClienteForm(true)
@@ -564,7 +568,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     const precioPDF = precio != null ? precio + extrasTotal : null
 
     // Datos del cliente a usar (pueden venir del form en esta llamada o del state)
-    const cd = forceClienteData || (clienteReady ? { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona } : null)
+    const cd = forceClienteData || (clienteReady ? { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit } : null)
     const tieneCliente = !!(cd?.nombre || cd?.apellido || cd?.telefono)
 
     // Guardar en DB (best-effort, en background)
@@ -637,8 +641,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
 </div>
 ${tieneCliente
       ? `<div class="cliente-box">
-          <div class="cliente-nombre">Sr./Sra. ${cd?.nombre || ''} ${cd?.apellido || ''}</div>
-          <div class="cliente-detalle">${cd?.telefono ? `📱 ${cd.telefono}` : ''}${cd?.zona ? `&nbsp;&nbsp;·&nbsp;&nbsp;📍 ${cd.zona}` : ''}</div>
+          ${cd?.razonSocial ? `<div class="cliente-nombre">${cd.razonSocial}</div>${(cd?.nombre||cd?.apellido) ? `<div class="cliente-detalle" style="margin-bottom:3px">Contacto: ${cd?.nombre||''} ${cd?.apellido||''}</div>` : ''}` : `<div class="cliente-nombre">Sr./Sra. ${cd?.nombre || ''} ${cd?.apellido || ''}</div>`}
+          <div class="cliente-detalle">${cd?.cuit ? `🏢 CUIT ${cd.cuit}&nbsp;&nbsp;·&nbsp;&nbsp;` : ''}${cd?.telefono ? `📱 ${cd.telefono}` : ''}${cd?.zona ? `&nbsp;&nbsp;·&nbsp;&nbsp;📍 ${cd.zona}` : ''}</div>
         </div>`
       : ''
     }
@@ -818,11 +822,25 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
                   ))}
                 </select>
               </div>
+              {/* Empresa (opcional) */}
+              <div style={{ gridColumn: '1/-1', borderTop: '1px solid #1e3248', paddingTop: 10, marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 8 }}>🏢 Si el presupuesto es para una empresa, completá estos datos (opcional):</div>
+              </div>
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Razón social</div>
+                <input value={clienteRazonSocial} onChange={e => setClienteRazonSocial(e.target.value)} placeholder="La Jota Group SRL"
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>CUIT</div>
+                <input value={clienteCuit} onChange={e => setClienteCuit(e.target.value)} placeholder="30-12345678-9" type="text"
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => {
-                  const cd = { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona }
+                  const cd = { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit }
                   setClienteReady(true)
                   setShowClienteForm(false)
                   generarPDF(cd)
