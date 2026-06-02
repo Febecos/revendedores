@@ -1,6 +1,8 @@
 import { neon } from '@neondatabase/serverless'
 
-const DB = 'postgresql://neondb_owner:npg_xSqkcepYGZ47@ep-muddy-shape-am1uev5m-pooler.c-5.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require'
+import { readFileSync } from 'fs'
+const DB = process.env.DATABASE_URL || (readFileSync(new URL('../.env.local', import.meta.url),'utf8').match(/DATABASE_URL\s*=\s*(.+)/)||[])[1]?.trim().replace(/^[\"']|[\"']$/g,'')
+if (!DB) { console.error('Falta DATABASE_URL (.env.local o env)'); process.exit(1) }
 const sql = neon(DB)
 const TEL = '1130291050'
 const PAT = `%${TEL}%`
