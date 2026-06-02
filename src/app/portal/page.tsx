@@ -1012,17 +1012,19 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
               <button onClick={() => {
                 const nombre = pdfCliente?.nombre ? ` para ${pdfCliente.nombre}${pdfCliente.apellido ? ' '+pdfCliente.apellido : ''}` : ''
                 const precio = pdfPrecio ? ` — Precio: $${Math.round(pdfPrecio).toLocaleString('es-AR')}` : ''
-                const msg = `Hola! Te comparto el presupuesto de bomba solar Febecos${nombre}${precio}.\n\nPresupuesto N° ${pdfNro} — generado a través de Febecos Bombeo Solar.`
+                const link = `${window.location.origin}/p/${pdfNro}`
+                const msg = `Hola! Te comparto el presupuesto de bomba solar Febecos${nombre}${precio}.\n\nMirá el detalle completo y descargá el PDF acá:\n${link}\n\nPresupuesto N° ${pdfNro} — Febecos Bombeo Solar.`
                 window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
               }} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#0a2a1a', border:'1px solid #25d366', borderRadius:10, color:'#25d366', fontSize:14, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
                 <span style={{ fontSize:22 }}>💬</span>
-                <div><div>Enviar mensaje con el PDF adjunto</div><div style={{ fontSize:11, color:'#4a9a6a', fontWeight:400 }}>Abre WhatsApp · adjuntá el PDF desde archivos</div></div>
+                <div><div>Compartir por WhatsApp</div><div style={{ fontSize:11, color:'#4a9a6a', fontWeight:400 }}>Envía un link al presupuesto · el cliente descarga el PDF</div></div>
               </button>
               {typeof navigator !== 'undefined' && 'share' in navigator && (
                 <button onClick={async () => {
                   const nombre = pdfCliente?.nombre ? ` para ${pdfCliente.nombre}` : ''
                   const precio = pdfPrecio ? ` · $${Math.round(pdfPrecio).toLocaleString('es-AR')}` : ''
-                  try { await navigator.share({ title: `Presupuesto Febecos ${pdfNro}${nombre}`, text: `Presupuesto de bomba solar Febecos${nombre}${precio} — N° ${pdfNro}` }) } catch(_) {}
+                  const link = `${window.location.origin}/p/${pdfNro}`
+                  try { await navigator.share({ title: `Presupuesto Febecos ${pdfNro}`, text: `Presupuesto de bomba solar Febecos${nombre}${precio} — N° ${pdfNro}`, url: link }) } catch(_) {}
                 }} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#1e3248', border:'1px solid #2a4a6a', borderRadius:10, color:'#e8f0f8', fontSize:14, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
                   <span style={{ fontSize:22 }}>📤</span>
                   <div><div>Compartir...</div><div style={{ fontSize:11, color:'#7a9ab5', fontWeight:400 }}>Más opciones: Telegram, Mail, etc.</div></div>
