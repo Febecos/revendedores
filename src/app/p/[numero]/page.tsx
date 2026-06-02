@@ -42,7 +42,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   items.push({ nombre: `Bomba ${bomba?.marca || p.bomba_marca || ''} ${bomba?.watts || p.bomba_watts || ''}W — ${bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, _f: 0 })
   for (const it of kit) {
     if ((it.nombre || '').toLowerCase().includes('bomba')) continue
-    items.push({ nombre: it.nombre, notas: it.notas || '', cantidad: it.cantidad, _f: FAM_ORDEN[(it.familia || '').toLowerCase()] ?? 6 })
+    items.push({ nombre: it.nombre + (it.potencia_w ? ` ${it.potencia_w}W` : ''), notas: it.notas || '', cantidad: it.cantidad, _f: FAM_ORDEN[(it.familia || '').toLowerCase()] ?? 6 })
   }
   items.sort((a, b) => a._f - b._f)
 

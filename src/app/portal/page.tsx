@@ -586,7 +586,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
       for (const item of data.kit) {
         if (esBombaItem(item.nombre)) continue
         const f = FAM_ORDEN[(item.familia || '').toLowerCase()] ?? 6
-        kitOrdenado.push({ nombre: item.nombre, notas: item.notas || '', cantidad: item.cantidad, _f: f })
+        kitOrdenado.push({ nombre: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''), notas: item.notas || '', cantidad: item.cantidad, _f: f })
       }
     }
     kitOrdenado.sort((a, b) => a._f - b._f)
