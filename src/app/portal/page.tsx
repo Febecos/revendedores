@@ -589,8 +589,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     function clasificarItem(nombre: string): string {
       const n = nombre.toLowerCase()
       if (n.includes('bomba')) return 'bomba'
-      if (n.includes('panel')) return 'panel'
       if (n.includes('soporte') || n.includes('estructura')) return 'soporte'
+      if (n.includes('panel')) return 'panel'
       if (n.includes('caja') || n.includes('controlador') || n.includes('mppt') || n.includes('ip65')) return 'caja'
       if (n.includes('sumergible')) return 'cable_sumergi'
       if (n.includes('sensor')) return 'cable_sensor'
