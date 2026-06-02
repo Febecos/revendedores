@@ -1137,6 +1137,22 @@ export default function Portal() {
   const [modalCodigo, setModalCodigo] = useState<string | null>(null)
   const [bombaSel, setBombaSel] = useState<string | null>(null)
   const [profundidad, setProfundidad] = useState(0)
+  // ── Mis cotizaciones ──────────────────────────────────────────────────────
+  const [showCotis, setShowCotis] = useState(false)
+  const [cotis, setCotis] = useState<any[] | null>(null)
+  const [cargandoCotis, setCargandoCotis] = useState(false)
+  async function abrirCotizaciones() {
+    setShowCotis(true)
+    if (cotis === null) {
+      setCargandoCotis(true)
+      try {
+        const r = await fetch(`/api/presupuestos?token=${encodeURIComponent(token || '')}&limit=100`)
+        const d = await r.json()
+        setCotis(d?.presupuestos || [])
+      } catch { setCotis([]) }
+      setCargandoCotis(false)
+    }
+  }
 
   // ── PIN DE SEGURIDAD ──────────────────────────────────────────────────────
   // Estados posibles: 'ok' | 'pedir_nuevo' | 'pedir_existente' | 'verificando'
@@ -1462,6 +1478,55 @@ export default function Portal() {
         />
       )}
 
+      {/* ── MODAL: MIS COTIZACIONES ──────────────────────────────────────────── */}
+      {showCotis && (
+        <div onClick={() => setShowCotis(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #1e3248' }}>
+              <div>
+                <div style={{ color: '#e8f0f8', fontWeight: 700, fontSize: 16 }}>📄 Mis cotizaciones</div>
+                <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 2 }}>Tus presupuestos generados — abrí el link para compartirlos</div>
+              </div>
+              <button onClick={() => setShowCotis(false)} style={{ background: 'none', border: 'none', color: '#7a9ab5', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+            <div style={{ overflowY: 'auto', padding: '12px 16px' }}>
+              {cargandoCotis && <div style={{ color: '#7a9ab5', textAlign: 'center', padding: 30 }}>⏳ Cargando…</div>}
+              {!cargandoCotis && cotis?.length === 0 && (
+                <div style={{ color: '#7a9ab5', textAlign: 'center', padding: 30, fontSize: 13 }}>Todavía no generaste ninguna cotización.</div>
+              )}
+              {!cargandoCotis && cotis?.map((c: any) => {
+                const fecha = c.created_at ? new Date(c.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''
+                const precio = c.precio_ofrecido ?? c.precio_publico
+                const cli = [c.cliente_nombre, c.cliente_apellido].filter(Boolean).join(' ') || c.cliente_razon_social || 'Sin cliente'
+                const link = c.public_token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/p/${c.public_token}` : null
+                return (
+                  <div key={c.id} style={{ background: '#132233', border: '1px solid #1e3248', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#e8f0f8' }}>N° {c.numero} · {cli}</div>
+                        <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 2 }}>{c.bomba_codigo || ''}{c.bomba_watts ? ` · ${c.bomba_watts}W` : ''} · {fecha}</div>
+                      </div>
+                      {precio != null && <div style={{ fontSize: 15, fontWeight: 800, color: '#4ade80', whiteSpace: 'nowrap' as const }}>$ {Math.round(precio).toLocaleString('es-AR')}</div>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' as const }}>
+                      {link ? (
+                        <>
+                          <a href={link} target="_blank" rel="noopener" style={{ flex: 1, minWidth: 120, textAlign: 'center' as const, padding: '8px 10px', background: '#1e3248', border: '1px solid #2a4a6a', borderRadius: 8, color: '#e8f0f8', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>🔗 Abrir / Ver</a>
+                          <button onClick={() => { navigator.clipboard?.writeText(link); }} style={{ padding: '8px 12px', background: 'rgba(37,211,102,0.12)', border: '1px solid #25d366', borderRadius: 8, color: '#25d366', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>📋 Copiar link</button>
+                          <a href={`https://wa.me/?text=${encodeURIComponent(`Presupuesto Febecos N° ${c.numero}${precio != null ? ` — $${Math.round(precio).toLocaleString('es-AR')}` : ''}\n${link}`)}`} target="_blank" rel="noopener" style={{ padding: '8px 12px', background: 'rgba(37,211,102,0.12)', border: '1px solid #25d366', borderRadius: 8, color: '#25d366', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>💬 WhatsApp</a>
+                        </>
+                      ) : (
+                        <span style={{ fontSize: 11, color: '#7a9ab5', fontStyle: 'italic' as const }}>Cotización antigua sin link compartible</span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── BANNER DEMO ─────────────────────────────────────────────────────── */}
       {diasDemo !== null && (
         <div style={{
@@ -1496,6 +1561,9 @@ export default function Portal() {
               </div>
             </div>
             <div style={s.descuentoBadge}>{rev.descuento_pct}% OFF</div>
+            <button onClick={abrirCotizaciones} style={{ padding: '6px 12px', background: 'rgba(232,104,26,0.12)', border: '1px solid #e8681a', borderRadius: 8, color: '#e8681a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              📄 Mis cotizaciones
+            </button>
             <a href={`/portal/perfil?token=${token}`} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', fontSize: 12, cursor: 'pointer', textDecoration: 'none' }}>
               ⚙️ Mi perfil
             </a>
@@ -2094,7 +2162,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
                 </div>
               </div>
               <a href={roiUrl()} target="_blank" rel="noopener noreferrer" style={{ display:'block', width:'100%', padding:'12px', background: provincia && sistemaActual ? '#e8681a' : '#1e3248', color: provincia && sistemaActual ? '#fff' : '#3a5a7a', borderRadius:8, textAlign:'center' as const, fontWeight:700, fontSize:14, textDecoration:'none', pointerEvents: provincia && sistemaActual ? 'auto' : 'none' as any }}>
-                {provincia && sistemaActual ? '⏱ Ver en cuánto recupera la inversión →' : 'Completá provincia y sistema para continuar'}
+                {provincia && sistemaActual ? '⏱ Ver recupero de inversión (informe completo) →' : 'Completá provincia y sistema para continuar'}
               </a>
             </div>
           )}
