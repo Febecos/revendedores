@@ -159,6 +159,15 @@ export default function Home() {
         <p style={s.subtitulo}>
           Accedé al catálogo mayorista, herramientas de cotización y precios diferenciados.
         </p>
+
+        {/* ── Ya tengo acceso ── */}
+        <div style={{ background: '#f0f7ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' as const }}>
+          <span style={{ fontSize: 13, color: '#1e40af', fontWeight: 600 }}>¿Ya tenés tu código de acceso?</span>
+          <a href="/portal" style={{ background: '#003d72', color: '#fff', padding: '9px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
+            Ingresar al portal →
+          </a>
+        </div>
+
         <p style={{ textAlign: 'center', fontSize: 12, color: '#e53e3e', marginBottom: 20 }}>
           * Todos los campos son obligatorios
         </p>

@@ -13,137 +13,120 @@ function htmlInvitacion(nombre: string, token: string, descuento: number): strin
   const primerNombre = nombre.split(' ')[0] || nombre
   const portalUrl = `https://revendedores.febecos.com/portal?token=${token}`
 
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Invitación Beta — Portal Revendedores Febecos</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #f0f4f8; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a2a3a; }
-    .wrap { max-width: 600px; margin: 0 auto; }
-    .header { background: #003d72; padding: 40px; text-align: center; border-radius: 0; }
-    .badge { display: inline-block; background: #a8c61b; color: #003d72; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: 5px 14px; border-radius: 20px; margin-bottom: 20px; }
-    .header h1 { color: #ffffff; font-size: 26px; font-weight: 800; line-height: 1.3; }
-    .header h1 span { color: #a8c61b; }
-    .body { background: #ffffff; padding: 40px; }
-    .greeting { font-size: 16px; line-height: 1.8; color: #2d3f55; margin-bottom: 32px; }
-    .greeting strong { color: #003d72; }
-    .card { background: #f7f9fc; border: 1px solid #d6e0ea; border-radius: 12px; padding: 24px 28px; margin-bottom: 32px; }
-    .card-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e8edf2; }
-    .card-row:last-child { border-bottom: none; }
-    .card-label { font-size: 13px; color: #5a6f84; font-weight: 600; }
-    .card-value { font-size: 14px; color: #003d72; font-weight: 800; }
-    .card-value.green { color: #1a6b35; font-size: 18px; }
-    .token-box { background: #003d72; border-radius: 8px; padding: 14px 20px; margin-bottom: 32px; text-align: center; }
-    .token-label { font-size: 11px; color: rgba(255,255,255,.6); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
-    .token-value { font-size: 22px; font-weight: 800; color: #a8c61b; letter-spacing: .08em; font-family: monospace; }
-    .steps { margin-bottom: 32px; }
-    .step { display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start; }
-    .step-num { background: #003d72; color: #fff; font-size: 13px; font-weight: 800; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .step-text strong { display: block; font-size: 14px; color: #003d72; margin-bottom: 2px; }
-    .step-text span { font-size: 13px; color: #5a6f84; line-height: 1.6; }
-    .cta-wrap { text-align: center; padding: 8px 0 32px; }
-    .cta-btn { display: inline-block; background: #a8c61b; color: #003d72; padding: 18px 48px; border-radius: 12px; font-weight: 800; font-size: 17px; text-decoration: none; letter-spacing: -.2px; }
-    .cta-note { font-size: 12px; color: #7a8fa5; margin-top: 12px; text-align: center; }
-    .footer { background: #f0f4f8; padding: 28px 40px; text-align: center; border-top: 1px solid #d6e0ea; }
-    .footer p { font-size: 12px; color: #7a8fa5; line-height: 1.8; }
-    .footer a { color: #003d72; text-decoration: none; font-weight: 600; }
-    @media (max-width: 600px) {
-      .header, .body, .footer { padding-left: 20px; padding-right: 20px; }
-    }
-  </style>
+  <title>Tu acceso al portal — Revendedores Febecos</title>
 </head>
-<body>
-<div class="wrap">
+<body style="margin:0;padding:0;background:#f0f4f8;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a2a3a">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:32px 16px"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
 
-  <div class="header">
-    <div class="badge">✦ Acceso Beta</div>
-    <h1>Tu acceso al portal<br /><span>Revendedores Febecos</span><br />está listo</h1>
-  </div>
+  <!-- HEADER -->
+  <tr><td style="background:#003d72;padding:36px 40px;text-align:center;border-radius:12px 12px 0 0">
+    <div style="display:inline-block;background:#a8c61b;color:#003d72;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:5px 14px;border-radius:20px;margin-bottom:18px">✦ Acceso Beta</div>
+    <div style="color:#fff;font-size:26px;font-weight:800;line-height:1.35">Tu acceso al portal<br/><span style="color:#a8c61b">Revendedores Febecos</span><br/>está listo</div>
+  </td></tr>
 
-  <div class="body">
+  <!-- BODY -->
+  <tr><td style="background:#fff;padding:36px 40px">
 
-    <p class="greeting">
-      Hola <strong>${primerNombre}</strong>,<br /><br />
+    <!-- Saludo -->
+    <p style="font-size:16px;line-height:1.8;color:#2d3f55;margin:0 0 28px">
+      Hola <strong style="color:#003d72">${primerNombre}</strong>,<br/><br/>
       Te damos la bienvenida al programa de revendedores de Febecos Bombas Solares.
-      Sos parte del grupo inicial de acceso — antes de que abramos el portal al público general.<br /><br />
+      Sos parte del grupo inicial de acceso — antes de que abramos el portal al público general.<br/><br/>
       Desde hoy podés cotizar equipos con tu descuento mayorista y ver precios en tiempo real.
     </p>
 
-    <!-- CARD ACCESO -->
-    <div class="card">
-      <div class="card-row">
-        <span class="card-label">Tu descuento mayorista</span>
-        <span class="card-value green">${descuento}% off</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Acceso al portal</span>
-        <span class="card-value">revendedores.febecos.com</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Soporte</span>
-        <span class="card-value">WhatsApp directo con Guillermo</span>
-      </div>
-    </div>
+    <!-- CARD ACCESO — tabla para compatibilidad con clientes de email -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f9fc;border:1px solid #d6e0ea;border-radius:12px;margin-bottom:28px">
+      <tr>
+        <td style="padding:12px 20px;font-size:13px;color:#5a6f84;font-weight:600;border-bottom:1px solid #e8edf2">Tu descuento mayorista</td>
+        <td style="padding:12px 20px;font-size:18px;font-weight:800;color:#1a6b35;text-align:right;border-bottom:1px solid #e8edf2">${descuento}% off</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 20px;font-size:13px;color:#5a6f84;font-weight:600;border-bottom:1px solid #e8edf2">Acceso al portal</td>
+        <td style="padding:12px 20px;text-align:right;border-bottom:1px solid #e8edf2">
+          <a href="${portalUrl}" style="font-size:14px;color:#003d72;font-weight:800;text-decoration:none">revendedores.febecos.com →</a>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 20px;font-size:13px;color:#5a6f84;font-weight:600">Soporte</td>
+        <td style="padding:12px 20px;text-align:right">
+          <a href="https://wa.me/5491125750323" style="font-size:14px;color:#003d72;font-weight:800;text-decoration:none">💬 WhatsApp 11 2575-0323</a>
+        </td>
+      </tr>
+    </table>
 
     <!-- TOKEN -->
-    <div class="token-box">
-      <div class="token-label">Tu código de acceso</div>
-      <div class="token-value">${token}</div>
-    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#003d72;border-radius:8px;margin-bottom:28px">
+      <tr><td style="padding:16px 20px;text-align:center">
+        <div style="font-size:11px;color:rgba(255,255,255,.6);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Tu código de acceso</div>
+        <div style="font-size:24px;font-weight:800;color:#a8c61b;letter-spacing:.1em;font-family:monospace">${token}</div>
+      </td></tr>
+    </table>
 
-    <!-- PASOS -->
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-text">
-          <strong>Hacé clic en el botón de abajo</strong>
-          <span>Te lleva directo al portal con tu acceso ya activado. No necesitás crear cuenta ni contraseña.</span>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-text">
-          <strong>Ingresá los datos del pozo de tu cliente</strong>
-          <span>El sistema elige el equipo correcto automáticamente y te muestra el precio con tu descuento.</span>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-text">
-          <strong>Consultanos por cualquier duda</strong>
-          <span>Guillermo está disponible por WhatsApp para ayudarte a cerrar tus primeras ventas.</span>
-        </div>
-      </div>
-    </div>
+    <!-- PASOS — tabla para centrar los números -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px">
+      <tr>
+        <td width="36" valign="top" style="padding-bottom:16px">
+          <div style="background:#003d72;color:#fff;font-size:13px;font-weight:800;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px">1</div>
+        </td>
+        <td style="padding-left:14px;padding-bottom:16px;vertical-align:top">
+          <strong style="display:block;font-size:14px;color:#003d72;margin-bottom:3px">Hacé clic en el botón de abajo</strong>
+          <span style="font-size:13px;color:#5a6f84;line-height:1.6">Te lleva directo al portal con tu acceso ya activado. No necesitás crear cuenta ni contraseña.</span>
+        </td>
+      </tr>
+      <tr>
+        <td width="36" valign="top" style="padding-bottom:16px">
+          <div style="background:#003d72;color:#fff;font-size:13px;font-weight:800;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px">2</div>
+        </td>
+        <td style="padding-left:14px;padding-bottom:16px;vertical-align:top">
+          <strong style="display:block;font-size:14px;color:#003d72;margin-bottom:3px">Ingresá los datos del pozo de tu cliente</strong>
+          <span style="font-size:13px;color:#5a6f84;line-height:1.6">El sistema elige el equipo correcto automáticamente y te muestra el precio con tu descuento.</span>
+        </td>
+      </tr>
+      <tr>
+        <td width="36" valign="top">
+          <div style="background:#003d72;color:#fff;font-size:13px;font-weight:800;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px">3</div>
+        </td>
+        <td style="padding-left:14px;vertical-align:top">
+          <strong style="display:block;font-size:14px;color:#003d72;margin-bottom:3px">Consultanos por cualquier duda</strong>
+          <span style="font-size:13px;color:#5a6f84;line-height:1.6">Guillermo está disponible por WhatsApp para ayudarte a cerrar tus primeras ventas.</span>
+        </td>
+      </tr>
+    </table>
 
     <!-- CTA -->
-    <div class="cta-wrap">
-      <a href="${portalUrl}" class="cta-btn">
-        Acceder al portal →
-      </a>
-      <p class="cta-note">O ingresá el código <strong>${token}</strong> en revendedores.febecos.com</p>
-    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px">
+      <tr><td align="center" style="padding-bottom:12px">
+        <a href="${portalUrl}" style="display:inline-block;background:#a8c61b;color:#003d72;padding:18px 48px;border-radius:12px;font-weight:800;font-size:17px;text-decoration:none">Acceder al portal →</a>
+      </td></tr>
+      <tr><td align="center">
+        <p style="font-size:12px;color:#7a8fa5;margin:0">O ingresá tu código <strong>${token}</strong> en <a href="${portalUrl}" style="color:#7a8fa5">revendedores.febecos.com/portal</a></p>
+      </td></tr>
+    </table>
 
-  </div>
+  </td></tr>
 
-  <div class="footer">
-    <p>
-      <strong>Guillermo Sandler</strong> · Febecos Bombas Solares<br />
-      <a href="https://wa.me/5491125750323">WhatsApp: +54 9 11 2575-0323</a> ·
-      <a href="mailto:revende@febecos.com">revende@febecos.com</a><br />
-      <a href="https://revendedores.febecos.com">revendedores.febecos.com</a>
+  <!-- FOOTER -->
+  <tr><td style="background:#f0f4f8;padding:24px 40px;text-align:center;border-top:1px solid #d6e0ea;border-radius:0 0 12px 12px">
+    <p style="font-size:12px;color:#7a8fa5;line-height:1.8;margin:0">
+      <strong style="color:#1a2a3a">Guillermo Sandler</strong> · Febecos Bombas Solares<br/>
+      <a href="https://wa.me/5491125750323" style="color:#003d72;text-decoration:none;font-weight:600">WhatsApp: +54 9 11 2575-0323</a> ·
+      <a href="mailto:revende@febecos.com" style="color:#003d72;text-decoration:none;font-weight:600">revende@febecos.com</a><br/>
+      <a href="https://revendedores.febecos.com" style="color:#003d72;text-decoration:none;font-weight:600">revendedores.febecos.com</a>
     </p>
-    <p style="margin-top:10px;">Lun a Vie 10–17 hs</p>
-  </div>
+    <p style="font-size:11px;color:#9aacbe;margin:8px 0 0">Lun a Vie 10–17 hs</p>
+  </td></tr>
 
-</div>
+</table>
+</td></tr></table>
 </body>
-</html>
-`.trim()
+</html>`.trim()
 }
 
 export async function POST(req: NextRequest) {
