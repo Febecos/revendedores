@@ -853,20 +853,21 @@ ${curvasHtml ? `
   // - Jabalina → protecciones (caja)
   // - Soga → cable (se vende por metro, va con los cables)
   // - 'otros' → normalizar a 'otro'
+  const esSensorItem = (it: any) => it.familia === 'cable' && (it.nombre||'').toLowerCase().includes('sensor')
   const familias: Record<string, any[]> = {}
   if (data?.kit) {
     for (const item of data.kit) {
-      if (esMC4(item.nombre)) continue          // MC4 excluido: está dentro de la caja IP65
+      if (esMC4(item.nombre)) continue                      // MC4: dentro de la Caja IP65
+      if (sensorFueraRango && esSensorItem(item)) continue  // cable sensor fuera de rango: no incluido
       let f = item.familia || 'otro'
       if (item.nombre?.toLowerCase().includes('jabalina')) f = 'caja'
       else if (esSogaItem(item)) f = 'cable'    // soga va con cables
       else if (f === 'otros') f = 'otro'         // normalizar plural
       if (!familias[f]) familias[f] = []
-      // Para pozos profundos, mostrar los metros reales (totales) en lugar de la cantidad base del kit
-      const esSensorItem = (it: any) => it.familia === 'cable' && (it.nombre||'').toLowerCase().includes('sensor')
+      // Para pozos profundos, mostrar metros totales; para sensor, mostrar distancia real
       const cantDisplay = esPozosProfundo && item.unidad === 'metro' && (esCableSum(item) || esSogaItem(item))
         ? Math.max(item.cantidad, metrosTotal)
-        : !sensorFueraRango && esSensorItem(item) && distanciaTablero != null && distanciaTablero > item.cantidad
+        : esSensorItem(item) && distanciaTablero != null && distanciaTablero > item.cantidad
           ? distanciaTablero
           : item.cantidad
       familias[f].push({ ...item, cantDisplay })
