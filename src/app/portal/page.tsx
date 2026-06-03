@@ -475,7 +475,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 }
 
 
-function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, profundidadInicial = 0 }: any) {
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaDiametro = null }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [nroPresup, setNroPresup] = useState<string | null>(null)
@@ -687,9 +687,6 @@ ${esPozosProfundo ? `<div style="background:#fff8e1;border:1px solid #ffe082;bor
   🔌 Cable sumergible +${metrosExtraCable}m: <strong>${fmt(extraCable)}</strong><br>
   🪢 Soga anti-UV +${metrosExtraSoga}m: <strong>${fmt(extraSoga)}</strong>
 </div>` : ''}
-${curvasHtml ? `<h3>Rendimiento (L/día por altura)</h3>
-<table><thead><tr><th>Altura</th><th>☀️ Verano (${HSP.verano}h)</th><th>📅 Promedio (${HSP.promedio}h)</th><th>❄️ Invierno (${HSP.invierno}h)</th><th>L/hora</th></tr></thead>
-<tbody>${curvasHtml}</tbody></table>` : ''}
 ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
 <table style="table-layout:fixed;width:100%"><thead><tr><th style="width:88%">Componente</th><th style="width:12%;text-align:center">Cant.</th></tr></thead>
 <tbody>${kitHtml2Col}</tbody></table>` : ''}
@@ -700,6 +697,67 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
   }<br>
   Cotización realizada a través de la plataforma de cotizaciones de <strong>febecos.com</strong> · Bombeo Solar Argentina<br>
   Válido por 48 horas desde la fecha de emisión. Sujeto a disponibilidad de stock.
+</div>
+
+<div style="page-break-before:always"></div>
+
+<div class="header">
+  <div class="logo"><span style="font-size:16px;font-weight:800;color:#1a6b3c">Febecos</span> <span style="font-size:11px;color:#666"> · Bombeo Solar Argentina</span></div>
+  <div class="presup-num"><h2 style="font-size:13px">Análisis técnico — Pres. ${nro}</h2><p>Documento complementario</p></div>
+</div>
+
+<!-- SECCIÓN 1: NECESIDAD DEL SISTEMA -->
+<h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#1a6b3c;border-bottom:2px solid #1a6b3c;padding-bottom:5px;margin:18px 0 12px">Necesidad relevada del sistema</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 20px;margin-bottom:16px">
+  ${busquedaMCA ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Altura manométrica total</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${busquedaMCA.toFixed(1)} <span style="font-size:13px">MCA</span></div></div>` : ''}
+  ${busquedaLitros ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Caudal requerido</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${busquedaLitros.toLocaleString('es-AR')} <span style="font-size:13px">L/día</span></div></div>` : ''}
+  <div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Profundidad del pozo</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${profInput} <span style="font-size:13px">m</span></div></div>
+  ${busquedaDiametro ? `<div style="background:#f7f6f2;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#666;letter-spacing:.06em;margin-bottom:3px">Diám. mínimo perforación</div><div style="font-size:16px;font-weight:700;color:#1a1a18">${busquedaDiametro}"</div></div>` : ''}
+</div>
+
+<!-- SECCIÓN 2: POR QUÉ ESTE EQUIPO -->
+<h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#1a6b3c;border-bottom:2px solid #1a6b3c;padding-bottom:5px;margin:18px 0 12px">Por qué se seleccionó este equipo</h3>
+<div style="background:#f7f6f2;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#333">
+  ${busquedaMCA && busquedaLitros ? `
+  La búsqueda requería una bomba capaz de elevar al menos <strong>${busquedaLitros.toLocaleString('es-AR')} litros por día</strong>
+  a una altura manométrica de <strong>${busquedaMCA.toFixed(1)} MCA</strong> desde un pozo de <strong>${profInput} metros</strong> de profundidad.
+  ` : `La bomba fue seleccionada considerando la profundidad del pozo (${profInput} m) y las características del sistema.`}
+  <br>
+  El equipo <strong>${data?.bomba?.marca || ''} ${data?.bomba?.watts || ''}W</strong> cumple con estos requerimientos operando
+  con <strong>${data?.bomba?.cant_paneles || ''} panel${(data?.bomba?.cant_paneles||1)>1?'es':''} solar${(data?.bomba?.cant_paneles||1)>1?'es':''} de ${panelKit?.potencia_w || ''}W</strong>
+  en condiciones de irradiación solar típicas de la región.
+</div>
+
+<!-- SECCIÓN 3: RENDIMIENTO DETALLADO -->
+${curvasHtml ? `
+<h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#1a6b3c;border-bottom:2px solid #1a6b3c;padding-bottom:5px;margin:18px 0 12px">Curva de rendimiento del equipo (L/día por altura)</h3>
+<div style="font-size:10px;color:#888;margin-bottom:8px">Calculado con horas solares pico regionales · ☀️ Verano ${HSP.verano}h · 📅 Promedio ${HSP.promedio}h · ❄️ Invierno ${HSP.invierno}h</div>
+<table style="width:100%;border-collapse:collapse;font-size:11px">
+  <thead><tr style="background:#1a6b3c;color:#fff">
+    <th style="padding:6px 10px;text-align:right">Altura (m)</th>
+    <th style="padding:6px 10px;text-align:right">Verano</th>
+    <th style="padding:6px 10px;text-align:right">Promedio anual</th>
+    <th style="padding:6px 10px;text-align:right">Invierno</th>
+    <th style="padding:6px 10px;text-align:right">L/hora</th>
+  </tr></thead>
+  <tbody>${data?.curvas?.map((c: any, i: number) => {
+    const esPozo = Math.abs(c.altura_m - profInput) <= 5
+    return `<tr style="background:${esPozo ? '#e8f5ee' : (i%2===0?'#fafafa':'#fff')};${esPozo?'font-weight:700;':''}">
+      <td style="padding:5px 10px;text-align:right;color:${esPozo?'#1a6b3c':'#e8681a'}">${c.altura_m}m${esPozo?' ◄':''}</td>
+      <td style="padding:5px 10px;text-align:right">${c.litros_verano.toLocaleString('es-AR')}</td>
+      <td style="padding:5px 10px;text-align:right">${c.litros_promedio.toLocaleString('es-AR')}</td>
+      <td style="padding:5px 10px;text-align:right">${c.litros_invierno.toLocaleString('es-AR')}</td>
+      <td style="padding:5px 10px;text-align:right;color:#888">${c.litros_hora.toLocaleString('es-AR')}</td>
+    </tr>`
+  }).join('')}</tbody>
+</table>
+<div style="margin-top:8px;font-size:10px;color:#888">◄ Fila resaltada = altura más cercana a la profundidad del pozo (${profInput}m)</div>
+` : ''}
+
+<!-- FOOTER PÁGINA 2 -->
+<div class="footer" style="margin-top:24px">
+  Este análisis es orientativo. Los caudales reales pueden variar según la irradiación solar local, la temperatura del agua y el estado del pozo.<br>
+  Para asesoramiento técnico: <strong>ventas@febecos.com</strong> · febecos.com
 </div>
 </body></html>`
 
@@ -1475,6 +1533,9 @@ export default function Portal() {
           revToken={token}
           revEmail={rev.email}
           profundidadInicial={profundidad}
+          busquedaMCA={altura ? Number(altura) : null}
+          busquedaLitros={litros ? Number(litros) : null}
+          busquedaDiametro={diametro || null}
         />
       )}
 
