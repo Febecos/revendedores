@@ -596,13 +596,16 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     if (data?.kit) {
       for (const item of data.kit) {
         if (esBombaItem(item.nombre)) continue
-        const f = FAM_ORDEN[(item.familia || '').toLowerCase()] ?? 6
-        // Cable/soga: los metros mostrados reflejan el largo real del pozo (base del kit + adicional)
-        const esCableLargo = item.unidad === 'metro' && item.nombre?.toLowerCase().includes('sumergible')
-        const esSogaLargo  = item.unidad === 'metro' && (item.nombre?.toLowerCase().includes('soga') || item.nombre?.toLowerCase().includes('anti-uv'))
-        const cant = esPozosProfundo && esCableLargo ? Math.max(item.cantidad, metrosTotal)
-                   : esPozosProfundo && esSogaLargo  ? Math.max(item.cantidad, metrosTotal)
-                   : item.cantidad
+        if (/\bmc4\b|ficha mc/i.test(item.nombre || '')) continue  // MC4 excluido: está dentro de la Caja IP65
+        // Soga → familia cable para el PDF (FAM_ORDEN)
+        const isSogaPdf = (item.nombre||'').toLowerCase().includes('soga') || (item.nombre||'').toLowerCase().includes('anti-uv')
+        const familiaKey = isSogaPdf ? 'cable' : (item.familia || '').toLowerCase()
+        const f = FAM_ORDEN[familiaKey] ?? 6
+        // Cable sumergible y soga: mostrar metros totales del pozo (no solo la base del kit)
+        const esCableLargo = item.unidad === 'metro' && (item.nombre||'').toLowerCase().includes('sumergible')
+        const cant = esPozosProfundo && (esCableLargo || isSogaPdf)
+          ? Math.max(item.cantidad, metrosTotal)
+          : item.cantidad
         kitOrdenado.push({ nombre: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''), notas: item.notas || '', cantidad: cant, unidad: item.unidad || 'unidad', _f: f })
       }
     }
@@ -804,14 +807,30 @@ ${curvasHtml ? `
   const extrasTotal  = extraCable + extraSoga
   const precioConExtras = precio != null ? precio + extrasTotal : null
 
-  // Agrupar kit por familia — jabalina va en protecciones (caja), no en otros
+  // Helpers para identificar items especiales en el kit
+  const esMC4 = (n: string) => /\bmc4\b|ficha mc/i.test(n || '')
+  const esCableSum = (it: any) => it.familia === 'cable' && (it.nombre || '').toLowerCase().includes('sumergible')
+  const esSogaItem = (it: any) => (it.nombre || '').toLowerCase().includes('soga') || (it.nombre || '').toLowerCase().includes('anti-uv')
+
+  // Agrupar kit por familia:
+  // - Excluir MC4 (ya está incluido dentro de la Caja IP65)
+  // - Jabalina → protecciones (caja)
+  // - Soga → cable (se vende por metro, va con los cables)
+  // - 'otros' → normalizar a 'otro'
   const familias: Record<string, any[]> = {}
   if (data?.kit) {
     for (const item of data.kit) {
+      if (esMC4(item.nombre)) continue          // MC4 excluido: está dentro de la caja IP65
       let f = item.familia || 'otro'
       if (item.nombre?.toLowerCase().includes('jabalina')) f = 'caja'
+      else if (esSogaItem(item)) f = 'cable'    // soga va con cables
+      else if (f === 'otros') f = 'otro'         // normalizar plural
       if (!familias[f]) familias[f] = []
-      familias[f].push(item)
+      // Para pozos profundos, mostrar los metros reales (totales) en lugar de la cantidad base del kit
+      const cantDisplay = esPozosProfundo && item.unidad === 'metro' && (esCableSum(item) || esSogaItem(item))
+        ? Math.max(item.cantidad, metrosTotal)
+        : item.cantidad
+      familias[f].push({ ...item, cantDisplay })
     }
   }
 
@@ -1110,7 +1129,7 @@ ${curvasHtml ? `
                             {item.potencia_w && <span style={{ fontSize: 11, color: '#4ade80', marginLeft: 8 }}>{item.potencia_w}W</span>}
                             {item.notas && <span style={{ fontSize: 11, color: '#3a5a7a', marginLeft: 8 }}>({item.notas})</span>}
                           </div>
-                          <span style={{ fontSize: 12, color: '#7a9ab5', fontFamily: 'monospace', fontWeight: 600 }}>{item.unidad === 'metro' ? `${item.cantidad} m` : `×${item.cantidad}`}</span>
+                          <span style={{ fontSize: 12, color: '#7a9ab5', fontFamily: 'monospace', fontWeight: 600 }}>{item.unidad === 'metro' ? `${item.cantDisplay ?? item.cantidad} m` : `×${item.cantidad}`}</span>
                         </div>
                       ))}
                     </div>
