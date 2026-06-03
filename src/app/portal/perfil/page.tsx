@@ -2,6 +2,13 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 
+interface Transportista {
+  id: number
+  name: string
+  confidence: string
+  match_level: string
+}
+
 const PROVINCIAS = [
   'Buenos Aires','CABA','Catamarca','Chaco','Chubut','Córdoba','Corrientes',
   'Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones',
@@ -16,6 +23,8 @@ interface Perfil {
   tipo_revendedor: string[] | null; tipo_usuario: string; descuento_pct: number
   experiencia_anos: string; experiencia_solar: string; equipos_mes: string
   fecha_registro: string
+  transportista_1_id: number | null; transportista_1_nombre: string | null
+  transportista_2_id: number | null; transportista_2_nombre: string | null
 }
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
@@ -55,7 +64,10 @@ function PerfilInner() {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [form, setForm] = useState({
     empresa: '', provincia: '', localidad: '', cuit: '', whatsapp: '',
+    transportista_1_id: '', transportista_2_id: '',
   })
+  const [transportistas, setTransportistas] = useState<Transportista[]>([])
+  const [cargandoTransp, setCargandoTransp] = useState(false)
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [ok, setOk] = useState(false)
@@ -75,6 +87,8 @@ function PerfilInner() {
         localidad: d.perfil.localidad || '',
         cuit:      d.perfil.cuit      || '',
         whatsapp:  d.perfil.whatsapp  || '',
+        transportista_1_id: d.perfil.transportista_1_id ? String(d.perfil.transportista_1_id) : '',
+        transportista_2_id: d.perfil.transportista_2_id ? String(d.perfil.transportista_2_id) : '',
       })
     } catch {
       setError('Error de conexión')
@@ -84,6 +98,18 @@ function PerfilInner() {
   }, [token])
 
   useEffect(() => { cargar() }, [cargar])
+
+  useEffect(() => {
+    if (!form.provincia) { setTransportistas([]); return }
+    const params = new URLSearchParams({ provincia: form.provincia })
+    if (form.localidad) params.set('localidad', form.localidad)
+    setCargandoTransp(true)
+    fetch(`/api/transportistas?${params}`)
+      .then(r => r.json())
+      .then(d => { if (d.ok) setTransportistas(d.carriers) })
+      .catch(() => {})
+      .finally(() => setCargandoTransp(false))
+  }, [form.provincia, form.localidad])
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault()
@@ -95,7 +121,12 @@ function PerfilInner() {
       const r = await fetch('/api/perfil', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, ...form }),
+        body: JSON.stringify({
+          token,
+          ...form,
+          transportista_1_id: form.transportista_1_id ? Number(form.transportista_1_id) : null,
+          transportista_2_id: form.transportista_2_id ? Number(form.transportista_2_id) : null,
+        }),
       })
       const d = await r.json()
       if (d.ok) {
@@ -226,7 +257,7 @@ function PerfilInner() {
                 <select
                   style={ci}
                   value={form.provincia}
-                  onChange={e => setForm(f => ({ ...f, provincia: e.target.value }))}
+                  onChange={e => setForm(f => ({ ...f, provincia: e.target.value, transportista_1_id: '', transportista_2_id: '' }))}
                 >
                   <option value="">Seleccioná...</option>
                   {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -254,6 +285,60 @@ function PerfilInner() {
                 />
               </Campo>
             </div>
+          </div>
+
+          {/* ── TRANSPORTE ─────────────────────────────────────────────────────── */}
+          <div style={{ background: '#132233', border: '1px solid #1e3248', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
+              Transporte preferido
+            </div>
+            <p style={{ fontSize: 12, color: '#3a5a7a', marginTop: 0, marginBottom: 16 }}>
+              {form.provincia
+                ? `Transportistas disponibles en ${form.provincia}${cargandoTransp ? ' (cargando…)' : ` (${transportistas.length} encontrados)`}`
+                : 'Completá tu provincia para ver los transportistas disponibles.'}
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <Campo label="Transporte 1">
+                <select
+                  style={ci}
+                  value={form.transportista_1_id}
+                  onChange={e => setForm(f => ({ ...f, transportista_1_id: e.target.value, transportista_2_id: '' }))}
+                  disabled={!form.provincia || cargandoTransp}
+                >
+                  <option value="">— Ninguno —</option>
+                  {transportistas.map(t => (
+                    <option key={t.id} value={String(t.id)}>
+                      {t.name}{t.match_level === 'provincia_localidad' ? ' ★' : ''}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Transporte 2 (alternativo)">
+                <select
+                  style={ci}
+                  value={form.transportista_2_id}
+                  onChange={e => setForm(f => ({ ...f, transportista_2_id: e.target.value }))}
+                  disabled={!form.transportista_1_id || !form.provincia || cargandoTransp}
+                >
+                  <option value="">— Ninguno —</option>
+                  {transportistas
+                    .filter(t => String(t.id) !== form.transportista_1_id)
+                    .map(t => (
+                      <option key={t.id} value={String(t.id)}>
+                        {t.name}{t.match_level === 'provincia_localidad' ? ' ★' : ''}
+                      </option>
+                    ))}
+                </select>
+              </Campo>
+            </div>
+            {form.provincia && !cargandoTransp && transportistas.length === 0 && (
+              <p style={{ fontSize: 12, color: '#7a9ab5', marginTop: 12, marginBottom: 0 }}>
+                No hay transportistas registrados para tu zona aún.
+              </p>
+            )}
+            <p style={{ fontSize: 11, color: '#3a5a7a', marginTop: 12, marginBottom: 0 }}>
+              ★ = cubre tu localidad específica. Se guardan con el botón de abajo.
+            </p>
           </div>
 
           {/* ── Feedback ──────────────────────────────────────────────────────── */}
