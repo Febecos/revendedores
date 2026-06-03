@@ -70,6 +70,8 @@ function PerfilInner() {
   const [cargandoTransp, setCargandoTransp] = useState(false)
   const [busqueda1, setBusqueda1] = useState('')
   const [busqueda2, setBusqueda2] = useState('')
+  const [resultados1, setResultados1] = useState<Transportista[]>([])
+  const [resultados2, setResultados2] = useState<Transportista[]>([])
   const [abierto1, setAbierto1] = useState(false)
   const [abierto2, setAbierto2] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -105,6 +107,7 @@ function PerfilInner() {
 
   useEffect(() => { cargar() }, [cargar])
 
+  // Carga inicial por provincia (dropdown cuando el campo está vacío)
   useEffect(() => {
     if (!form.provincia) { setTransportistas([]); return }
     const params = new URLSearchParams({ provincia: form.provincia })
@@ -116,6 +119,27 @@ function PerfilInner() {
       .catch(() => {})
       .finally(() => setCargandoTransp(false))
   }, [form.provincia, form.localidad])
+
+  // Búsqueda por nombre en TODOS los carriers (debounce 300ms)
+  useEffect(() => {
+    if (!busqueda1 || busqueda1.length < 2 || form.transportista_1_id) { setResultados1([]); return }
+    const t = setTimeout(() => {
+      const p = new URLSearchParams({ nombre: busqueda1 })
+      if (form.provincia) p.set('provincia', form.provincia)
+      fetch(`/api/transportistas?${p}`).then(r => r.json()).then(d => { if (d.ok) setResultados1(d.carriers) }).catch(() => {})
+    }, 300)
+    return () => clearTimeout(t)
+  }, [busqueda1, form.transportista_1_id, form.provincia])
+
+  useEffect(() => {
+    if (!busqueda2 || busqueda2.length < 2 || form.transportista_2_id) { setResultados2([]); return }
+    const t = setTimeout(() => {
+      const p = new URLSearchParams({ nombre: busqueda2 })
+      if (form.provincia) p.set('provincia', form.provincia)
+      fetch(`/api/transportistas?${p}`).then(r => r.json()).then(d => { if (d.ok) setResultados2(d.carriers) }).catch(() => {})
+    }, 300)
+    return () => clearTimeout(t)
+  }, [busqueda2, form.transportista_2_id, form.provincia])
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault()
@@ -333,24 +357,30 @@ function PerfilInner() {
                       onBlur={() => setTimeout(() => setAbierto1(false), 150)}
                       onChange={e => { setBusqueda1(e.target.value); setAbierto1(true) }}
                     />
-                    {abierto1 && (
-                      <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 8, zIndex: 200, maxHeight: 220, overflowY: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.5)' }}>
-                        {transportistas
-                          .filter(t => !busqueda1 || t.name.toLowerCase().includes(busqueda1.toLowerCase()))
-                          .filter(t => String(t.id) !== form.transportista_2_id)
-                          .map(t => (
+                    {abierto1 && (() => {
+                      // Si está escribiendo (≥2 chars) → resultados de API global; si no → zona
+                      const lista = (busqueda1.length >= 2 ? resultados1 : transportistas)
+                        .filter(t => String(t.id) !== form.transportista_2_id)
+                      return (
+                        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 8, zIndex: 200, maxHeight: 220, overflowY: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.5)' }}>
+                          {lista.map(t => (
                             <div key={t.id}
-                              onMouseDown={() => { setForm(f => ({ ...f, transportista_1_id: String(t.id) })); setBusqueda1(t.name); setAbierto1(false) }}
+                              onMouseDown={() => { setForm(f => ({ ...f, transportista_1_id: String(t.id) })); setBusqueda1(t.name); setResultados1([]); setAbierto1(false) }}
                               style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, color: '#e8f0f8', borderBottom: '1px solid #162232', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span>{t.name}</span>
                               {t.match_level === 'provincia_localidad' && <span style={{ fontSize: 10, color: '#4ade80', fontWeight: 700, letterSpacing: '0.05em' }}>TU ZONA</span>}
+                              {t.match_level === 'provincia' && <span style={{ fontSize: 10, color: '#7a9ab5', letterSpacing: '0.05em' }}>PROV.</span>}
                             </div>
                           ))}
-                        {transportistas.filter(t => !busqueda1 || t.name.toLowerCase().includes(busqueda1.toLowerCase())).length === 0 && (
-                          <div style={{ padding: '10px 14px', color: '#7a9ab5', fontSize: 13 }}>Sin resultados para "{busqueda1}"</div>
-                        )}
-                      </div>
-                    )}
+                          {lista.length === 0 && busqueda1.length >= 2 && (
+                            <div style={{ padding: '10px 14px', color: '#7a9ab5', fontSize: 13 }}>Sin resultados para "{busqueda1}"</div>
+                          )}
+                          {lista.length === 0 && busqueda1.length < 2 && (
+                            <div style={{ padding: '10px 14px', color: '#7a9ab5', fontSize: 13 }}>No hay transportistas para tu zona aún</div>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
                 )}
               </Campo>
@@ -379,24 +409,29 @@ function PerfilInner() {
                       onBlur={() => setTimeout(() => setAbierto2(false), 150)}
                       onChange={e => { setBusqueda2(e.target.value); setAbierto2(true) }}
                     />
-                    {abierto2 && (
-                      <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 8, zIndex: 200, maxHeight: 220, overflowY: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.5)' }}>
-                        {transportistas
-                          .filter(t => !busqueda2 || t.name.toLowerCase().includes(busqueda2.toLowerCase()))
-                          .filter(t => String(t.id) !== form.transportista_1_id)
-                          .map(t => (
+                    {abierto2 && (() => {
+                      const lista = (busqueda2.length >= 2 ? resultados2 : transportistas)
+                        .filter(t => String(t.id) !== form.transportista_1_id)
+                      return (
+                        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 8, zIndex: 200, maxHeight: 220, overflowY: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.5)' }}>
+                          {lista.map(t => (
                             <div key={t.id}
-                              onMouseDown={() => { setForm(f => ({ ...f, transportista_2_id: String(t.id) })); setBusqueda2(t.name); setAbierto2(false) }}
+                              onMouseDown={() => { setForm(f => ({ ...f, transportista_2_id: String(t.id) })); setBusqueda2(t.name); setResultados2([]); setAbierto2(false) }}
                               style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, color: '#e8f0f8', borderBottom: '1px solid #162232', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span>{t.name}</span>
                               {t.match_level === 'provincia_localidad' && <span style={{ fontSize: 10, color: '#4ade80', fontWeight: 700, letterSpacing: '0.05em' }}>TU ZONA</span>}
+                              {t.match_level === 'provincia' && <span style={{ fontSize: 10, color: '#7a9ab5', letterSpacing: '0.05em' }}>PROV.</span>}
                             </div>
                           ))}
-                        {transportistas.filter(t => !busqueda2 || t.name.toLowerCase().includes(busqueda2.toLowerCase())).length === 0 && (
-                          <div style={{ padding: '10px 14px', color: '#7a9ab5', fontSize: 13 }}>Sin resultados para "{busqueda2}"</div>
-                        )}
-                      </div>
-                    )}
+                          {lista.length === 0 && busqueda2.length >= 2 && (
+                            <div style={{ padding: '10px 14px', color: '#7a9ab5', fontSize: 13 }}>Sin resultados para "{busqueda2}"</div>
+                          )}
+                          {lista.length === 0 && busqueda2.length < 2 && (
+                            <div style={{ padding: '10px 14px', color: '#7a9ab5', fontSize: 13 }}>No hay transportistas para tu zona aún</div>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
                 )}
               </Campo>
