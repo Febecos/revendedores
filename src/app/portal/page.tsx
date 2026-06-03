@@ -121,7 +121,7 @@ function AccCounter({ label, val, onChange }: { label: string; val: number; onCh
   )
 }
 
-function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUsar, onReset, profundidad = 0 }: any) {
+function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUsar, onReset, profundidad = 0, distSensor = 0 }: any) {
   return (
     <div style={{ background:'#0a2e18', borderRadius:10, padding:16, marginTop:12 }}>
       <div style={{ display:'flex', gap:10, marginBottom:12, flexWrap:'wrap' as const }}>
@@ -141,7 +141,7 @@ function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUs
           ))}
         </div>
       )}
-      <button onClick={() => onUsar(mca, litrosDia, diamPerf, profundidad)} style={{ width:'100%', padding:'12px', background:'#e8681a', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
+      <button onClick={() => onUsar(mca, litrosDia, diamPerf, profundidad, distSensor)} style={{ width:'100%', padding:'12px', background:'#e8681a', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
         Usar esta MCA para buscar bomba →
       </button>
       <button onClick={onReset} style={{ width:'100%', padding:'10px', background:'transparent', border:'1px solid #1e3248', borderRadius:8, fontSize:13, fontWeight:600, color:'#7a9ab5', cursor:'pointer' }}>
@@ -151,7 +151,7 @@ function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUs
   )
 }
 
-function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: number, litros: number, diam: string, prof: number) => void; token: string | null; revendedor: string }) {
+function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: number, litros: number, diam: string, prof: number, distSensor: number) => void; token: string | null; revendedor: string }) {
   const [tab, setTab] = useState<'simple'|'avanzado'>('simple')
   const [tipo, setTipo] = useState<'sumergible'|'superficial'|'riego'>('sumergible')
   const [nivDin, setNivDin] = useState(10)
@@ -221,7 +221,9 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
     tramosCalc.push({ nombre: tipo==='superficial'?'Impulsión':'Cañería', diam, ...r2 })
     const fricTotal = parseFloat(tramosCalc.reduce((s,t)=>s+t.perdida,0).toFixed(2))
     const mca = parseFloat((altGeoSimple + fricTotal + presionM).toFixed(2))
-    setResSimple({ altGeo: altGeoSimple, friccion: fricTotal, mca, tramos: tramosCalc, profundidad: tipo === 'sumergible' ? nivDin : 0 })
+    // distSensor = longitud de cañería de impulsión + altura de descarga (recorrido del cable de sensor)
+    const distSensorSimple = Math.round(longImp + altDesc)
+    setResSimple({ altGeo: altGeoSimple, friccion: fricTotal, mca, tramos: tramosCalc, profundidad: tipo === 'sumergible' ? nivDin : 0, distSensor: distSensorSimple })
     guardar(mca, fricTotal, tipo, tramosCalc)
   }
 
@@ -238,7 +240,9 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
     const altGeoTotal = parseFloat(((primerTramo.profundidad||10) + (primerTramo.alturaTanque||2) + fricTotal + presionKgAv*10).toFixed(2))
     const mca = parseFloat((altGeoAv + fricTotal + presionKgAv*10).toFixed(2))
     const litTot = tramos[0]?.caudalLdia || 3000
-    setResAv({ altGeo: altGeoAv, friccion: fricTotal, mca, tramos: tramosCalc, litrosDia: litTot, profundidad: tramos[0]?.profundidad || 0 })
+    // distSensor = suma de longitudes de todos los tramos + altura del tanque del primer tramo
+    const distSensorAv = Math.round(tramos.reduce((s, t) => s + (t.longitud || 0), 0) + (primerTramo.alturaTanque || 2))
+    setResAv({ altGeo: altGeoAv, friccion: fricTotal, mca, tramos: tramosCalc, litrosDia: litTot, profundidad: tramos[0]?.profundidad || 0, distSensor: distSensorAv })
     guardar(mca, fricTotal, 'multiples_tramos', tramosCalc)
   }
 
@@ -372,7 +376,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
           <button onClick={calcSimple} style={{ width:'100%', padding:'11px', background:'#1a6b3c', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:14 }}>
             Calcular MCA
           </button>
-          {resSimple && <ResultadoMCA {...resSimple} litrosDia={litrosDia} diamPerf={diamPerf} onUsar={onUsarMCA} onReset={() => setResSimple(null)} />}
+          {resSimple && <ResultadoMCA {...resSimple} litrosDia={litrosDia} diamPerf={diamPerf} onUsar={onUsarMCA} onReset={() => setResSimple(null)} distSensor={resSimple.distSensor || 0} />}
         </>
       )}
 
@@ -467,7 +471,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
           <button onClick={calcAvanzado} style={{ width:'100%', padding:'11px', background:'#1a6b3c', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:14 }}>
             Calcular instalación completa
           </button>
-          {resAv && <ResultadoMCA {...resAv} diamPerf={diamPerf} onUsar={onUsarMCA} onReset={() => setResAv(null)} />}
+          {resAv && <ResultadoMCA {...resAv} diamPerf={diamPerf} onUsar={onUsarMCA} onReset={() => setResAv(null)} distSensor={resAv.distSensor || 0} />}
         </>
       )}
     </div>
@@ -475,7 +479,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 }
 
 
-function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaDiametro = null }: any) {
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaDiametro = null, distSensorInicial = 0 }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [nroPresup, setNroPresup] = useState<string | null>(null)
@@ -489,7 +493,9 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [pdfCliente, setPdfCliente] = useState<{nombre:string;apellido:string;telefono:string;zona:string;razonSocial?:string;cuit?:string}|null>(null)
   const [profInput, setProfInput] = useState<number>(profundidadInicial)
   const [cableMetros, setCableMetros] = useState<number | null>(null) // override manual de metros de cable sumergible/soga
-  const [distanciaTablero, setDistanciaTablero] = useState<number | null>(null) // distancia horizontal pozo → tablero (m)
+  // Distancia al sensor de nivel (desde el controlador hasta el tanque donde va el sensor)
+  // Pre-llenado con el valor calculado por la MCA (longitud cañería + altura tanque)
+  const [distanciaTablero, setDistanciaTablero] = useState<number | null>(distSensorInicial > 0 ? distSensorInicial : null)
 
   // ── Datos del cliente (solo cuando mostrarPublico=true) ───────────────────
   const [showClienteForm, setShowClienteForm] = useState(false)
@@ -1043,8 +1049,8 @@ ${curvasHtml ? `
                 {/* Distancia al tablero / control (cable de sensor) */}
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #1e3248' }}>
                   <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 6 }}>
-                    Distancia al tablero / control
-                    <span style={{ color: '#3a5a7a' }}> · desde el pozo hasta el panel de control (horizontal)</span>
+                    Distancia al sensor de nivel (tanque)
+                    <span style={{ color: '#3a5a7a' }}> · longitud de cañería + altura del tanque de almacenamiento{distSensorInicial > 0 ? ` — precalculado por la MCA: ${distSensorInicial}m` : ''}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
                     <input
@@ -1277,6 +1283,7 @@ export default function Portal() {
   const [modalCodigo, setModalCodigo] = useState<string | null>(null)
   const [bombaSel, setBombaSel] = useState<string | null>(null)
   const [profundidad, setProfundidad] = useState(0)
+  const [distSensorMCA, setDistSensorMCA] = useState<number>(0) // distancia al sensor calculada por la MCA
   // ── Mis cotizaciones ──────────────────────────────────────────────────────
   const [showCotis, setShowCotis] = useState(false)
   const [cotis, setCotis] = useState<any[] | null>(null)
@@ -1484,11 +1491,12 @@ export default function Portal() {
     }).catch(() => {})
   }, [])
 
-  function usarMCA(mca: number, litros: number, diam: string, prof: number = 0) {
+  function usarMCA(mca: number, litros: number, diam: string, prof: number = 0, distSensor: number = 0) {
     setAltura(String(mca))
     setLitros(String(litros))
     setDiametro(diam)
     setProfundidad(prof)
+    setDistSensorMCA(distSensor)
     setMostrarCalculadora(false)
     // Scroll a la calculadora de búsqueda
     setTimeout(() => {
@@ -1618,6 +1626,7 @@ export default function Portal() {
           busquedaMCA={altura ? Number(altura) : null}
           busquedaLitros={litros ? Number(litros) : null}
           busquedaDiametro={diametro || null}
+          distSensorInicial={distSensorMCA}
         />
       )}
 
