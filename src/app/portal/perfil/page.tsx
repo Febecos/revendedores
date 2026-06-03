@@ -68,6 +68,10 @@ function PerfilInner() {
   })
   const [transportistas, setTransportistas] = useState<Transportista[]>([])
   const [cargandoTransp, setCargandoTransp] = useState(false)
+  const [busqueda1, setBusqueda1] = useState('')
+  const [busqueda2, setBusqueda2] = useState('')
+  const [abierto1, setAbierto1] = useState(false)
+  const [abierto2, setAbierto2] = useState(false)
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [ok, setOk] = useState(false)
@@ -90,6 +94,8 @@ function PerfilInner() {
         transportista_1_id: d.perfil.transportista_1_id ? String(d.perfil.transportista_1_id) : '',
         transportista_2_id: d.perfil.transportista_2_id ? String(d.perfil.transportista_2_id) : '',
       })
+      setBusqueda1(d.perfil.transportista_1_nombre || '')
+      setBusqueda2(d.perfil.transportista_2_nombre || '')
     } catch {
       setError('Error de conexión')
     } finally {
@@ -257,7 +263,11 @@ function PerfilInner() {
                 <select
                   style={ci}
                   value={form.provincia}
-                  onChange={e => setForm(f => ({ ...f, provincia: e.target.value, transportista_1_id: '', transportista_2_id: '' }))}
+                  onChange={e => {
+                    const v = e.target.value
+                    setForm(f => ({ ...f, provincia: v, transportista_1_id: '', transportista_2_id: '' }))
+                    setBusqueda1(''); setBusqueda2('')
+                  }}
                 >
                   <option value="">Seleccioná...</option>
                   {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -298,38 +308,99 @@ function PerfilInner() {
                 : 'Completá tu provincia para ver los transportistas disponibles.'}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+
+              {/* ── Combobox Transporte 1 ── */}
               <Campo label="Transporte 1">
-                <select
-                  style={ci}
-                  value={form.transportista_1_id}
-                  onChange={e => setForm(f => ({ ...f, transportista_1_id: e.target.value, transportista_2_id: '' }))}
-                  disabled={!form.provincia || cargandoTransp}
-                >
-                  <option value="">— Ninguno —</option>
-                  {transportistas.map(t => (
-                    <option key={t.id} value={String(t.id)}>
-                      {t.name}{t.match_level === 'provincia_localidad' ? ' ★' : ''}
-                    </option>
-                  ))}
-                </select>
+                {form.transportista_1_id ? (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ ...ci, flex: 1, color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                      {transportistas.find(t => String(t.id) === form.transportista_1_id)?.name || busqueda1}
+                    </div>
+                    <button type="button"
+                      onClick={() => { setForm(f => ({ ...f, transportista_1_id: '', transportista_2_id: '' })); setBusqueda1(''); setBusqueda2('') }}
+                      style={{ padding: '0 12px', background: '#1e3248', border: '1px solid #2a4a6a', borderRadius: 8, color: '#7a9ab5', cursor: 'pointer', fontSize: 16 }}>
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      style={ci}
+                      placeholder={!form.provincia ? 'Primero elegí tu provincia' : cargandoTransp ? 'Cargando…' : 'Buscar transportista…'}
+                      value={busqueda1}
+                      disabled={!form.provincia || cargandoTransp}
+                      onFocus={() => setAbierto1(true)}
+                      onBlur={() => setTimeout(() => setAbierto1(false), 150)}
+                      onChange={e => { setBusqueda1(e.target.value); setAbierto1(true) }}
+                    />
+                    {abierto1 && (
+                      <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 8, zIndex: 200, maxHeight: 220, overflowY: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.5)' }}>
+                        {transportistas
+                          .filter(t => !busqueda1 || t.name.toLowerCase().includes(busqueda1.toLowerCase()))
+                          .filter(t => String(t.id) !== form.transportista_2_id)
+                          .map(t => (
+                            <div key={t.id}
+                              onMouseDown={() => { setForm(f => ({ ...f, transportista_1_id: String(t.id) })); setBusqueda1(t.name); setAbierto1(false) }}
+                              style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, color: '#e8f0f8', borderBottom: '1px solid #162232', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>{t.name}</span>
+                              {t.match_level === 'provincia_localidad' && <span style={{ fontSize: 10, color: '#4ade80', fontWeight: 700, letterSpacing: '0.05em' }}>TU ZONA</span>}
+                            </div>
+                          ))}
+                        {transportistas.filter(t => !busqueda1 || t.name.toLowerCase().includes(busqueda1.toLowerCase())).length === 0 && (
+                          <div style={{ padding: '10px 14px', color: '#7a9ab5', fontSize: 13 }}>Sin resultados para "{busqueda1}"</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </Campo>
+
+              {/* ── Combobox Transporte 2 ── */}
               <Campo label="Transporte 2 (alternativo)">
-                <select
-                  style={ci}
-                  value={form.transportista_2_id}
-                  onChange={e => setForm(f => ({ ...f, transportista_2_id: e.target.value }))}
-                  disabled={!form.transportista_1_id || !form.provincia || cargandoTransp}
-                >
-                  <option value="">— Ninguno —</option>
-                  {transportistas
-                    .filter(t => String(t.id) !== form.transportista_1_id)
-                    .map(t => (
-                      <option key={t.id} value={String(t.id)}>
-                        {t.name}{t.match_level === 'provincia_localidad' ? ' ★' : ''}
-                      </option>
-                    ))}
-                </select>
+                {form.transportista_2_id ? (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ ...ci, flex: 1, color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                      {transportistas.find(t => String(t.id) === form.transportista_2_id)?.name || busqueda2}
+                    </div>
+                    <button type="button"
+                      onClick={() => { setForm(f => ({ ...f, transportista_2_id: '' })); setBusqueda2('') }}
+                      style={{ padding: '0 12px', background: '#1e3248', border: '1px solid #2a4a6a', borderRadius: 8, color: '#7a9ab5', cursor: 'pointer', fontSize: 16 }}>
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      style={{ ...ci, opacity: !form.transportista_1_id || !form.provincia || cargandoTransp ? 0.4 : 1 }}
+                      placeholder={!form.transportista_1_id ? 'Primero elegí el transporte 1' : 'Buscar transportista…'}
+                      value={busqueda2}
+                      disabled={!form.transportista_1_id || !form.provincia || cargandoTransp}
+                      onFocus={() => setAbierto2(true)}
+                      onBlur={() => setTimeout(() => setAbierto2(false), 150)}
+                      onChange={e => { setBusqueda2(e.target.value); setAbierto2(true) }}
+                    />
+                    {abierto2 && (
+                      <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 8, zIndex: 200, maxHeight: 220, overflowY: 'auto', boxShadow: '0 6px 24px rgba(0,0,0,0.5)' }}>
+                        {transportistas
+                          .filter(t => !busqueda2 || t.name.toLowerCase().includes(busqueda2.toLowerCase()))
+                          .filter(t => String(t.id) !== form.transportista_1_id)
+                          .map(t => (
+                            <div key={t.id}
+                              onMouseDown={() => { setForm(f => ({ ...f, transportista_2_id: String(t.id) })); setBusqueda2(t.name); setAbierto2(false) }}
+                              style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, color: '#e8f0f8', borderBottom: '1px solid #162232', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>{t.name}</span>
+                              {t.match_level === 'provincia_localidad' && <span style={{ fontSize: 10, color: '#4ade80', fontWeight: 700, letterSpacing: '0.05em' }}>TU ZONA</span>}
+                            </div>
+                          ))}
+                        {transportistas.filter(t => !busqueda2 || t.name.toLowerCase().includes(busqueda2.toLowerCase())).length === 0 && (
+                          <div style={{ padding: '10px 14px', color: '#7a9ab5', fontSize: 13 }}>Sin resultados para "{busqueda2}"</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </Campo>
+
             </div>
             {form.provincia && !cargandoTransp && transportistas.length === 0 && (
               <p style={{ fontSize: 12, color: '#7a9ab5', marginTop: 12, marginBottom: 0 }}>
