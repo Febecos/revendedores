@@ -488,7 +488,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [pdfPrecio, setPdfPrecio] = useState<number|null>(null)
   const [pdfCliente, setPdfCliente] = useState<{nombre:string;apellido:string;telefono:string;zona:string;razonSocial?:string;cuit?:string}|null>(null)
   const [profInput, setProfInput] = useState<number>(profundidadInicial)
-  const [cableMetros, setCableMetros] = useState<number | null>(null) // override manual de metros de cable (null = automático prof+10)
+  const [cableMetros, setCableMetros] = useState<number | null>(null) // override manual de metros de cable sumergible/soga
+  const [distanciaTablero, setDistanciaTablero] = useState<number | null>(null) // distancia horizontal pozo → tablero (m)
 
   // ── Datos del cliente (solo cuando mostrarPublico=true) ───────────────────
   const [showClienteForm, setShowClienteForm] = useState(false)
@@ -603,9 +604,14 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
         const f = FAM_ORDEN[familiaKey] ?? 6
         // Cable sumergible y soga: mostrar metros totales del pozo (no solo la base del kit)
         const esCableLargo = item.unidad === 'metro' && (item.nombre||'').toLowerCase().includes('sumergible')
+        const esSensorPdf  = item.unidad === 'metro' && (item.nombre||'').toLowerCase().includes('sensor')
+        // Si fuera de rango → no incluir cable sensor (se cotiza aparte)
+        if (sensorFueraRango && esSensorPdf) continue
         const cant = esPozosProfundo && (esCableLargo || isSogaPdf)
           ? Math.max(item.cantidad, metrosTotal)
-          : item.cantidad
+          : !sensorFueraRango && esSensorPdf && distanciaTablero != null && distanciaTablero > item.cantidad
+            ? distanciaTablero
+            : item.cantidad
         kitOrdenado.push({ nombre: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''), notas: item.notas || '', cantidad: cant, unidad: item.unidad || 'unidad', _f: f })
       }
     }
@@ -684,11 +690,16 @@ ${precioPDF ? `<div class="precio-box">
   </div>
   ${!mostrarPublico && data?.bomba?.precio_full ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(data.bomba.precio_full)}</div>` : ''}
 </div>` : ''}
-${esPozosProfundo ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px">
-  <strong>⚠️ Pozo profundo (${profInput}m) — Cable y soga: ${metrosTotal}m totales</strong><br>
-  <span style="color:#888">El kit ya incluye ${metrosBaseCable}m de cable y ${metrosBaseSoga}m de soga. Se agregan solo los metros adicionales:</span><br>
+${(esPozosProfundo || extraSensor > 0) ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px">
+  <strong>⚠️ Extras de instalación incluidos en el precio:</strong><br>
+  ${esPozosProfundo ? `<span style="color:#888">Pozo profundo (${profInput}m) — Cable y soga: ${metrosTotal}m totales. El kit incluye ${metrosBaseCable}m de cable y ${metrosBaseSoga}m de soga:</span><br>
   🔌 Cable sumergible +${metrosExtraCable}m: <strong>${fmt(extraCable)}</strong><br>
-  🪢 Soga anti-UV +${metrosExtraSoga}m: <strong>${fmt(extraSoga)}</strong>
+  🪢 Soga anti-UV +${metrosExtraSoga}m: <strong>${fmt(extraSoga)}</strong><br>` : ''}
+  ${extraSensor > 0 ? `📡 Cable sensor +${metrosExtraSensor}m (distancia al tablero: ${distanciaTablero}m): <strong>${fmt(extraSensor)}</strong><br>` : ''}
+</div>` : ''}
+${sensorFueraRango ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px;color:#b91c1c">
+  <strong>⚠️ NOTA TÉCNICA:</strong> La distancia al tablero (${distanciaTablero}m) supera el rango máximo del cable de sensor estándar (${SENSOR_MAX_M}m).<br>
+  Se requiere un <strong>sistema de control de sensor a distancia</strong> — cotizar por separado. El cable de sensor no está incluido en este presupuesto.
 </div>` : ''}
 ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
 <table style="table-layout:fixed;width:100%"><thead><tr><th style="width:88%">Componente</th><th style="width:12%;text-align:center">Cant.</th></tr></thead>
@@ -804,7 +815,21 @@ ${curvasHtml ? `
   const factorDesc   = mostrarPublico ? 1 : (1 - descuento / 100)
   const extraCable   = Math.round(precioCableM * metrosExtraCable * factorDesc)
   const extraSoga    = Math.round(precioSogaM  * metrosExtraSoga  * factorDesc)
-  const extrasTotal  = extraCable + extraSoga
+
+  // ── Cable de sensor: distancia horizontal pozo → tablero ─────────────────
+  const SENSOR_MAX_M = 100  // a partir de 100m el cable estándar no alcanza → requiere sistema remoto
+  const sensorItem = data?.kit?.find((i: any) => i.familia === 'cable' && (i.nombre||'').toLowerCase().includes('sensor'))
+  const metrosBaseSensor = sensorItem?.cantidad ?? 20
+  const precioSensorM    = sensorItem?.precio_ars ?? 1736.96
+  const sensorFueraRango = distanciaTablero != null && distanciaTablero > SENSOR_MAX_M
+  // Solo suma extra si la distancia es > base y dentro del rango (≤100m)
+  const metrosSensorTotal = (!sensorFueraRango && distanciaTablero != null && distanciaTablero > metrosBaseSensor)
+    ? distanciaTablero : metrosBaseSensor
+  const metrosExtraSensor = (!sensorFueraRango && distanciaTablero != null)
+    ? Math.max(0, distanciaTablero - metrosBaseSensor) : 0
+  const extraSensor  = Math.round(precioSensorM * metrosExtraSensor * factorDesc)
+
+  const extrasTotal  = extraCable + extraSoga + extraSensor
   const precioConExtras = precio != null ? precio + extrasTotal : null
 
   // Helpers para identificar items especiales en el kit
@@ -827,9 +852,12 @@ ${curvasHtml ? `
       else if (f === 'otros') f = 'otro'         // normalizar plural
       if (!familias[f]) familias[f] = []
       // Para pozos profundos, mostrar los metros reales (totales) en lugar de la cantidad base del kit
+      const esSensorItem = (it: any) => it.familia === 'cable' && (it.nombre||'').toLowerCase().includes('sensor')
       const cantDisplay = esPozosProfundo && item.unidad === 'metro' && (esCableSum(item) || esSogaItem(item))
         ? Math.max(item.cantidad, metrosTotal)
-        : item.cantidad
+        : !sensorFueraRango && esSensorItem(item) && distanciaTablero != null && distanciaTablero > item.cantidad
+          ? distanciaTablero
+          : item.cantidad
       familias[f].push({ ...item, cantDisplay })
     }
   }
@@ -993,10 +1021,10 @@ ${curvasHtml ? `
                 </div>
               </div>
 
-              {/* Profundidad del pozo */}
+              {/* Profundidad del pozo + distancia al tablero */}
               <div style={{ background: '#132233', borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 8 }}>
-                  Profundidad del pozo
+                  Instalación
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
                   <input
@@ -1009,6 +1037,35 @@ ${curvasHtml ? `
                     <span style={{ fontSize: 11, color: '#fbbf24', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 6, padding: '3px 8px' }}>
                       ⚠️ Pozo profundo — se agrega cable y soga
                     </span>
+                  )}
+                </div>
+
+                {/* Distancia al tablero / control (cable de sensor) */}
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #1e3248' }}>
+                  <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 6 }}>
+                    Distancia al tablero / control
+                    <span style={{ color: '#3a5a7a' }}> · desde el pozo hasta el panel de control (horizontal)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
+                    <input
+                      type="number" min={0} step={1}
+                      value={distanciaTablero ?? ''}
+                      placeholder={`${metrosBaseSensor} (base kit)`}
+                      onChange={e => setDistanciaTablero(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                      style={{ width: 100, padding: '8px 10px', background: '#0d1a2a', border: `1px solid ${sensorFueraRango ? '#ef4444' : '#1e3248'}`, borderRadius: 8, color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit' }}
+                    />
+                    <span style={{ fontSize: 13, color: '#7a9ab5' }}>metros</span>
+                  </div>
+                  {sensorFueraRango && (
+                    <div style={{ marginTop: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#fca5a5', lineHeight: 1.5 }}>
+                      ⚠️ <strong>Distancia fuera del rango del cable de sensor estándar (máx. {SENSOR_MAX_M}m).</strong><br />
+                      Para esta instalación se requiere un <strong>sistema de control de sensor a distancia</strong> — cotizar por separado. El cable de sensor no se incluye en este presupuesto.
+                    </div>
+                  )}
+                  {!sensorFueraRango && distanciaTablero != null && distanciaTablero > metrosBaseSensor && (
+                    <div style={{ marginTop: 6, fontSize: 11, color: '#4ade80' }}>
+                      ✓ Se agregan {metrosExtraSensor}m de cable de sensor ({metrosSensorTotal}m totales)
+                    </div>
                   )}
                 </div>
 
@@ -1060,6 +1117,12 @@ ${curvasHtml ? `
                         <span>🪢 Soga anti-UV <span style={{ color: '#7a9ab5' }}>+{metrosExtraSoga}m</span></span>
                         <span style={{ fontFamily: 'monospace', color: '#4ade80' }}>{fmt(extraSoga)}</span>
                       </div>
+                      {extraSensor > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#e8f0f8', padding: '3px 0' }}>
+                          <span>📡 Cable sensor <span style={{ color: '#7a9ab5' }}>+{metrosExtraSensor}m</span></span>
+                          <span style={{ fontFamily: 'monospace', color: '#4ade80' }}>{fmt(extraSensor)}</span>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#7a9ab5', padding: '3px 0', borderTop: '1px solid #162030', marginTop: 4 }}>
                         <span>Kit base</span>
                         <span style={{ fontFamily: 'monospace' }}>{fmt(precio!)}</span>
