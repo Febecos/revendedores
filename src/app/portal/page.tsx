@@ -182,7 +182,8 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 
   const altGeoSimple = tipo==='sumergible' ? nivDin+altDesc : tipo==='superficial' ? altAsp+altDesc : altRiego
   // Conversión caudal a m³/h
-  const litrosDia = caudalModo==='animales' ? animales*60 : (caudalUnidad==='ldia' ? caudalVal : caudalVal*8)
+  const HSP_VERANO = 5.5  // horas solares pico de verano (mismo valor que usan las curvas de rendimiento)
+  const litrosDia = caudalModo==='animales' ? animales*60 : (caudalUnidad==='ldia' ? caudalVal : Math.round(caudalVal * HSP_VERANO))
   const caudalM3h = litrosDia/1000/8
   const presionM = presionKg * 10
 
@@ -229,7 +230,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 
   function calcAvanzado() {
     const tramosCalc = tramos.map(t => {
-      const ldia = (t.caudalModo||'litros')==='animales' ? (t.animales||50)*60 : (t.caudalUnidad==='lh' ? (t.caudalLdia||3000)*8 : (t.caudalLdia||3000))
+      const ldia = (t.caudalModo||'litros')==='animales' ? (t.animales||50)*60 : (t.caudalUnidad==='lh' ? Math.round((t.caudalLdia||3000)*5.5) : (t.caudalLdia||3000))
       const q = ldia/1000/8
       const r = calcTramo(t.longitud, t.diam, q, t.mat, t.accs||{})
       return { nombre: t.nombre, diam: t.diam, mat: t.mat, ...r }
@@ -356,7 +357,11 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
                       <option value="lh">L/hora</option>
                     </select>
                   </div>
-                  <span style={{ fontSize:10, color:'#3a5a7a' }}>= {caudalM3h.toFixed(3)} m³/h</span>
+                  <span style={{ fontSize:10, color:'#3a5a7a' }}>
+                    {caudalUnidad === 'lh'
+                      ? `= ${litrosDia.toLocaleString('es-AR')} L/día (${caudalVal.toLocaleString('es-AR')} L/h × ${HSP_VERANO}h sol verano)`
+                      : `= ${caudalM3h.toFixed(3)} m³/h`}
+                  </span>
                 </div>
               )}
             </div>
