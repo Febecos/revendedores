@@ -1561,9 +1561,6 @@ export default function Portal() {
               </div>
             </div>
             <div style={s.descuentoBadge}>{rev.descuento_pct}% OFF</div>
-            <button onClick={abrirCotizaciones} style={{ padding: '6px 12px', background: 'rgba(232,104,26,0.12)', border: '1px solid #e8681a', borderRadius: 8, color: '#e8681a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              📄 Mis cotizaciones
-            </button>
             <a href={`/portal/perfil?token=${token}`} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 8, color: '#7a9ab5', fontSize: 12, cursor: 'pointer', textDecoration: 'none' }}>
               ⚙️ Mi perfil
             </a>
@@ -1571,6 +1568,16 @@ export default function Portal() {
               Salir
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* ── Barra de acceso rápido ── */}
+      <div style={{ background: '#0d1a2a', borderBottom: '1px solid #1e3248', padding: '8px 24px' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={abrirCotizaciones} style={{ padding: '7px 16px', background: 'rgba(232,104,26,0.15)', border: '1px solid #e8681a', borderRadius: 8, color: '#e8681a', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            📄 Mis cotizaciones
+          </button>
+          <span style={{ fontSize: 12, color: '#3a5a7a' }}>Tus presupuestos generados — compartí el link con tu cliente</span>
         </div>
       </div>
 
