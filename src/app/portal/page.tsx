@@ -123,7 +123,7 @@ function AccCounter({ label, val, onChange }: { label: string; val: number; onCh
   )
 }
 
-function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUsar, onReset, profundidad = 0, distSensor = 0 }: any) {
+function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUsar, onReset, profundidad = 0, distSensor = 0, litrosHora = null }: any) {
   return (
     <div style={{ background:'#0a2e18', borderRadius:10, padding:16, marginTop:12 }}>
       <div style={{ display:'flex', gap:10, marginBottom:12, flexWrap:'wrap' as const }}>
@@ -143,7 +143,7 @@ function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUs
           ))}
         </div>
       )}
-      <button onClick={() => onUsar(mca, litrosDia, diamPerf, profundidad, distSensor)} style={{ width:'100%', padding:'12px', background:'#e8681a', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
+      <button onClick={() => onUsar(mca, litrosDia, diamPerf, profundidad, distSensor, litrosHora)} style={{ width:'100%', padding:'12px', background:'#e8681a', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
         Usar esta MCA para buscar bomba →
       </button>
       <button onClick={onReset} style={{ width:'100%', padding:'10px', background:'transparent', border:'1px solid #1e3248', borderRadius:8, fontSize:13, fontWeight:600, color:'#7a9ab5', cursor:'pointer' }}>
@@ -153,7 +153,7 @@ function ResultadoMCA({ altGeo, friccion, mca, tramos, litrosDia, diamPerf, onUs
   )
 }
 
-function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: number, litros: number, diam: string, prof: number, distSensor: number) => void; token: string | null; revendedor: string }) {
+function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: number, litros: number, diam: string, prof: number, distSensor: number, litrosHora?: number | null) => void; token: string | null; revendedor: string }) {
   const [tab, setTab] = useState<'simple'|'avanzado'>('simple')
   const [tipo, setTipo] = useState<'sumergible'|'superficial'|'riego'>('sumergible')
   const [nivDin, setNivDin] = useState(10)
@@ -383,7 +383,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
           <button onClick={calcSimple} style={{ width:'100%', padding:'11px', background:'#1a6b3c', color:'#fff', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:14 }}>
             Calcular MCA
           </button>
-          {resSimple && <ResultadoMCA {...resSimple} litrosDia={litrosDia} diamPerf={diamPerf} onUsar={onUsarMCA} onReset={() => setResSimple(null)} distSensor={resSimple.distSensor || 0} />}
+          {resSimple && <ResultadoMCA {...resSimple} litrosDia={litrosDia} diamPerf={diamPerf} onUsar={onUsarMCA} onReset={() => setResSimple(null)} distSensor={resSimple.distSensor || 0} litrosHora={caudalUnidad === 'lh' ? caudalVal : null} />}
         </>
       )}
 
@@ -486,7 +486,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 }
 
 
-function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, revEmpresa, revDomicilio, revCuit, revLogo, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaDiametro = null, distSensorInicial = 0 }: any) {
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, revEmpresa, revDomicilio, revCuit, revLogo, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaLitrosHora = null, busquedaDiametro = null, distSensorInicial = 0 }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [nroPresup, setNroPresup] = useState<string | null>(null)
@@ -778,7 +778,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
 <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#1a6b3c;border-bottom:2px solid #1a6b3c;padding-bottom:5px;margin:18px 0 12px">Necesidad relevada del sistema</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 20px;margin-bottom:16px">
   ${busquedaMCA ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Altura manométrica total</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${busquedaMCA.toFixed(1)} <span style="font-size:13px">MCA</span></div></div>` : ''}
-  ${busquedaLitros ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Caudal requerido</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${busquedaLitros.toLocaleString('es-AR')} <span style="font-size:13px">L/día</span></div></div>` : ''}
+  ${busquedaLitros ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Caudal requerido</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${busquedaLitros.toLocaleString('es-AR')} <span style="font-size:13px">L/día</span></div>${busquedaLitrosHora ? `<div style="font-size:10px;color:#4a7a5a;margin-top:4px">${busquedaLitrosHora.toLocaleString('es-AR')} L/h × 5,5 hs sol = ${busquedaLitros.toLocaleString('es-AR')} L/día</div>` : ''}</div>` : ''}
   <div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Profundidad del pozo</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${profInput} <span style="font-size:13px">m</span></div></div>
   ${busquedaDiametro ? `<div style="background:#f7f6f2;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#666;letter-spacing:.06em;margin-bottom:3px">Diám. mínimo perforación</div><div style="font-size:16px;font-weight:700;color:#1a1a18">${busquedaDiametro}"</div></div>` : ''}
 </div>
@@ -1336,6 +1336,7 @@ export default function Portal() {
   const [bombaSel, setBombaSel] = useState<string | null>(null)
   const [profundidad, setProfundidad] = useState(0)
   const [distSensorMCA, setDistSensorMCA] = useState<number>(0) // distancia al sensor calculada por la MCA
+  const [litrosHoraMCA, setLitrosHoraMCA] = useState<number | null>(null) // L/hora original si se ingresó en esa unidad
   // ── Mis cotizaciones ──────────────────────────────────────────────────────
   const [showCotis, setShowCotis] = useState(false)
   const [cotis, setCotis] = useState<any[] | null>(null)
@@ -1543,12 +1544,13 @@ export default function Portal() {
     }).catch(() => {})
   }, [])
 
-  function usarMCA(mca: number, litros: number, diam: string, prof: number = 0, distSensor: number = 0) {
+  function usarMCA(mca: number, litros: number, diam: string, prof: number = 0, distSensor: number = 0, litrosHora: number | null = null) {
     setAltura(String(mca))
     setLitros(String(litros))
     setDiametro(diam)
     setProfundidad(prof)
     setDistSensorMCA(distSensor)
+    setLitrosHoraMCA(litrosHora)
     setMostrarCalculadora(false)
     // Scroll a la calculadora de búsqueda
     setTimeout(() => {
@@ -1683,6 +1685,7 @@ export default function Portal() {
           busquedaLitros={litros ? Number(litros) : null}
           busquedaDiametro={diametro || null}
           distSensorInicial={distSensorMCA}
+          busquedaLitrosHora={litrosHoraMCA}
         />
       )}
 
