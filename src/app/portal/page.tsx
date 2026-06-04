@@ -2068,7 +2068,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
         }),
       })
       const data = await res.json()
-      if (!data.ok) { setPedidoError('No se pudo registrar el pedido. Reintentá.'); return }
+      if (!data.ok) { setPedidoError(`Error: ${data.error || 'No se pudo registrar el pedido'}. Reintentá.`); return }
       setPedidoEnviado(true)
     } catch {
       setPedidoError('Error de conexión. Reintentá.')
