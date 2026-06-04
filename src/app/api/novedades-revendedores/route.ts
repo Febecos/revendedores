@@ -79,54 +79,64 @@ function html(
   const url = `${PORTAL}?token=${token}`
   const periodoLabel = dias === 7 ? 'esta semana' : dias === 14 ? 'estas dos semanas' : `los últimos ${dias} días`
 
-  // Changelog de la plataforma (desde DB)
+  // ── Changelog de la plataforma ───────────────────────────────────────────────
   const changelogHtml = changelog.length
     ? changelog.map(c => {
         const icon  = TIPO_ICON[c.tipo]  || '✨'
         const color = TIPO_COLOR[c.tipo] || '#1a3a5c'
-        return `<div style="padding:12px 0;border-bottom:1px solid #e8edf2">
-          <div style="display:flex;align-items:flex-start;gap:10px">
-            <span style="font-size:18px;line-height:1.2">${icon}</span>
-            <div>
-              <div style="font-size:13px;font-weight:700;color:${color}">${c.titulo}</div>
-              ${c.descripcion ? `<div style="font-size:12px;color:#5a6f84;margin-top:3px;line-height:1.6">${c.descripcion}</div>` : ''}
-            </div>
-          </div>
+        return `<div style="padding:14px 0;border-bottom:1px solid #e8edf2">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+            <td width="36" valign="top" style="font-size:20px;padding-top:1px;padding-right:14px">${icon}</td>
+            <td valign="top">
+              <div style="font-size:14px;font-weight:700;color:${color};margin-bottom:4px">${c.titulo}</div>
+              ${c.descripcion ? `<div style="font-size:12px;color:#5a6f84;line-height:1.65">${c.descripcion}</div>` : ''}
+            </td>
+          </tr></table>
         </div>`
       }).join('')
     : ''
 
-  // Items manuales del admin (escritos en el textarea)
+  // ── Items manuales del admin ──────────────────────────────────────────────────
   const itemsHtml = items.length
-    ? items.map(i => `<li style="padding:6px 0;border-bottom:1px solid #e8edf2;font-size:14px;color:#2d3f55">${i}</li>`).join('')
+    ? items.map(i => `<li style="padding:8px 0;border-bottom:1px solid #e8edf2;font-size:14px;color:#2d3f55;line-height:1.5">${i}</li>`).join('')
     : ''
 
-  // Bombas nuevas del catálogo
-  const nuevasHtml = nuevas.length
-    ? `<div style="margin-top:20px">
-        <div style="font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">🆕 Equipos nuevos en catálogo</div>
-        ${nuevas.map((b: any) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #e8edf2">
-            <span style="font-size:13px;font-weight:600;color:#1a3a5c">${b.titulo_comercial || b.marca + ' ' + b.watts + 'W'}</span>
-            <span style="font-size:12px;color:#e8681a;font-weight:700">${b.precio_full ? fmt(b.precio_full) : '—'}</span>
-          </div>`).join('')}
+  // ── Catálogo: filtrar stock=0 (sin disponibilidad) ───────────────────────────
+  const nuevasConStock     = nuevas.filter((b: any) => (b.stock ?? 1) > 0)
+  const actualizadasConStock = actualizadas.filter((b: any) => (b.stock ?? 1) > 0)
+
+  function itemCatalogo(b: any, esNuevo: boolean) {
+    const nombre = b.titulo_comercial || `${b.marca || ''} ${b.watts || ''}W`.trim()
+    const precio = b.precio_full ? fmt(b.precio_full) : null
+    const stock  = b.stock != null ? `${b.stock} en stock` : null
+    return `<table cellpadding="0" cellspacing="0" border="0" width="100%"
+              style="padding:10px 0;border-bottom:1px solid #e8edf2"><tr>
+        <td valign="top">
+          <div style="font-size:13px;font-weight:${esNuevo ? '700' : '500'};color:#1a3a5c;margin-bottom:4px">${nombre}</div>
+          <div style="font-size:12px;color:#7a8fa5">${stock || ''}</div>
+        </td>
+        <td valign="top" align="right" style="padding-left:20px;white-space:nowrap">
+          ${precio ? `<div style="font-size:14px;font-weight:800;color:#e8681a">${precio}</div>` : ''}
+        </td>
+      </tr></table>`
+  }
+
+  const nuevasHtml = nuevasConStock.length
+    ? `<div style="margin-top:4px">
+        <div style="font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">🆕 &nbsp;Equipos nuevos en catálogo</div>
+        ${nuevasConStock.map((b: any) => itemCatalogo(b, true)).join('')}
       </div>`
     : ''
 
-  // Bombas actualizadas
-  const actualizadasHtml = actualizadas.length
-    ? `<div style="margin-top:20px">
-        <div style="font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">🔄 Equipos con precio o stock actualizado</div>
-        ${actualizadas.map((b: any) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #e8edf2">
-            <span style="font-size:13px;color:#2d3f55">${b.titulo_comercial || b.marca + ' ' + b.watts + 'W'}</span>
-            <span style="font-size:12px;color:#555">${b.precio_full ? fmt(b.precio_full) : '—'} · Stock: ${b.stock ?? '—'}</span>
-          </div>`).join('')}
+  const actualizadasHtml = actualizadasConStock.length
+    ? `<div style="margin-top:${nuevasConStock.length ? '20' : '4'}px">
+        <div style="font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">🔄 &nbsp;Equipos con precio actualizado</div>
+        ${actualizadasConStock.map((b: any) => itemCatalogo(b, false)).join('')}
       </div>`
     : ''
 
-  const sinCambiosProductos = !nuevas.length && !actualizadas.length
-    ? `<p style="font-size:13px;color:#7a8fa5;margin-top:16px">No hubo cambios en el catálogo ${periodoLabel}.</p>`
+  const sinCambiosProductos = !nuevasConStock.length && !actualizadasConStock.length
+    ? `<p style="font-size:13px;color:#7a8fa5;margin-top:4px">No hubo cambios en el catálogo ${periodoLabel}.</p>`
     : ''
 
   return `<!DOCTYPE html>
@@ -187,8 +197,27 @@ body{background:#f0f4f8;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a2
       <a href="${url}" class="cta-btn">Ir al portal →</a>
     </div>
 
+    <!-- Cuadro de sugerencias -->
+    <div style="background:#f0f9f4;border:1px solid #b8ddc8;border-radius:12px;padding:20px 24px;margin-bottom:28px;text-align:center">
+      <div style="font-size:15px;font-weight:700;color:#1a6b3c;margin-bottom:8px">💡 ¿Tenés una sugerencia para el portal?</div>
+      <p style="font-size:13px;color:#2d5a3d;line-height:1.7;margin-bottom:16px">
+        Si hay algo que te gustaría mejorar o una función que te haría la vida más fácil,<br/>
+        contanos. Leemos todo y muchas mejoras vienen de sugerencias de revendedores.
+      </p>
+      <div style="display:inline-flex;gap:12px;flex-wrap:wrap;justify-content:center">
+        <a href="mailto:revende@febecos.com?subject=Sugerencia%20para%20el%20portal&body=Hola%2C%20tengo%20una%20sugerencia%3A%0A%0A"
+           style="display:inline-block;background:#1a6b3c;color:#fff;padding:11px 24px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none">
+          ✉️ Enviar por mail
+        </a>
+        <a href="https://wa.me/5491125750323?text=Hola%2C%20tengo%20una%20sugerencia%20para%20el%20portal%3A%20"
+           style="display:inline-block;background:#25d366;color:#fff;padding:11px 24px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none">
+          💬 WhatsApp
+        </a>
+      </div>
+    </div>
+
     <p style="font-size:13px;color:#5a6f84;line-height:1.7;text-align:center">
-      Respondé este mail o escribinos por WhatsApp si tenés consultas.
+      También podés escribirnos directamente si tenés dudas sobre el portal.
     </p>
   </div>
 
