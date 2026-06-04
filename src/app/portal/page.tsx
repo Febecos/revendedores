@@ -714,7 +714,23 @@ ${precioPDF ? `<div class="precio-box">
     <div class="precio-val">${fmt(precioPDF)}</div>
   </div>
   ${!mostrarPublico && data?.bomba?.precio_full ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(data.bomba.precio_full)}</div>` : ''}
-</div>` : ''}
+</div>
+${(() => {
+  const factorPrecio = mostrarPublico ? 1 : (1 - descuento / 100)
+  const panelPublico = (data?.kit || [])
+    .filter((i: any) => (i.familia || '').toLowerCase() === 'panel')
+    .reduce((s: number, i: any) => s + (i.precio_ars || 0) * (i.cantidad || 1), 0)
+  const panelEnPrecio = panelPublico * factorPrecio
+  const netoPanel = Math.round(panelEnPrecio / 1.105)
+  const netoResto = Math.round((precioPDF - panelEnPrecio) / 1.21)
+  const netoTotal = netoPanel + netoResto
+  const ivaTotal  = precioPDF - netoTotal
+  return `<div style="border:1px solid #dde8dd;border-radius:6px;padding:8px 14px;margin:-6px 0 10px;font-size:10px;color:#555;display:flex;gap:28px;flex-wrap:wrap">
+  <div><span style="color:#888">Neto gravado total:</span> <strong style="color:#1a1a18">${fmt(netoTotal)}</strong></div>
+  <div><span style="color:#888">IVA incluido total:</span> <strong style="color:#1a1a18">${fmt(ivaTotal)}</strong></div>
+  <div style="font-size:9px;color:#aaa;align-self:center">Paneles 10,5% · Resto 21%</div>
+</div>`
+})()}` : ''}
 ${(esPozosProfundo || extraSensor > 0) ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px">
   <strong>⚠️ Extras de instalación incluidos en el precio:</strong><br>
   ${esPozosProfundo ? `<span style="color:#888">Pozo profundo (${profInput}m) — Cable y soga: ${metrosTotal}m totales. El kit incluye ${metrosBaseCable}m de cable y ${metrosBaseSoga}m de soga:</span><br>
