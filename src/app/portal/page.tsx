@@ -746,7 +746,12 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
 <div style="page-break-before:always"></div>
 
 <div class="header">
-  <div class="logo"><span style="font-size:16px;font-weight:800;color:#1a6b3c">Febecos</span> <span style="font-size:11px;color:#666"> · Bombeo Solar Argentina</span></div>
+  <div class="logo">
+    ${revLogo
+      ? `<img src="${revLogo}" style="height:32px;max-width:160px;object-fit:contain" alt="Logo"/><div style="font-size:10px;color:#555;margin-top:2px">${revEmpresa || ''}</div>`
+      : `<span style="font-size:16px;font-weight:800;color:#1a6b3c">Febecos</span> <span style="font-size:11px;color:#666"> · Bombeo Solar Argentina</span>`
+    }
+  </div>
   <div class="presup-num"><h2 style="font-size:13px">Análisis técnico — Pres. ${nro}</h2><p>Documento complementario</p></div>
 </div>
 
@@ -768,7 +773,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
   ` : `La bomba fue seleccionada considerando la profundidad del pozo (${profInput} m) y las características del sistema.`}
   <br>
   El equipo <strong>${data?.bomba?.marca || ''} ${data?.bomba?.watts || ''}W</strong> cumple con estos requerimientos operando
-  con <strong>${data?.bomba?.cant_paneles || ''} panel${(data?.bomba?.cant_paneles||1)>1?'es':''} solar${(data?.bomba?.cant_paneles||1)>1?'es':''} de ${panelKit?.potencia_w || ''}W</strong>
+  con <strong>${data?.bomba?.cant_paneles || ''} panel${(data?.bomba?.cant_paneles||1)>1?'es':''} solar${(data?.bomba?.cant_paneles||1)>1?'es':''} de ${panelKit?.potencia_w || panelKit?.nombre?.match(/(\d+)\s*[Ww]/)?.[1] || data?.bomba?.watts || '?'}W</strong>
   en condiciones de irradiación solar típicas de la región.
 </div>
 
@@ -801,7 +806,10 @@ ${curvasHtml ? `
 <!-- FOOTER PÁGINA 2 -->
 <div class="footer" style="margin-top:24px">
   Este análisis es orientativo. Los caudales reales pueden variar según la irradiación solar local, la temperatura del agua y el estado del pozo.<br>
-  Para asesoramiento técnico: <strong>ventas@febecos.com</strong> · febecos.com
+  ${revLogo
+    ? `Para consultas: <strong>${revEmail || ''}</strong>${revDomicilio ? ` · ${revDomicilio}` : ''}`
+    : `Para asesoramiento técnico: <strong>ventas@febecos.com</strong> · febecos.com`
+  }
 </div>
 </body></html>`
 
