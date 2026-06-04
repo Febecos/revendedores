@@ -845,7 +845,7 @@ ${curvasHtml ? `
   const metrosBaseCable = cabItem?.cantidad ?? 30
   const metrosBaseSoga  = sogaItem?.cantidad ?? 30
   // Metros totales que necesita el equipo (profundidad + 10m seguridad), editable por el revendedor
-  const metrosNecesarios = profInput + 10
+  const metrosNecesarios = Math.ceil((profInput + 10) / 10) * 10  // redondea al múltiplo de 10 superior
   const metrosTotal = esPozosProfundo ? (cableMetros ?? metrosNecesarios) : 0
   // Solo se cobran los metros ADICIONALES por encima de los que ya trae el kit
   const metrosExtraCable = esPozosProfundo ? Math.max(0, metrosTotal - metrosBaseCable) : 0
