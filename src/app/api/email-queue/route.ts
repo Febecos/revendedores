@@ -10,20 +10,51 @@ export async function GET(req: NextRequest) {
   if (req.nextUrl.searchParams.get('key') !== GUARD) {
     return NextResponse.json({ ok: false, error: 'no autorizado' }, { status: 401 })
   }
-  const job_id = req.nextUrl.searchParams.get('job_id')
-  if (!job_id) return NextResponse.json({ ok: false, error: 'job_id requerido' }, { status: 400 })
 
   const sql = getDb()
-  const rows = await sql`
-    SELECT
-      COUNT(*) FILTER (WHERE estado = 'pendiente') AS pendiente,
-      COUNT(*) FILTER (WHERE estado = 'enviado')   AS enviado,
-      COUNT(*) FILTER (WHERE estado = 'fallido')   AS fallido,
-      COUNT(*) AS total,
-      MIN(created_at) AS iniciado_at
-    FROM email_queue WHERE job_id = ${job_id}
-  `
-  return NextResponse.json({ ok: true, job_id, ...rows[0] })
+  const job_id = req.nextUrl.searchParams.get('job_id')
+  const tipo   = req.nextUrl.searchParams.get('tipo')
+
+  // ── Por job_id específico ─────────────────────────────────────────────────
+  if (job_id) {
+    const rows = await sql`
+      SELECT
+        COUNT(*) FILTER (WHERE estado = 'pendiente') AS pendiente,
+        COUNT(*) FILTER (WHERE estado = 'enviado')   AS enviado,
+        COUNT(*) FILTER (WHERE estado = 'fallido')   AS fallido,
+        COUNT(*) AS total,
+        MIN(created_at) AS iniciado_at,
+        MAX(enviado_at) AS ultimo_envio_at
+      FROM email_queue WHERE job_id = ${job_id}
+    `
+    return NextResponse.json({ ok: true, job_id, ...rows[0] })
+  }
+
+  // ── Último job por tipo ───────────────────────────────────────────────────
+  if (tipo) {
+    const rows = await sql`
+      SELECT
+        job_id,
+        COUNT(*) FILTER (WHERE estado = 'pendiente') AS pendiente,
+        COUNT(*) FILTER (WHERE estado = 'enviado')   AS enviado,
+        COUNT(*) FILTER (WHERE estado = 'fallido')   AS fallido,
+        COUNT(*) AS total,
+        MIN(created_at) AS iniciado_at,
+        MAX(enviado_at) AS ultimo_envio_at
+      FROM email_queue
+      WHERE tipo = ${tipo}
+        AND job_id = (
+          SELECT job_id FROM email_queue
+          WHERE tipo = ${tipo}
+          ORDER BY created_at DESC LIMIT 1
+        )
+      GROUP BY job_id
+    `
+    if (!rows.length) return NextResponse.json({ ok: true, tipo, sin_jobs: true })
+    return NextResponse.json({ ok: true, tipo, ...rows[0] })
+  }
+
+  return NextResponse.json({ ok: false, error: 'job_id o tipo requerido' }, { status: 400 })
 }
 
 export async function POST(req: NextRequest) {
