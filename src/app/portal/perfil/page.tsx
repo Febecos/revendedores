@@ -25,6 +25,9 @@ interface Perfil {
   fecha_registro: string
   transportista_1_id: number | null; transportista_1_nombre: string | null
   transportista_2_id: number | null; transportista_2_nombre: string | null
+  domicilio: string | null
+  logo_base64: string | null
+  puede_cotizar_con_marca: boolean
 }
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
@@ -65,7 +68,10 @@ function PerfilInner() {
   const [form, setForm] = useState({
     empresa: '', provincia: '', localidad: '', cuit: '', whatsapp: '',
     transportista_1_id: '', transportista_2_id: '',
+    domicilio: '',
   })
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [logoNuevo, setLogoNuevo] = useState<string | null>(null) // base64 comprimido para guardar
   const [transportistas, setTransportistas] = useState<Transportista[]>([])
   const [cargandoTransp, setCargandoTransp] = useState(false)
   const [busqueda1, setBusqueda1] = useState('')
@@ -95,9 +101,11 @@ function PerfilInner() {
         whatsapp:  d.perfil.whatsapp  || '',
         transportista_1_id: d.perfil.transportista_1_id ? String(d.perfil.transportista_1_id) : '',
         transportista_2_id: d.perfil.transportista_2_id ? String(d.perfil.transportista_2_id) : '',
+        domicilio: d.perfil.domicilio || '',
       })
       setBusqueda1(d.perfil.transportista_1_nombre || '')
       setBusqueda2(d.perfil.transportista_2_nombre || '')
+      if (d.perfil.logo_base64) setLogoPreview(d.perfil.logo_base64)
     } catch {
       setError('Error de conexión')
     } finally {
@@ -156,6 +164,7 @@ function PerfilInner() {
           ...form,
           transportista_1_id: form.transportista_1_id ? Number(form.transportista_1_id) : null,
           transportista_2_id: form.transportista_2_id ? Number(form.transportista_2_id) : null,
+          ...(logoNuevo !== null ? { logo_base64: logoNuevo } : {}),
         }),
       })
       const d = await r.json()
@@ -318,8 +327,94 @@ function PerfilInner() {
                   onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
                 />
               </Campo>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Campo label="Domicilio comercial">
+                  <input
+                    style={ci} type="text" placeholder="Ej: Av. San Martín 1234, Córdoba"
+                    value={form.domicilio}
+                    onChange={e => setForm(f => ({ ...f, domicilio: e.target.value }))}
+                  />
+                </Campo>
+              </div>
             </div>
           </div>
+
+          {/* ── MARCA PROPIA / LOGO ───────────────────────────────────────────── */}
+          {perfil.puede_cotizar_con_marca && (
+            <div style={{ background: '#132233', border: '2px solid #1a6b3c', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
+                🏷 Tu marca — presupuestos con tu logo
+              </div>
+              <p style={{ fontSize: 12, color: '#7a9ab5', marginTop: 0, marginBottom: 16 }}>
+                Los presupuestos se generarán con tu logo y datos de empresa. Cargá una imagen PNG o JPG (se comprime automáticamente).
+              </p>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                {/* Preview del logo actual */}
+                {logoPreview && (
+                  <div style={{ background: '#fff', borderRadius: 8, padding: 12, border: '1px solid #1e3248', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <img src={logoPreview} alt="Logo" style={{ maxHeight: 60, maxWidth: 180, objectFit: 'contain' }} />
+                    <button type="button"
+                      onClick={() => { setLogoPreview(null); setLogoNuevo('') }}
+                      style={{ fontSize: 11, color: '#f87171', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      ✕ Quitar logo
+                    </button>
+                  </div>
+                )}
+                {/* Input de archivo */}
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <label style={{ display: 'block', marginBottom: 8, fontSize: 12, color: '#7a9ab5' }}>
+                    {logoPreview ? 'Cambiar logo:' : 'Subir logo:'}
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    style={{ ...ci, cursor: 'pointer', fontSize: 13 }}
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const reader = new FileReader()
+                      reader.onload = ev => {
+                        const img = new window.Image()
+                        img.onload = () => {
+                          // Comprimir con canvas: max 320×120px
+                          const maxW = 320, maxH = 120
+                          let w = img.width, h = img.height
+                          const ratio = Math.min(maxW / w, maxH / h, 1)
+                          w = Math.round(w * ratio); h = Math.round(h * ratio)
+                          const canvas = document.createElement('canvas')
+                          canvas.width = w; canvas.height = h
+                          const ctx = canvas.getContext('2d')!
+                          ctx.drawImage(img, 0, 0, w, h)
+                          const compressed = canvas.toDataURL('image/jpeg', 0.85)
+                          setLogoPreview(compressed)
+                          setLogoNuevo(compressed)
+                        }
+                        img.src = ev.target?.result as string
+                      }
+                      reader.readAsDataURL(file)
+                    }}
+                  />
+                  <p style={{ fontSize: 11, color: '#3a5a7a', marginTop: 6, marginBottom: 0 }}>
+                    Se redimensiona automáticamente a 320×120px máximo.
+                  </p>
+                </div>
+              </div>
+              {!perfil.cuit && (
+                <p style={{ fontSize: 12, color: '#f87171', marginTop: 12, marginBottom: 0 }}>
+                  ⚠ Completá tu CUIT en el campo de arriba para poder usar esta función.
+                </p>
+              )}
+            </div>
+          )}
+          {!perfil.puede_cotizar_con_marca && (
+            <div style={{ background: '#0a1218', border: '1px dashed #1e3248', borderRadius: 12, padding: '14px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 20 }}>🏷</span>
+              <div>
+                <div style={{ fontSize: 13, color: '#7a9ab5', fontWeight: 600 }}>Presupuestos con tu marca</div>
+                <div style={{ fontSize: 12, color: '#3a5a7a', marginTop: 2 }}>Para habilitar tu logo en los presupuestos, contactá a Febecos. Requiere CUIT.</div>
+              </div>
+            </div>
+          )}
 
           {/* ── TRANSPORTE ─────────────────────────────────────────────────────── */}
           <div style={{ background: '#132233', border: '1px solid #1e3248', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>

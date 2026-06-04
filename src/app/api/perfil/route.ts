@@ -19,7 +19,10 @@ export async function GET(req: NextRequest) {
         sr.transportista_1_id,
         sr.transportista_2_id,
         c1.name AS transportista_1_nombre,
-        c2.name AS transportista_2_nombre
+        c2.name AS transportista_2_nombre,
+        sr.domicilio,
+        sr.logo_base64,
+        sr.puede_cotizar_con_marca
       FROM solicitudes_revendedor sr
       LEFT JOIN logistics.carriers c1 ON c1.id = sr.transportista_1_id
       LEFT JOIN logistics.carriers c2 ON c2.id = sr.transportista_2_id
@@ -45,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Verificar token y traer valores actuales
     const rows = await sql`
-      SELECT id, empresa, provincia, localidad, cuit, whatsapp, transportista_1_id, transportista_2_id
+      SELECT id, empresa, provincia, localidad, cuit, whatsapp, transportista_1_id, transportista_2_id, domicilio, logo_base64
       FROM solicitudes_revendedor
       WHERE token_acceso = ${token} AND token_acceso_activo = true
       LIMIT 1
@@ -66,6 +69,8 @@ export async function POST(req: NextRequest) {
     const t2Raw = 'transportista_2_id' in body ? body.transportista_2_id : actual.transportista_2_id
     const transportista_1_id = t1Raw ? Number(t1Raw) : null
     const transportista_2_id = t2Raw ? Number(t2Raw) : null
+    const domicilio  = 'domicilio'  in body ? (body.domicilio  || null) : actual.domicilio
+    const logo_base64 = 'logo_base64' in body ? (body.logo_base64 || null) : actual.logo_base64
 
     // 3. Guardar
     await sql`
@@ -77,7 +82,9 @@ export async function POST(req: NextRequest) {
         cuit               = ${cuit},
         whatsapp           = ${whatsapp},
         transportista_1_id = ${transportista_1_id},
-        transportista_2_id = ${transportista_2_id}
+        transportista_2_id = ${transportista_2_id},
+        domicilio          = ${domicilio},
+        logo_base64        = ${logo_base64}
       WHERE token_acceso = ${token}
     `
 

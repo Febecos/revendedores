@@ -11,6 +11,8 @@ interface Revendedor {
   id: number; nombre: string; apellido: string; empresa: string
   provincia: string; descuento_pct: number; token_acceso: string
   tipo_usuario?: string; puede_pedir_online?: boolean; email?: string
+  puede_cotizar_con_marca?: boolean; logo_base64?: string | null
+  domicilio?: string | null; cuit?: string | null
 }
 interface ResultadoBomba {
   sugerencia: any; caudal_a_altura: any; es_fallback: boolean; nota: string; opciones: any[]
@@ -484,7 +486,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 }
 
 
-function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaDiametro = null, distSensorInicial = 0 }: any) {
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, revEmpresa, revDomicilio, revCuit, revLogo, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaDiametro = null, distSensorInicial = 0 }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [nroPresup, setNroPresup] = useState<string | null>(null)
@@ -676,6 +678,15 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     <p>⏱ Válido por 48 horas</p>
   </div>
 </div>
+${revLogo ? `
+<div style="background:#f0f4ff;border:2px solid #1a3a5c;border-radius:10px;padding:12px 20px;margin-bottom:14px;display:flex;align-items:center;gap:20px">
+  <img src="${revLogo}" style="height:52px;max-width:160px;object-fit:contain;flex-shrink:0" alt="Logo" />
+  <div>
+    ${revEmpresa ? `<div style="font-size:16px;font-weight:800;color:#1a3a5c;line-height:1.2">${revEmpresa}</div>` : ''}
+    ${revCuit ? `<div style="font-size:11px;color:#555;margin-top:2px">CUIT: ${revCuit}</div>` : ''}
+    ${revDomicilio ? `<div style="font-size:11px;color:#555">📍 ${revDomicilio}</div>` : ''}
+  </div>
+</div>` : ''}
 ${tieneCliente
       ? `<div class="cliente-box">
           ${cd?.razonSocial ? `<div class="cliente-nombre">${cd.razonSocial}</div>${(cd?.nombre||cd?.apellido) ? `<div class="cliente-detalle" style="margin-bottom:3px">Contacto: ${cd?.nombre||''} ${cd?.apellido||''}</div>` : ''}` : `<div class="cliente-nombre">Sr./Sra. ${cd?.nombre || ''} ${cd?.apellido || ''}</div>`}
@@ -716,11 +727,16 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
 <table style="table-layout:fixed;width:100%"><thead><tr><th style="width:88%">Componente</th><th style="width:12%;text-align:center">Cant.</th></tr></thead>
 <tbody>${kitHtml2Col}</tbody></table>` : ''}
 <div class="footer">
-  ${revTipo === 'admin'
-    ? `Asesor Febecos: <strong>${revendedor}</strong>`
-    : `Revendedor: <strong>${revendedor}</strong>${revProvincia ? ` &nbsp;·&nbsp; ${revProvincia}` : ''}`
-  }<br>
-  Cotización realizada a través de la plataforma de cotizaciones de <strong>febecos.com</strong> · Bombeo Solar Argentina<br>
+  ${revLogo
+    ? `<strong>${revEmpresa || revendedor}</strong>${revProvincia ? ` &nbsp;·&nbsp; ${revProvincia}` : ''}${revCuit ? ` &nbsp;·&nbsp; CUIT ${revCuit}` : ''}<br>`
+    : revTipo === 'admin'
+      ? `Asesor Febecos: <strong>${revendedor}</strong><br>`
+      : `Revendedor: <strong>${revendedor}</strong>${revProvincia ? ` &nbsp;·&nbsp; ${revProvincia}` : ''}<br>`
+  }
+  ${revLogo
+    ? `<span style="font-size:9px;color:#bbb">Generado con la plataforma online de <strong>Febecos®</strong> · Bombeo Solar Argentina</span><br>`
+    : `Cotización realizada a través de la plataforma de cotizaciones de <strong>febecos.com</strong> · Bombeo Solar Argentina<br>`
+  }
   Válido por 48 horas desde la fecha de emisión. Sujeto a disponibilidad de stock.
 </div>
 
@@ -1628,6 +1644,10 @@ export default function Portal() {
           revTipo={rev.tipo_usuario || 'revendedor'}
           revToken={token}
           revEmail={rev.email}
+          revEmpresa={rev.empresa || ''}
+          revDomicilio={rev.domicilio || ''}
+          revCuit={rev.cuit || ''}
+          revLogo={rev.puede_cotizar_con_marca && rev.logo_base64 ? rev.logo_base64 : null}
           profundidadInicial={profundidad}
           busquedaMCA={altura ? Number(altura) : null}
           busquedaLitros={litros ? Number(litros) : null}

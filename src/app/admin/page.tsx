@@ -16,6 +16,9 @@ type Solicitud = {
   email_verificado: boolean
   aprobado: boolean
   created_at: string
+  puede_cotizar_con_marca: boolean
+  logo_base64: string | null
+  domicilio: string | null
 }
 
 const TIPO_LABELS: Record<string, string> = {
@@ -57,7 +60,7 @@ export default function Admin() {
     setLoading(false)
   }
 
-  const accion = async (id: number, tipo: 'aprobar' | 'rechazar' | 'borrar') => {
+  const accion = async (id: number, tipo: 'aprobar' | 'rechazar' | 'borrar' | 'toggle_marca') => {
     if (tipo === 'borrar' && !confirm('¿Seguro que querés borrar este registro?')) return
     try {
       const res = await fetch('/api/admin/accion', {
@@ -65,10 +68,12 @@ export default function Admin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, tipo })
       })
+      const data = await res.json()
       if (res.ok) {
         setMensaje(
           tipo === 'aprobar' ? '✅ Aprobado y notificado por email' :
           tipo === 'rechazar' ? '❌ Rechazado' :
+          tipo === 'toggle_marca' ? (data.puede_cotizar_con_marca ? '🏷 Marca propia habilitada' : '🏷 Marca propia deshabilitada') :
           '🗑 Registro borrado'
         )
         setTimeout(() => setMensaje(''), 3000)
@@ -78,9 +83,11 @@ export default function Admin() {
           setSolicitudes(prev => prev.map(s => s.id === id ? { ...s, estado: 'rechazado', aprobado: false } : s))
         } else if (tipo === 'aprobar') {
           setSolicitudes(prev => prev.map(s => s.id === id ? { ...s, estado: 'aprobado', aprobado: true } : s))
+        } else if (tipo === 'toggle_marca') {
+          setSolicitudes(prev => prev.map(s => s.id === id ? { ...s, puede_cotizar_con_marca: data.puede_cotizar_con_marca } : s))
         }
       } else {
-        alert('Error al procesar la acción')
+        alert(data.error || 'Error al procesar la acción')
       }
     } catch {
       alert('Error de conexión')
@@ -207,7 +214,32 @@ export default function Admin() {
                   {sol.cuit && <div>🪪 {sol.cuit}</div>}
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+                {/* Indicadores de marca propia */}
+                {sol.aprobado && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {sol.cuit ? (
+                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#e8f5e9', color: '#27ae60', fontWeight: 700 }}>
+                        ✅ CUIT OK
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#fff3e0', color: '#e8681a', fontWeight: 700 }}>
+                        ⚠ Sin CUIT — no elegible para marca
+                      </span>
+                    )}
+                    {sol.logo_base64 && (
+                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#e8f0fe', color: '#1a3a5c', fontWeight: 700 }}>
+                        🖼 Logo cargado
+                      </span>
+                    )}
+                    {sol.puede_cotizar_con_marca && (
+                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#1a3a5c', color: '#fff', fontWeight: 700 }}>
+                        🏷 Marca habilitada
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                   {!sol.aprobado && sol.email_verificado && (
                     <button
                       onClick={() => accion(sol.id, 'aprobar')}
@@ -222,6 +254,21 @@ export default function Admin() {
                       style={{ padding: '8px 20px', background: '#fff', color: '#c0392b', border: '2px solid #c0392b', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
                     >
                       ❌ Rechazar
+                    </button>
+                  )}
+                  {/* Toggle marca propia — solo para aprobados con CUIT */}
+                  {sol.aprobado && sol.cuit && (
+                    <button
+                      onClick={() => accion(sol.id, 'toggle_marca')}
+                      style={{
+                        padding: '8px 20px',
+                        background: sol.puede_cotizar_con_marca ? '#1a3a5c' : '#fff',
+                        color: sol.puede_cotizar_con_marca ? '#fff' : '#1a3a5c',
+                        border: '2px solid #1a3a5c',
+                        borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14,
+                      }}
+                    >
+                      {sol.puede_cotizar_con_marca ? '🏷 Deshabilitar marca' : '🏷 Habilitar marca propia'}
                     </button>
                   )}
                   <button

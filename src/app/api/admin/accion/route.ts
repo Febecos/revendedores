@@ -49,6 +49,16 @@ export async function POST(req: NextRequest) {
       await sql`UPDATE solicitudes_revendedor SET estado = 'rechazado' WHERE id = ${id}`
     }
 
+    if (tipo === 'toggle_marca') {
+      // Solo aplica si tiene CUIT
+      if (!sol.cuit) {
+        return NextResponse.json({ error: 'El revendedor debe tener CUIT para habilitar marca propia' }, { status: 400 })
+      }
+      const nuevo = !sol.puede_cotizar_con_marca
+      await sql`UPDATE solicitudes_revendedor SET puede_cotizar_con_marca = ${nuevo} WHERE id = ${id}`
+      return NextResponse.json({ ok: true, puede_cotizar_con_marca: nuevo })
+    }
+
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('Error en accion admin:', err)
