@@ -21,8 +21,8 @@ function html(nombre: string, token: string): string {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f0f4f8;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a2a3a}
-.wrap{max-width:600px;margin:0 auto}
-.header{background:#1a3a5c;padding:36px 40px;text-align:center}
+.wrap{max-width:600px;margin:0 auto;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.10)}
+.header{background:#1a3a5c;padding:36px 40px;text-align:center;border-radius:16px 16px 0 0}
 .header img{height:42px;object-fit:contain;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto}
 .header h1{color:#fff;font-size:21px;font-weight:800;line-height:1.4}
 .header h1 span{color:#e8681a}
