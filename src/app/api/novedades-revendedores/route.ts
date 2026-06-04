@@ -17,24 +17,34 @@ const PORTAL = 'https://revendedores.febecos.com/portal'
 // ── Detecta novedades del catálogo en los últimos N días ─────────────────────
 async function detectarNovedades(dias: number) {
   const sql = getDb()
-  const rows = await sql`
-    SELECT titulo_comercial, marca, watts, precio_full, activo, stock,
-           created_at, updated_at
-    FROM pumps
-    WHERE activo = true
-      AND updated_at > NOW() - (${dias} || ' days')::INTERVAL
-    ORDER BY updated_at DESC
-    LIMIT 20
-  `
-  const nuevas = rows.filter((r: any) => {
-    const diff = Date.now() - new Date(r.created_at).getTime()
-    return diff < dias * 24 * 60 * 60 * 1000
-  })
-  const actualizadas = rows.filter((r: any) => {
-    const diff = Date.now() - new Date(r.created_at).getTime()
-    return diff >= dias * 24 * 60 * 60 * 1000
-  })
-  return { nuevas, actualizadas }
+  const [catalogoRows, changelogRows] = await Promise.all([
+    sql`
+      SELECT titulo_comercial, marca, watts, precio_full, activo, stock,
+             created_at, updated_at
+      FROM pumps
+      WHERE activo = true
+        AND updated_at > NOW() - (${dias} || ' days')::INTERVAL
+      ORDER BY updated_at DESC
+      LIMIT 20
+    `,
+    sql`
+      SELECT id, fecha, titulo, descripcion, tipo
+      FROM plataforma_changelog
+      WHERE visible = true
+        AND fecha > NOW() - (${dias} || ' days')::INTERVAL
+      ORDER BY fecha DESC
+    `,
+  ])
+
+  const umbralMs = dias * 24 * 60 * 60 * 1000
+  const nuevas = catalogoRows.filter((r: any) =>
+    Date.now() - new Date(r.created_at).getTime() < umbralMs
+  )
+  const actualizadas = catalogoRows.filter((r: any) =>
+    Date.now() - new Date(r.created_at).getTime() >= umbralMs
+  )
+
+  return { nuevas, actualizadas, changelog: changelogRows }
 }
 
 function fmt(n: number) {
@@ -42,6 +52,19 @@ function fmt(n: number) {
 }
 
 // ── HTML del email ────────────────────────────────────────────────────────────
+const TIPO_ICON: Record<string, string> = {
+  novedad:    '🆕',
+  mejora:     '⚡',
+  fix:        '🔧',
+  importante: '🔔',
+}
+const TIPO_COLOR: Record<string, string> = {
+  novedad:    '#1a3a5c',
+  mejora:     '#1a6b3c',
+  fix:        '#7a5c00',
+  importante: '#b91c1c',
+}
+
 function html(
   nombre: string,
   token: string,
@@ -50,12 +73,30 @@ function html(
   items: string[],
   nuevas: any[],
   actualizadas: any[],
+  changelog: any[],
 ): string {
   const primer = (nombre || '').split(' ')[0] || 'Hola'
   const url = `${PORTAL}?token=${token}`
   const periodoLabel = dias === 7 ? 'esta semana' : dias === 14 ? 'estas dos semanas' : `los últimos ${dias} días`
 
-  // Items manuales del admin
+  // Changelog de la plataforma (desde DB)
+  const changelogHtml = changelog.length
+    ? changelog.map(c => {
+        const icon  = TIPO_ICON[c.tipo]  || '✨'
+        const color = TIPO_COLOR[c.tipo] || '#1a3a5c'
+        return `<div style="padding:12px 0;border-bottom:1px solid #e8edf2">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="font-size:18px;line-height:1.2">${icon}</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:${color}">${c.titulo}</div>
+              ${c.descripcion ? `<div style="font-size:12px;color:#5a6f84;margin-top:3px;line-height:1.6">${c.descripcion}</div>` : ''}
+            </div>
+          </div>
+        </div>`
+      }).join('')
+    : ''
+
+  // Items manuales del admin (escritos en el textarea)
   const itemsHtml = items.length
     ? items.map(i => `<li style="padding:6px 0;border-bottom:1px solid #e8edf2;font-size:14px;color:#2d3f55">${i}</li>`).join('')
     : ''
@@ -127,8 +168,13 @@ body{background:#f0f4f8;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a2
       ${intro || `Te compartimos las novedades y actualizaciones del portal de revendedores de Febecos de ${periodoLabel}.`}
     </p>
 
+    ${changelogHtml ? `<div class="card">
+      <h3>🚀 Novedades y mejoras del portal</h3>
+      ${changelogHtml}
+    </div>` : ''}
+
     ${itemsHtml ? `<div class="card">
-      <h3>✨ Novedades y mejoras</h3>
+      <h3>📌 Más novedades</h3>
       <ul style="list-style:none;padding:0;margin:0">${itemsHtml}</ul>
     </div>` : ''}
 
@@ -230,7 +276,7 @@ export async function POST(req: NextRequest) {
         replyTo: 'revende@febecos.com',
         to: r.email,
         subject: asuntoFinal,
-        html: html(r.nombre, r.token_acceso, dias, intro || '', items, novedades.nuevas, novedades.actualizadas),
+        html: html(r.nombre, r.token_acceso, dias, intro || '', items, novedades.nuevas, novedades.actualizadas, novedades.changelog),
       })
       if (res.error) fallidos.push({ email: r.email, error: res.error.message })
       else enviados.push({ email: r.email, id: res.data?.id })
