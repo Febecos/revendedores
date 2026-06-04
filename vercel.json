@@ -7,7 +7,7 @@
   ],
   "crons": [
     {
-      "path": "/api/email-queue/process",
+      "path": "/api/email-queue/process?key=f0d9811cd021923ba50d50b1",
       "schedule": "*/3 * * * *"
     }
   ]
