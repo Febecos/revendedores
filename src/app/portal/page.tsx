@@ -486,7 +486,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 }
 
 
-function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, revEmpresa, revDomicilio, revCuit, revLogo, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaLitrosHora = null, busquedaDiametro = null, distSensorInicial = 0 }: any) {
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, revEmpresa, revDomicilio, revCuit, revLogo, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaLitrosHora = null, busquedaDiametro = null, distSensorInicial = 0, clienteInicial = null }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [nroPresup, setNroPresup] = useState<string | null>(null)
@@ -506,13 +506,13 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
 
   // ── Datos del cliente (solo cuando mostrarPublico=true) ───────────────────
   const [showClienteForm, setShowClienteForm] = useState(false)
-  const [clienteNombre, setClienteNombre] = useState('')
-  const [clienteApellido, setClienteApellido] = useState('')
-  const [clienteTelefono, setClienteTelefono] = useState('')
-  const [clienteZona, setClienteZona] = useState('')
-  const [clienteRazonSocial, setClienteRazonSocial] = useState('') // opcional (empresa)
-  const [clienteCuit, setClienteCuit] = useState('')               // opcional (empresa)
-  const [clienteReady, setClienteReady] = useState(false) // true una vez confirmados
+  const [clienteNombre, setClienteNombre] = useState(clienteInicial?.nombre || '')
+  const [clienteApellido, setClienteApellido] = useState(clienteInicial?.apellido || '')
+  const [clienteTelefono, setClienteTelefono] = useState(clienteInicial?.telefono || '')
+  const [clienteZona, setClienteZona] = useState(clienteInicial?.zona || '')
+  const [clienteRazonSocial, setClienteRazonSocial] = useState(clienteInicial?.razonSocial || '')
+  const [clienteCuit, setClienteCuit] = useState(clienteInicial?.cuit || '')
+  const [clienteReady, setClienteReady] = useState(!!(clienteInicial?.nombre || clienteInicial?.razonSocial))
 
   async function obtenerNroPresupuesto(): Promise<string> {
     try {
@@ -549,9 +549,10 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
         bomba_descripcion: data?.bomba ? `${data.bomba.marca} ${data.bomba.watts}W` : null,
         bomba_watts: data?.bomba?.watts || null,
         bomba_marca: data?.bomba?.marca || null,
-        litros_dia: null,
-        altura_m: null,
-        longitud_total_m: null,
+        litros_dia:       busquedaLitros || null,
+        altura_m:         busquedaMCA    || null,
+        longitud_total_m: distanciaTablero > 0 ? distanciaTablero : null,
+        profundidad_m:    profInput > 0 ? profInput : null,
         tipo_precio: mostrarPublico ? 'publico' : 'mayorista',
         precio_publico: precioPublico,
         precio_ofrecido: precio,
@@ -1337,10 +1338,36 @@ export default function Portal() {
   const [profundidad, setProfundidad] = useState(0)
   const [distSensorMCA, setDistSensorMCA] = useState<number>(0) // distancia al sensor calculada por la MCA
   const [litrosHoraMCA, setLitrosHoraMCA] = useState<number | null>(null) // L/hora original si se ingresó en esa unidad
+  const [clienteInicial, setClienteInicial] = useState<any>(null) // pre-fill cliente al re-cotizar
   // ── Mis cotizaciones ──────────────────────────────────────────────────────
   const [showCotis, setShowCotis] = useState(false)
   const [cotis, setCotis] = useState<any[] | null>(null)
   const [cargandoCotis, setCargandoCotis] = useState(false)
+  function recotizar(c: any) {
+    setShowCotis(false)
+    if (c.altura_m)         setAltura(String(c.altura_m))
+    if (c.litros_dia)       setLitros(String(c.litros_dia))
+    if (c.profundidad_m)    setProfundidad(Number(c.profundidad_m))
+    if (c.longitud_total_m) setDistSensorMCA(Number(c.longitud_total_m))
+    if (c.bomba_codigo)     setModalCodigo(c.bomba_codigo)
+    // Pre-llenar datos del cliente si los hay
+    if (c.cliente_nombre)       setClienteNombre(c.cliente_nombre)
+    if (c.cliente_apellido)     setClienteApellido(c.cliente_apellido)
+    if (c.cliente_telefono)     setClienteTelefono(c.cliente_telefono)
+    if (c.cliente_zona)         setClienteZona(c.cliente_zona)
+    if (c.cliente_razon_social) setClienteRazonSocial(c.cliente_razon_social)
+    if (c.cliente_cuit)         setClienteCuit(c.cliente_cuit)
+    if (c.cliente_nombre || c.cliente_apellido || c.cliente_razon_social) {
+      setClienteInicial({
+        nombre: c.cliente_nombre || '', apellido: c.cliente_apellido || '',
+        telefono: c.cliente_telefono || '', zona: c.cliente_zona || '',
+        razonSocial: c.cliente_razon_social || '', cuit: c.cliente_cuit || '',
+      })
+    } else {
+      setClienteInicial(null)
+    }
+  }
+
   async function abrirCotizaciones() {
     setShowCotis(true)
     if (cotis === null) {
@@ -1686,6 +1713,7 @@ export default function Portal() {
           busquedaDiametro={diametro || null}
           distSensorInicial={distSensorMCA}
           busquedaLitrosHora={litrosHoraMCA}
+          clienteInicial={clienteInicial}
         />
       )}
 
@@ -1728,6 +1756,13 @@ export default function Portal() {
                         </>
                       ) : (
                         <span style={{ fontSize: 11, color: '#7a9ab5', fontStyle: 'italic' as const }}>Cotización antigua sin link compartible</span>
+                      )}
+                      {c.bomba_codigo && (
+                        <button
+                          onClick={() => recotizar(c)}
+                          style={{ padding: '8px 12px', background: 'rgba(232,104,26,0.12)', border: '1px solid #e8681a', borderRadius: 8, color: '#e8681a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                          title="Abre la misma bomba con precios actualizados y datos del cliente pre-cargados"
+                        >🔄 Re-cotizar</button>
                       )}
                     </div>
                   </div>
