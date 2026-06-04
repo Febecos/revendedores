@@ -62,9 +62,20 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
 
         {/* Hoja */}
         <div className="sheet" style={{ maxWidth: 720, margin: '0 auto', background: '#fff', borderRadius: 12, padding: '28px 32px', color: '#1a1a18', fontFamily: 'Arial, sans-serif', boxShadow: '0 10px 40px rgba(0,0,0,.4)' }}>
-          {/* Header */}
+          {/* Header — logo del revendedor si tiene marca propia, sino Febecos */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #1a6b3c', paddingBottom: 12, marginBottom: 16 }}>
-            <img src="https://www.febecos.com/images/febecos-logo-nav.png" alt="Febecos" style={{ height: 40 }} />
+            {p.rev_logo ? (
+              <div>
+                <img src={p.rev_logo} alt={p.rev_empresa || 'Logo'} style={{ height: 42, maxWidth: 200, objectFit: 'contain' }} />
+                {p.rev_empresa && <div style={{ fontSize: 10, color: '#555', marginTop: 3 }}>{p.rev_empresa}{p.rev_cuit ? ` · CUIT ${p.rev_cuit}` : ''}</div>}
+                {p.rev_domicilio && <div style={{ fontSize: 10, color: '#888' }}>📍 {p.rev_domicilio}</div>}
+              </div>
+            ) : (
+              <div>
+                <img src="https://selector.febecos.com/images/febecos-logo.png" alt="Febecos" style={{ height: 40, objectFit: 'contain' }} />
+                <div style={{ fontSize: 10, color: '#666', marginTop: 2 }}>Bombeo Solar — febecos.com</div>
+              </div>
+            )}
             <div style={{ textAlign: 'right' }}>
               <h2 style={{ fontSize: 16, margin: 0 }}>Presupuesto {p.numero}</h2>
               <p style={{ margin: '3px 0', color: '#666', fontSize: 11 }}>{fecha}</p>
