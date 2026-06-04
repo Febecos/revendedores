@@ -716,6 +716,9 @@ ${precioPDF ? `<div class="precio-box">
   ${!mostrarPublico && data?.bomba?.precio_full ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(data.bomba.precio_full)}</div>` : ''}
 </div>
 ${(() => {
+  // Mostrar desglose IVA solo cuando: precio mayorista O cliente final con CUIT
+  const mostrarDesglose = !mostrarPublico || !!cd?.cuit
+  if (!mostrarDesglose) return ''
   const factorPrecio = mostrarPublico ? 1 : (1 - descuento / 100)
   const panelPublico = (data?.kit || [])
     .filter((i: any) => (i.familia || '').toLowerCase() === 'panel')
