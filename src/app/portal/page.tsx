@@ -1351,13 +1351,7 @@ export default function Portal() {
     if (c.profundidad_m)    setProfundidad(Number(c.profundidad_m))
     if (c.longitud_total_m) setDistSensorMCA(Number(c.longitud_total_m))
     if (c.bomba_codigo)     setModalCodigo(c.bomba_codigo)
-    // Pre-llenar datos del cliente si los hay
-    if (c.cliente_nombre)       setClienteNombre(c.cliente_nombre)
-    if (c.cliente_apellido)     setClienteApellido(c.cliente_apellido)
-    if (c.cliente_telefono)     setClienteTelefono(c.cliente_telefono)
-    if (c.cliente_zona)         setClienteZona(c.cliente_zona)
-    if (c.cliente_razon_social) setClienteRazonSocial(c.cliente_razon_social)
-    if (c.cliente_cuit)         setClienteCuit(c.cliente_cuit)
+    // Pre-llenar datos del cliente via clienteInicial (prop a ModalDetalle)
     if (c.cliente_nombre || c.cliente_apellido || c.cliente_razon_social) {
       setClienteInicial({
         nombre: c.cliente_nombre || '', apellido: c.cliente_apellido || '',
