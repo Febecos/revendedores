@@ -101,12 +101,47 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
             </div>
           )}
 
-          {/* Bomba */}
-          <h3 style={sectionTitle}>Equipo</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginBottom: 8 }}>
-            <Spec label="Código" val={p.bomba_codigo} />
-            <Spec label="Modelo" val={`${p.bomba_marca || bomba?.marca || ''} ${p.bomba_watts || bomba?.watts || ''}W`} />
+          {/* Equipo — specs completas igual que el PDF */}
+          <h3 style={sectionTitle}>Equipo de bombeo solar</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '6px 16px', marginBottom: 14 }}>
+            <Spec label="Marca"              val={bomba?.marca    || p.bomba_marca || '—'} />
+            <Spec label="Tipo"               val={bomba?.impulsor || '—'} />
+            <Spec label="Potencia"           val={`${bomba?.watts || p.bomba_watts || '—'} W`} />
+            <Spec label="Voltaje"            val={bomba?.voltaje  || '—'} />
+            <Spec label="Paneles solares"    val={bomba?.cant_paneles ?? '—'} />
+            <Spec label="Diám. bomba"        val={bomba?.diam_bomba ? `${bomba.diam_bomba}"` : '—'} />
+            <Spec label="Diám. perf. mín."   val={bomba?.diam_perf || '—'} />
+            <Spec label="Disponibilidad"     val={bomba ? (bomba.stock > 0 ? `✅ ${bomba.stock} en stock` : '⚠ Sin stock') : '—'} color={bomba?.stock > 0 ? '#1a6b3c' : '#c45c00'} />
           </div>
+
+          {/* Rendimiento */}
+          {curvas.length > 0 && (
+            <>
+              <h3 style={sectionTitle}>Rendimiento (L/día por altura)</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, marginBottom: 14 }}>
+                <thead>
+                  <tr style={{ background: '#1a6b3c', color: '#fff' }}>
+                    <th style={{ padding: '6px 10px', textAlign: 'left' }}>Altura (m)</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'right' }}>☀️ Verano (5.5h)</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'right' }}>📅 Promedio (4h)</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'right' }}>❄️ Invierno (3.5h)</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'right' }}>L/hora</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {curvas.map((c: any, i: number) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? '#fafafa' : '#fff', borderBottom: '1px solid #eee' }}>
+                      <td style={{ padding: '5px 10px', fontWeight: 600 }}>{c.altura_m}m</td>
+                      <td style={{ padding: '5px 10px', textAlign: 'right' }}>{(c.litros_verano||0).toLocaleString('es-AR')}</td>
+                      <td style={{ padding: '5px 10px', textAlign: 'right' }}>{(c.litros_promedio||0).toLocaleString('es-AR')}</td>
+                      <td style={{ padding: '5px 10px', textAlign: 'right' }}>{(c.litros_invierno||0).toLocaleString('es-AR')}</td>
+                      <td style={{ padding: '5px 10px', textAlign: 'right', color: '#888' }}>{(c.litros_hora||0).toLocaleString('es-AR')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
 
           {/* Kit */}
           {items.length > 1 && (
@@ -156,11 +191,11 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
 
 const sectionTitle = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: '#666', borderBottom: '1px solid #e2e0d8', paddingBottom: 4, margin: '14px 0 10px' }
 
-function Spec({ label, val }: { label: string; val: any }) {
+function Spec({ label, val, color }: { label: string; val: any; color?: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888', marginBottom: 1 }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 600 }}>{val || '—'}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: color || '#1a1a18' }}>{val || '—'}</span>
     </div>
   )
 }
