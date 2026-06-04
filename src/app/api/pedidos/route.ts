@@ -40,24 +40,25 @@ export async function POST(req: NextRequest) {
     }
 
     const sql = getDb()
+    // revendedor_id es UUID en la tabla pero el portal usa INTEGER — omitir para evitar type error
+    // revendedor_token es suficiente para identificar al revendedor
     const rows = await sql`
       INSERT INTO pedidos (
-        revendedor_id, revendedor_nombre, revendedor_email, revendedor_token,
+        revendedor_nombre, revendedor_email, revendedor_token,
         bomba_codigo, bomba_descripcion, litros_dia, altura_m,
         precio_publico, precio_final, descuento_pct,
         tipo_comprador, metodo_pago, notas_cliente,
         estado
       ) VALUES (
-        ${revendedor_id || null},
         ${revendedor_nombre || null},
         ${revendedor_email || null},
         ${revendedor_token || null},
         ${bomba_codigo},
         ${bomba_descripcion || null},
-        ${litros_dia || null},
+        ${litros_dia ? Math.round(Number(litros_dia)) : null},
         ${altura_m || null},
-        ${precio_publico},
-        ${precio_final},
+        ${Math.round(Number(precio_publico))},
+        ${Math.round(Number(precio_final))},
         ${descuento_pct || 0},
         ${tipo_comprador || 'cliente_final'},
         ${metodo_pago},
