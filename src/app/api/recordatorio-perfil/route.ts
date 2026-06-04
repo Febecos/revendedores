@@ -123,10 +123,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY)
-  const enviados: any[] = []
-  const fallidos: any[] = []
-  for (const r of rows as any[]) {
+  // Prueba: directo; Masivo: cola
+  if (testEmail) {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const r = rows[0] as any
     try {
       const res = await resend.emails.send({
         from: 'Febecos Revendedores <revende@febecos.com>',
@@ -135,13 +135,28 @@ export async function POST(req: NextRequest) {
         subject: `${(r.nombre || '').split(' ')[0] || 'Hola'}, revisá tus datos en el portal Febecos`,
         html: html(r.nombre, r.token_acceso),
       })
-      if (res.error) fallidos.push({ email: r.email, error: res.error.message })
-      else enviados.push({ email: r.email, id: res.data?.id })
+      if (res.error) return NextResponse.json({ ok: false, error: res.error.message })
+      return NextResponse.json({ ok: true, modo: 'prueba', enviados: [{ email: r.email, id: res.data?.id }], fallidos: [] })
     } catch (e: any) {
-      fallidos.push({ email: r.email, error: e.message })
+      return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
     }
-    await new Promise(res => setTimeout(res, 500))
   }
 
-  return NextResponse.json({ ok: true, modo: testEmail ? 'prueba' : 'masivo', enviados, fallidos })
+  const { randomUUID } = await import('crypto')
+  const job_id = randomUUID()
+  const emailsParaEncolar = (rows as any[]).map(r => ({
+    email: r.email, nombre: r.nombre,
+    asunto: `${(r.nombre || '').split(' ')[0] || 'Hola'}, revisá tus datos en el portal Febecos`,
+    html_body: html(r.nombre, r.token_acceso),
+  }))
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://revendedores.febecos.com'
+  await fetch(`${baseUrl}/api/email-queue`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: GUARD, job_id, tipo: 'recordatorio-perfil', emails: emailsParaEncolar }),
+  })
+  return NextResponse.json({
+    ok: true, modo: 'cola', job_id, encolados: emailsParaEncolar.length,
+    msg: `${emailsParaEncolar.length} emails encolados. ~${Math.ceil(emailsParaEncolar.length / 3) * 3} min en total.`,
+  })
 }

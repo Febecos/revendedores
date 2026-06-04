@@ -4,5 +4,11 @@
       "source": "/calculadora",
       "destination": "/calculadora.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/email-queue/process",
+      "schedule": "*/3 * * * *"
+    }
   ]
 }
