@@ -1343,6 +1343,7 @@ export default function Portal() {
   const [showCotis, setShowCotis] = useState(false)
   const [cotis, setCotis] = useState<any[] | null>(null)
   const [cargandoCotis, setCargandoCotis] = useState(false)
+  const [buscadorCotis, setBuscadorCotis] = useState('')
   function recotizar(c: any) {
     setShowCotis(false)
     if (c.altura_m)         setAltura(String(c.altura_m))
@@ -1728,12 +1729,33 @@ export default function Portal() {
               </div>
               <button onClick={() => setShowCotis(false)} style={{ background: 'none', border: 'none', color: '#7a9ab5', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>✕</button>
             </div>
+            {/* Buscador */}
+            <div style={{ padding: '10px 16px', borderBottom: '1px solid #1e3248' }}>
+              <input
+                type="text"
+                placeholder="🔍 Buscar por N° (ej: 0068), cliente o código de bomba…"
+                value={buscadorCotis}
+                onChange={e => setBuscadorCotis(e.target.value)}
+                style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 8, padding: '9px 12px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' as const, outline: 'none' }}
+              />
+            </div>
             <div style={{ overflowY: 'auto', padding: '12px 16px' }}>
               {cargandoCotis && <div style={{ color: '#7a9ab5', textAlign: 'center', padding: 30 }}>⏳ Cargando…</div>}
               {!cargandoCotis && cotis?.length === 0 && (
                 <div style={{ color: '#7a9ab5', textAlign: 'center', padding: 30, fontSize: 13 }}>Todavía no generaste ninguna cotización.</div>
               )}
-              {!cargandoCotis && cotis?.map((c: any) => {
+              {!cargandoCotis && (cotis?.filter((c: any) => {
+                if (!buscadorCotis.trim()) return true
+                const q = buscadorCotis.trim().toLowerCase()
+                return (
+                  (c.numero || '').toLowerCase().includes(q) ||
+                  (c.cliente_nombre || '').toLowerCase().includes(q) ||
+                  (c.cliente_apellido || '').toLowerCase().includes(q) ||
+                  (c.cliente_razon_social || '').toLowerCase().includes(q) ||
+                  (c.bomba_codigo || '').toLowerCase().includes(q) ||
+                  (c.bomba_descripcion || '').toLowerCase().includes(q)
+                )
+              }) || []).map((c: any) => {
                 const fecha = c.created_at ? new Date(c.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''
                 const precio = c.precio_ofrecido ?? c.precio_publico
                 const cli = [c.cliente_nombre, c.cliente_apellido].filter(Boolean).join(' ') || c.cliente_razon_social || 'Sin cliente'
@@ -1760,9 +1782,9 @@ export default function Portal() {
                       {c.bomba_codigo && (
                         <button
                           onClick={() => recotizar(c)}
-                          style={{ padding: '8px 12px', background: 'rgba(232,104,26,0.12)', border: '1px solid #e8681a', borderRadius: 8, color: '#e8681a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                          style={{ padding: '8px 14px', background: '#e8681a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                           title="Abre la misma bomba con precios actualizados y datos del cliente pre-cargados"
-                        >🔄 Re-cotizar</button>
+                        >🔄 Re-cotizar con precio actual</button>
                       )}
                     </div>
                   </div>
