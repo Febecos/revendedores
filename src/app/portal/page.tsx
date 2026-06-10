@@ -648,7 +648,9 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
           : !sensorFueraRango && esSensorPdf && distanciaTablero != null && distanciaTablero > item.cantidad
             ? distanciaTablero
             : item.cantidad
-        kitOrdenado.push({ nombre: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''), notas: item.notas || '', cantidad: cant, unidad: item.unidad || 'unidad', _f: f })
+        // Detectar metros por unidad o por familia/nombre (fallback si unidad no está seteada en DB)
+        const esMedidoEnMetros = item.unidad === 'metro' || ((esCableLargo || isSogaPdf || esSensorPdf) && cant > 5)
+        kitOrdenado.push({ nombre: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''), notas: item.notas || '', cantidad: cant, unidad: esMedidoEnMetros ? 'metro' : (item.unidad || 'unidad'), _f: f })
       }
     }
     kitOrdenado.sort((a, b) => a._f - b._f)
