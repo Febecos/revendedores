@@ -1307,8 +1307,7 @@ ${curvasHtml ? `
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               <button onClick={() => {
-                const win = window.open('', '_blank')
-                if (win) { win.document.write(pdfHtml); win.document.close(); setTimeout(() => win.print(), 400) }
+                window.open(`/p/${pdfToken || pdfNro}`, '_blank')
               }} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#1e3248', border:'1px solid #2a4a6a', borderRadius:10, color:'#e8f0f8', fontSize:14, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
                 <span style={{ fontSize:22 }}>📥</span>
                 <div><div>Guardar / Imprimir PDF</div><div style={{ fontSize:11, color:'#7a9ab5', fontWeight:400 }}>Abre el PDF para guardar o imprimir</div></div>
