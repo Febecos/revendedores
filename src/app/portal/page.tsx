@@ -1870,6 +1870,16 @@ export default function Portal() {
           <button onClick={abrirCotizaciones} style={{ padding: '7px 16px', background: 'rgba(232,104,26,0.15)', border: '1px solid #e8681a', borderRadius: 8, color: '#e8681a', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             📄 Mis cotizaciones
           </button>
+          {rev.puede_ver_fv && (
+            <a
+              href={`https://fv.febecos.com/cotizar#rev=${encodeURIComponent(token || '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ padding: '7px 16px', background: 'rgba(234,179,8,0.15)', border: '1px solid #eab308', borderRadius: 8, color: '#eab308', fontSize: 13, fontWeight: 700, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' as const }}
+            >
+              ☀️ Cotizador FV
+            </a>
+          )}
           <span style={{ fontSize: 12, color: '#3a5a7a' }}>Tus presupuestos generados — compartí el link con tu cliente</span>
         </div>
       </div>
@@ -1897,34 +1907,7 @@ export default function Portal() {
           )}
         </div>
 
-        {/* COTIZADOR FV — solo si tiene acceso */}
-        {rev.puede_ver_fv && (
-          <div style={{ ...s.card, marginBottom: 16, background: 'linear-gradient(135deg, rgba(11,61,107,0.6) 0%, rgba(28,138,74,0.3) 100%)', border: '1px solid rgba(28,138,74,0.4)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12 }}>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#e8f0f8' }}>☀️ Cotizador Fotovoltaico</div>
-                <div style={{ fontSize: 12, color: '#7a9ab5', marginTop: 2 }}>Armá presupuestos completos de sistemas FV para tus clientes</div>
-              </div>
-              <a
-                href={`https://fv.febecos.com/cotizar?rev_token=${encodeURIComponent(token || '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  padding: '8px 18px', background: 'rgba(28,138,74,0.85)',
-                  border: '1px solid rgba(28,138,74,0.9)',
-                  borderRadius: 8, color: '#fff',
-                  fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                  textDecoration: 'none', whiteSpace: 'nowrap' as const,
-                  display: 'flex', alignItems: 'center', gap: 6
-                }}
-              >
-                ☀️ Abrir cotizador FV →
-              </a>
-            </div>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap' as const, gap: 10 }}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap' as const, gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 13, color: '#7a9ab5' }}>Ver precios:</span>
             <div style={s.toggleBtns}>
