@@ -13,6 +13,7 @@ interface Revendedor {
   tipo_usuario?: string; puede_pedir_online?: boolean; email?: string
   puede_cotizar_con_marca?: boolean; logo_base64?: string | null
   domicilio?: string | null; cuit?: string | null
+  puede_ver_fv?: boolean
 }
 interface ResultadoBomba {
   sugerencia: any; caudal_a_altura: any; es_fallback: boolean; nota: string; opciones: any[]
