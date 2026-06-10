@@ -509,6 +509,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [clienteNombre, setClienteNombre] = useState(clienteInicial?.nombre || '')
   const [clienteApellido, setClienteApellido] = useState(clienteInicial?.apellido || '')
   const [clienteTelefono, setClienteTelefono] = useState(clienteInicial?.telefono || '')
+  const [clienteEmail, setClienteEmail] = useState(clienteInicial?.email || '')
   const [clienteZona, setClienteZona] = useState(clienteInicial?.zona || '')
   const [clienteRazonSocial, setClienteRazonSocial] = useState(clienteInicial?.razonSocial || '')
   const [clienteCuit, setClienteCuit] = useState(clienteInicial?.cuit || '')
@@ -532,7 +533,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   function guardarPresupuestoDB(
     nro: string,
     precio: number | null,
-    cdData: { nombre: string; apellido: string; telefono: string; zona: string; razonSocial?: string; cuit?: string } | null,
+    cdData: { nombre: string; apellido: string; telefono: string; zona: string; email?: string; razonSocial?: string; cuit?: string } | null,
     publicToken?: string | null
   ) {
     const precioPublico = data?.bomba?.precio_full || null
@@ -560,12 +561,33 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
         cliente_nombre: tieneCliente ? cdData?.nombre : null,
         cliente_apellido: tieneCliente ? cdData?.apellido : null,
         cliente_telefono: tieneCliente ? cdData?.telefono : null,
+        cliente_email: cdData?.email || null,
         cliente_zona: tieneCliente ? cdData?.zona : null,
         cliente_razon_social: cdData?.razonSocial || null,
         cliente_cuit: cdData?.cuit || null,
         public_token: publicToken || null,
       }),
     }).catch(() => { /* silencioso */ })
+
+    // CRM: registrar cliente (fire & forget)
+    if (tieneCliente) {
+      fetch('https://febecos.com/api/admin?action=upsert_cliente', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'cliente_final',
+          nombre: cdData?.nombre || null,
+          apellido: cdData?.apellido || null,
+          email: cdData?.email || null,
+          telefono: cdData?.telefono || null,
+          cuit: cdData?.cuit || null,
+          empresa: cdData?.razonSocial || null,
+          provincia: cdData?.zona || null,
+          origen: 'presupuesto_bombas',
+          bump: 'presupuesto',
+          monto: precio || 0,
+        }),
+      }).catch(() => {})
+    }
   }
 
   async function generarPDF(forceClienteData?: { nombre: string; apellido: string; telefono: string; zona: string; razonSocial?: string; cuit?: string }) {
@@ -754,7 +776,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
     ? `<strong>${revEmpresa || revendedor}</strong>${revProvincia ? ` &nbsp;·&nbsp; ${revProvincia}` : ''}${revCuit ? ` &nbsp;·&nbsp; CUIT ${revCuit}` : ''}<br>`
     : revTipo === 'admin'
       ? `Asesor Febecos: <strong>${revendedor}</strong><br>`
-      : `Revendedor: <strong>${revendedor}</strong>${revProvincia ? ` &nbsp;·&nbsp; ${revProvincia}` : ''}<br>`
+      : `Asesor comercial: <strong>${revendedor}</strong>${revProvincia ? ` &nbsp;·&nbsp; ${revProvincia}` : ''}<br>`
   }
   ${revLogo
     ? `<span style="font-size:9px;color:#bbb">Generado con la plataforma online de <strong>Febecos®</strong> · Bombeo Solar Argentina</span><br>`
@@ -1002,6 +1024,12 @@ ${curvasHtml ? `
                 <input value={clienteTelefono} onChange={e => setClienteTelefono(e.target.value)} placeholder="11 2345 6789" type="tel"
                   style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
+              {/* Email */}
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Email (opcional)</div>
+                <input value={clienteEmail} onChange={e => setClienteEmail(e.target.value)} placeholder="cliente@email.com" type="email"
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
               {/* Provincia */}
               <div style={{ gridColumn: '1/-1' }}>
                 <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Provincia</div>
@@ -1031,7 +1059,7 @@ ${curvasHtml ? `
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => {
-                  const cd = { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit }
+                  const cd = { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, email: clienteEmail, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit }
                   setClienteReady(true)
                   setShowClienteForm(false)
                   generarPDF(cd)

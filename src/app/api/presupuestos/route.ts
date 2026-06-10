@@ -31,6 +31,7 @@ async function ensureTable(sql: any) {
   `
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_razon_social TEXT`
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_cuit TEXT`
+  await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_email TEXT`
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS public_token TEXT`
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS profundidad_m NUMERIC`
   await sql`CREATE INDEX IF NOT EXISTS idx_presupuestos_token ON presupuestos(public_token)`
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
       bomba_codigo, bomba_descripcion, bomba_watts, bomba_marca,
       litros_dia, altura_m, longitud_total_m, profundidad_m,
       tipo_precio, precio_publico, precio_ofrecido, descuento_pct,
-      cliente_nombre, cliente_apellido, cliente_telefono, cliente_zona,
+      cliente_nombre, cliente_apellido, cliente_telefono, cliente_email, cliente_zona,
       cliente_razon_social, cliente_cuit, public_token,
     } = body
 
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
         bomba_codigo, bomba_descripcion, bomba_watts, bomba_marca,
         litros_dia, altura_m, longitud_total_m, profundidad_m,
         tipo_precio, precio_publico, precio_ofrecido, descuento_pct,
-        cliente_nombre, cliente_apellido, cliente_telefono, cliente_zona,
+        cliente_nombre, cliente_apellido, cliente_telefono, cliente_email, cliente_zona,
         cliente_razon_social, cliente_cuit, public_token
       ) VALUES (
         ${numero},
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
         ${tipo_precio || 'mayorista'},
         ${precio_publico || null}, ${precio_ofrecido || null}, ${descuento_pct || null},
         ${cliente_nombre || null}, ${cliente_apellido || null},
-        ${cliente_telefono || null}, ${cliente_zona || null},
+        ${cliente_telefono || null}, ${cliente_email || null}, ${cliente_zona || null},
         ${cliente_razon_social || null}, ${cliente_cuit || null}, ${public_token || null}
       )
       RETURNING id, numero, created_at
