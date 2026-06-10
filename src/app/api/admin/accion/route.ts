@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { requireAdmin } from '@/lib/admin-auth'
 import nodemailer from 'nodemailer'
 
 const transporter = nodemailer.createTransport({
@@ -10,6 +11,8 @@ const transporter = nodemailer.createTransport({
 })
 
 export async function POST(req: NextRequest) {
+  const denied = requireAdmin(req)
+  if (denied) return denied
   try {
     const { id, tipo } = await req.json()
     if (!id || !tipo) {

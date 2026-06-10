@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { requireAdmin } from '@/lib/admin-auth'
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = requireAdmin(req)
+  if (denied) return denied
   try {
     const sql = getDb()
     const rows = await sql`

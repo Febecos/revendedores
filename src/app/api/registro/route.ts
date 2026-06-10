@@ -39,6 +39,16 @@ export async function POST(req: NextRequest) {
          ${acepta_terminos ?? false}, ${acepta_marketing ?? false}, ${version_terminos || '1.1'})
     `
 
+    // Base de clientes unificada (fire-and-forget, no bloquea el registro)
+    fetch('https://febecos.com/api/admin?action=upsert_cliente', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo: 'revendedor', nombre, apellido, empresa, razon_social: empresa,
+        email, whatsapp, cuit, provincia, localidad, origen: 'alta_rev',
+      }),
+    }).catch(() => {})
+
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://revendedores.febecos.com'
     const verificarUrl = `${baseUrl}/api/verificar?token=${token}`
     const resend = getResend()

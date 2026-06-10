@@ -70,6 +70,30 @@ function PerfilInner() {
     transportista_1_id: '', transportista_2_id: '',
     domicilio: '',
   })
+  const [arcaMsg, setArcaMsg] = useState('')
+  // ARCA: autocompletar empresa/provincia/localidad por CUIT (sin guiones)
+  async function lookupArca() {
+    const cuit = (form.cuit || '').replace(/\D/g, '')
+    if (!cuit) { setArcaMsg(''); return }
+    if (cuit.length !== 11) { setArcaMsg('⚠ deben ser 11 dígitos'); return }
+    setArcaMsg('⏳ ARCA…')
+    try {
+      const r = await fetch('https://febecos.com/api/admin?action=consultar_cuit&cuit=' + cuit)
+      const d = await r.json()
+      if (!d || d.ok === false || d.valido === false) { setArcaMsg('⚠ ' + (d?.error || 'no encontrado')); return }
+      const dom = d.domicilio || {}
+      const pretty = (s: string) => /ciudad autonoma|capital federal|caba/i.test(s) ? 'CABA' : (s || '').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+      setForm(f => ({
+        ...f,
+        empresa: f.empresa || d.razonSocial || d.denominacion || '',
+        provincia: f.provincia || (dom.provincia ? pretty(dom.provincia) : ''),
+        localidad: f.localidad || dom.localidad || '',
+        domicilio: f.domicilio || dom.direccion || '',
+      }))
+      setArcaMsg('✓ ' + (d.denominacion || 'datos cargados'))
+    } catch { setArcaMsg('✗ error ARCA') }
+  }
+
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoNuevo, setLogoNuevo] = useState<string | null>(null) // base64 comprimido para guardar
   const [transportistas, setTransportistas] = useState<Transportista[]>([])
@@ -313,12 +337,15 @@ function PerfilInner() {
                   onChange={e => setForm(f => ({ ...f, localidad: e.target.value }))}
                 />
               </Campo>
-              <Campo label="CUIT">
+              <Campo label="CUIT (sin guiones — trae datos de ARCA)">
                 <input
-                  style={ci} type="text" placeholder="Ej: 20-12345678-9"
+                  style={ci} type="text" placeholder="Sin guiones — ej: 20123456789"
+                  inputMode="numeric" maxLength={11}
                   value={form.cuit}
-                  onChange={e => setForm(f => ({ ...f, cuit: e.target.value }))}
+                  onChange={e => setForm(f => ({ ...f, cuit: e.target.value.replace(/\D/g, '') }))}
+                  onBlur={lookupArca}
                 />
+                {arcaMsg && <div style={{ fontSize: 11, marginTop: 4, color: arcaMsg.startsWith('✓') ? '#16a34a' : arcaMsg.startsWith('⏳') ? '#64748b' : '#d97706' }}>{arcaMsg}</div>}
               </Campo>
               <Campo label="WhatsApp">
                 <input

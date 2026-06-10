@@ -1,8 +1,11 @@
 // PATCH /api/pedidos/[id] — actualiza estado y campos del pedido (admin)
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const denied = requireAdmin(req)
+  if (denied) return denied
   try {
     const { id } = params
     const body = await req.json()

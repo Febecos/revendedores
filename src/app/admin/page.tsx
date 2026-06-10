@@ -39,12 +39,21 @@ export default function Admin() {
   const [filtro, setFiltro] = useState('todos')
   const [mensaje, setMensaje] = useState('')
 
-  const login = () => {
-    if (usuario === 'admin@febecos.com' && pass === 'febecos2024admin') {
-      setAutenticado(true)
-      cargar()
-    } else {
-      alert('Usuario o contraseña incorrectos')
+  const login = async () => {
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass }),
+      })
+      if (res.ok) {
+        setAutenticado(true)
+        cargar()
+      } else {
+        alert('Usuario o contraseña incorrectos')
+      }
+    } catch {
+      alert('Error de conexión')
     }
   }
 

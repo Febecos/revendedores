@@ -13,6 +13,7 @@ interface Revendedor {
   tipo_usuario?: string; puede_pedir_online?: boolean; email?: string
   puede_cotizar_con_marca?: boolean; logo_base64?: string | null
   domicilio?: string | null; cuit?: string | null
+  puede_ver_fv?: boolean
 }
 interface ResultadoBomba {
   sugerencia: any; caudal_a_altura: any; es_fallback: boolean; nota: string; opciones: any[]
@@ -497,7 +498,9 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [presupToken, setPresupToken] = useState<string|null>(null) // token aleatorio para el link público
   const [pdfToken, setPdfToken] = useState<string|null>(null)
   const [pdfPrecio, setPdfPrecio] = useState<number|null>(null)
-  const [pdfCliente, setPdfCliente] = useState<{nombre:string;apellido:string;telefono:string;zona:string;razonSocial?:string;cuit?:string}|null>(null)
+  const [pdfCliente, setPdfCliente] = useState<{nombre:string;apellido:string;telefono:string;zona:string;razonSocial?:string;cuit?:string;email?:string}|null>(null)
+  const [emailDestino, setEmailDestino] = useState('')
+  const [emailMsg, setEmailMsg] = useState('')
   const [profInput, setProfInput] = useState<number>(profundidadInicial)
   const [cableMetros, setCableMetros] = useState<number | null>(null) // override manual de metros de cable sumergible/soga
   // Distancia al sensor de nivel (desde el controlador hasta el tanque donde va el sensor)
@@ -513,6 +516,39 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [clienteRazonSocial, setClienteRazonSocial] = useState(clienteInicial?.razonSocial || '')
   const [clienteCuit, setClienteCuit] = useState(clienteInicial?.cuit || '')
   const [clienteReady, setClienteReady] = useState(!!(clienteInicial?.nombre || clienteInicial?.razonSocial))
+  const [clienteEmail, setClienteEmail] = useState(clienteInicial?.email || '')
+  const [arcaMsg, setArcaMsg] = useState('')
+
+  // ARCA: autocompletar datos del cliente por CUIT (sin guiones, 11 dígitos)
+  async function arcaLookupCliente() {
+    const cuit = (clienteCuit || '').replace(/\D/g, '')
+    if (!cuit) { setArcaMsg(''); return }
+    if (cuit.length !== 11) { setArcaMsg('⚠ deben ser 11 dígitos'); return }
+    setArcaMsg('⏳ ARCA…')
+    try {
+      const r = await fetch('https://febecos.com/api/admin?action=consultar_cuit&cuit=' + cuit)
+      const d = await r.json()
+      if (!d || d.ok === false || d.valido === false) { setArcaMsg('⚠ ' + (d?.error || 'no encontrado')); return }
+      const dom = d.domicilio || {}
+      if (d.razonSocial && !clienteRazonSocial.trim()) setClienteRazonSocial(d.razonSocial)
+      if (!d.razonSocial) {
+        if (d.apellido && !clienteApellido.trim()) setClienteApellido(d.apellido)
+        if (d.nombre && !clienteNombre.trim()) setClienteNombre(d.nombre)
+      } else if (!clienteNombre.trim()) {
+        setClienteNombre(d.razonSocial)
+      }
+      if (dom.provincia && !clienteZona) {
+        const PROVS = ['Buenos Aires','CABA','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán']
+        const norm = (s: string) => s.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+        const a = norm(dom.provincia)
+        let match = PROVS.find(p => norm(p) === a)
+        if (!match && /(CIUDAD AUTONOMA|CAPITAL FEDERAL|CABA)/.test(a)) match = 'CABA'
+        else if (!match && a.includes('BUENOS AIRES')) match = 'Buenos Aires'
+        if (match) setClienteZona(match)
+      }
+      setArcaMsg('✓ ' + (d.denominacion || 'datos cargados'))
+    } catch { setArcaMsg('✗ error ARCA') }
+  }
 
   async function obtenerNroPresupuesto(): Promise<string> {
     try {
@@ -636,6 +672,18 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
 
     const curvasHtml = data?.curvas?.length > 0
       ? data.curvas.map((c: any) => `<tr><td>${c.altura_m}m</td><td>${c.litros_verano.toLocaleString('es-AR')}</td><td>${c.litros_promedio.toLocaleString('es-AR')}</td><td>${c.litros_invierno.toLocaleString('es-AR')}</td><td>${c.litros_hora.toLocaleString('es-AR')}</td></tr>`).join('')
+      : ''
+
+    // Diámetro mínimo de perforación según el diámetro de la bomba (en pulgadas).
+    // 2" → 63mm · 3" → 80mm · 4" → 110mm (ideal 115mm) · 6" → 160mm
+    const PERF_MINIMA: Record<string, string> = {
+      '2': '63 mm',
+      '3': '80 mm',
+      '4': '110 mm (ideal 115 mm)',
+      '6': '160 mm',
+    }
+    const perfMinimaTxt = busquedaDiametro != null
+      ? (PERF_MINIMA[String(busquedaDiametro).trim()] || `${busquedaDiametro}"`)
       : ''
 
     const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
@@ -781,7 +829,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
   ${busquedaMCA ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Altura manométrica total</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${busquedaMCA.toFixed(1)} <span style="font-size:13px">MCA</span></div></div>` : ''}
   ${busquedaLitros ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Caudal requerido</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${busquedaLitros.toLocaleString('es-AR')} <span style="font-size:13px">L/día</span></div>${busquedaLitrosHora ? `<div style="font-size:10px;color:#4a7a5a;margin-top:4px">${busquedaLitrosHora.toLocaleString('es-AR')} L/h × 5,5 hs sol = ${busquedaLitros.toLocaleString('es-AR')} L/día</div>` : ''}</div>` : ''}
   <div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Profundidad del pozo</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${profInput} <span style="font-size:13px">m</span></div></div>
-  ${busquedaDiametro ? `<div style="background:#f7f6f2;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#666;letter-spacing:.06em;margin-bottom:3px">Diám. mínimo perforación</div><div style="font-size:16px;font-weight:700;color:#1a1a18">${busquedaDiametro}"</div></div>` : ''}
+  ${busquedaDiametro ? `<div style="background:#f7f6f2;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#666;letter-spacing:.06em;margin-bottom:3px">Diám. mínimo perforación</div><div style="font-size:16px;font-weight:700;color:#1a1a18">${perfMinimaTxt}</div><div style="font-size:9px;color:#888;margin-top:2px">para bomba de ${busquedaDiametro}"</div></div>` : ''}
 </div>
 
 <!-- SECCIÓN 2: POR QUÉ ESTE EQUIPO -->
@@ -839,6 +887,8 @@ ${curvasHtml ? `
     setPdfToken(tok)
     setPdfPrecio(precioPDF)
     setPdfCliente(cd)
+    setEmailDestino((cd as any)?.email || clienteEmail || '')
+    setEmailMsg('')
     setShowShareModal(true)
     setGenerandoPDF(false)
   }
@@ -1002,6 +1052,12 @@ ${curvasHtml ? `
                 <input value={clienteTelefono} onChange={e => setClienteTelefono(e.target.value)} placeholder="11 2345 6789" type="tel"
                   style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
+              {/* Email */}
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Email</div>
+                <input value={clienteEmail} onChange={e => setClienteEmail(e.target.value)} placeholder="cliente@mail.com" type="email"
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
               {/* Provincia */}
               <div style={{ gridColumn: '1/-1' }}>
                 <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Provincia</div>
@@ -1023,15 +1079,26 @@ ${curvasHtml ? `
                   style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
               <div style={{ gridColumn: '1/-1' }}>
-                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>CUIT</div>
-                <input value={clienteCuit} onChange={e => setClienteCuit(e.target.value)} placeholder="30-12345678-9" type="text"
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>CUIT <span style={{ textTransform: 'none', color: '#5a7390', fontWeight: 400 }}>· sin guiones — trae datos de ARCA</span></div>
+                <input value={clienteCuit} onChange={e => setClienteCuit(e.target.value.replace(/\D/g, ''))} onBlur={arcaLookupCliente} placeholder="Sin guiones — ej: 30123456789" inputMode="numeric" maxLength={11} type="text"
                   style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+                {arcaMsg && <div style={{ fontSize: 11, color: arcaMsg.startsWith('✓') ? '#4ade80' : arcaMsg.startsWith('⏳') ? '#7a9ab5' : '#fbbf24', marginTop: 4 }}>{arcaMsg}</div>}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => {
-                  const cd = { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit }
+                  const cd = { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit, email: clienteEmail }
+                  // Base de clientes unificada (fire-and-forget)
+                  fetch('https://febecos.com/api/admin?action=upsert_cliente', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      tipo: 'cliente_final', nombre: clienteNombre, apellido: clienteApellido,
+                      razon_social: clienteRazonSocial, empresa: clienteRazonSocial,
+                      email: clienteEmail, whatsapp: clienteTelefono, cuit: clienteCuit,
+                      provincia: clienteZona, origen: 'presupuesto_bombas', bump: 'presupuesto',
+                    }),
+                  }).catch(() => {})
                   setClienteReady(true)
                   setShowClienteForm(false)
                   generarPDF(cd)
@@ -1292,6 +1359,33 @@ ${curvasHtml ? `
                 <span style={{ fontSize:22 }}>💬</span>
                 <div><div>Compartir por WhatsApp</div><div style={{ fontSize:11, color:'#4a9a6a', fontWeight:400 }}>Envía un link al presupuesto · el cliente descarga el PDF</div></div>
               </button>
+              {/* Enviar por email */}
+              <div style={{ background:'#0d1f33', border:'1px solid #1e3248', borderRadius:10, padding:'12px 14px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                  <span style={{ fontSize:22 }}>📧</span>
+                  <div><div style={{ color:'#e8f0f8', fontSize:14, fontWeight:600 }}>Enviar por email</div><div style={{ fontSize:11, color:'#7a9ab5' }}>Le llega desde cotiza@febecos.com con el link</div></div>
+                </div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <input value={emailDestino} onChange={e => setEmailDestino(e.target.value)} placeholder="cliente@mail.com" type="email"
+                    style={{ flex:1, background:'#0d1a2a', border:'1px solid #1e3248', borderRadius:6, padding:'9px 10px', color:'#e8f0f8', fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' as const }} />
+                  <button onClick={async () => {
+                    const dest = (emailDestino || '').trim()
+                    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dest)) { setEmailMsg('⚠ email inválido'); return }
+                    setEmailMsg('⏳ Enviando…')
+                    const link = `${window.location.origin}/p/${pdfToken || pdfNro}`
+                    const nombre = [pdfCliente?.nombre, pdfCliente?.apellido].filter(Boolean).join(' ')
+                    try {
+                      const r = await fetch('https://febecos.com/api/admin?action=enviar_presupuesto_email', {
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({ email: dest, nombre, numero: pdfNro, link, tipo: 'directo' }),
+                      })
+                      const d = await r.json()
+                      setEmailMsg(d.ok ? '✓ Enviado a ' + dest : '✗ ' + (d.error || 'error'))
+                    } catch { setEmailMsg('✗ error de red') }
+                  }} style={{ padding:'9px 16px', background:'#e8681a', border:'none', borderRadius:6, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' as const }}>Enviar</button>
+                </div>
+                {emailMsg && <div style={{ fontSize:11, marginTop:6, color: emailMsg.startsWith('✓') ? '#4ade80' : emailMsg.startsWith('⏳') ? '#7a9ab5' : '#fbbf24' }}>{emailMsg}</div>}
+              </div>
               {typeof navigator !== 'undefined' && 'share' in navigator && (
                 <button onClick={async () => {
                   const nombre = pdfCliente?.nombre ? ` para ${pdfCliente.nombre}` : ''
@@ -1839,6 +1933,14 @@ export default function Portal() {
           <button onClick={abrirCotizaciones} style={{ padding: '7px 16px', background: 'rgba(232,104,26,0.15)', border: '1px solid #e8681a', borderRadius: 8, color: '#e8681a', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             📄 Mis cotizaciones
           </button>
+          {rev.puede_ver_fv && (
+            <button
+              onClick={() => window.open(`https://fv.febecos.com/cotizar#rev=${encodeURIComponent(token || '')}`, '_blank')}
+              style={{ padding: '7px 16px', background: 'rgba(250,204,21,0.15)', border: '1px solid #facc15', borderRadius: 8, color: '#facc15', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              ☀️ Cotizador Fotovoltaico
+            </button>
+          )}
           <span style={{ fontSize: 12, color: '#3a5a7a' }}>Tus presupuestos generados — compartí el link con tu cliente</span>
         </div>
       </div>

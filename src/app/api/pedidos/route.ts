@@ -2,6 +2,7 @@
 // GET  /api/pedidos — lista todos los pedidos (admin), soporta ?estado=xxx&limit=50
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { requireAdmin } from '@/lib/admin-auth'
 import nodemailer from 'nodemailer'
 
 const transporter = nodemailer.createTransport({
@@ -158,6 +159,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const denied = requireAdmin(req)
+  if (denied) return denied
   try {
     const estado = req.nextUrl.searchParams.get('estado')
     const limit = Number(req.nextUrl.searchParams.get('limit') || 100)
