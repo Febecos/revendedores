@@ -43,31 +43,13 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const busquedaMCA: number | null = p.altura_m ? parseFloat(p.altura_m) : null
   const busquedaLitros: number | null = p.litros_dia ? parseFloat(p.litros_dia) : null
 
-  // ── Cable/soga extras para pozos profundos ────────────────────────────────
-  const esPozosProfundo = profundidadM > 30 && (bomba?.tipo || '').toLowerCase().includes('sumergi')
-  const cabItem = kit.find((i: any) => i.familia === 'cable' && (i.nombre || '').toLowerCase().includes('sumergible'))
-  const sogaItem = kit.find((i: any) => (i.nombre || '').toLowerCase().includes('soga') || (i.nombre || '').toLowerCase().includes('anti-uv'))
-  const metrosBaseCable = cabItem?.cantidad ?? 30
-  const metrosBaseSoga  = sogaItem?.cantidad ?? 30
-  const precioCableM = cabItem?.precio_ars ?? 7699.45
-  const precioSogaM  = sogaItem?.precio_ars ?? 1809.59
-  const metrosNecesarios = Math.ceil((profundidadM + 10) / 10) * 10
-  const metrosTotal = esPozosProfundo ? metrosNecesarios : 0
-  const metrosExtraCable = esPozosProfundo ? Math.max(0, metrosTotal - metrosBaseCable) : 0
-  const metrosExtraSoga  = esPozosProfundo ? Math.max(0, metrosTotal - metrosBaseSoga)  : 0
-  const extraCable = Math.round(precioCableM * metrosExtraCable)
-  const extraSoga  = Math.round(precioSogaM  * metrosExtraSoga)
-
-  // Kit: bomba + items reales con notas, ordenado por familia — cantidades siempre como ×N
+  // Kit: bomba + items reales con notas, ordenado por familia — cantidades base ×N
   const items: { nombre: string; notas: string; cantidad: number; _f: number }[] = []
   items.push({ nombre: `Bomba ${bomba?.marca || p.bomba_marca || ''} ${bomba?.watts || p.bomba_watts || ''}W — ${bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, _f: 0 })
   for (const it of kit) {
     if ((it.nombre || '').toLowerCase().includes('bomba')) continue
     if (/\bmc4\b|ficha mc/i.test(it.nombre || '')) continue
-    const esCableLargo = (it.familia === 'cable' && (it.nombre || '').toLowerCase().includes('sumergible'))
-    const esSoga = (it.nombre || '').toLowerCase().includes('soga') || (it.nombre || '').toLowerCase().includes('anti-uv')
-    const cant = esPozosProfundo && (esCableLargo || esSoga) ? Math.max(it.cantidad, metrosTotal) : it.cantidad
-    items.push({ nombre: it.nombre + (it.potencia_w ? ` ${it.potencia_w}W` : ''), notas: it.notas || '', cantidad: cant, _f: FAM_ORDEN[(it.familia || '').toLowerCase()] ?? 6 })
+    items.push({ nombre: it.nombre + (it.potencia_w ? ` ${it.potencia_w}W` : ''), notas: it.notas || '', cantidad: it.cantidad, _f: FAM_ORDEN[(it.familia || '').toLowerCase()] ?? 6 })
   }
   items.sort((a, b) => a._f - b._f)
 
@@ -180,16 +162,6 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
                 </div>
               )}
             </>
-          )}
-
-          {/* Extras de instalación */}
-          {esPozosProfundo && (metrosExtraCable > 0 || metrosExtraSoga > 0) && (
-            <div style={{ background: '#fff8e1', border: '1px solid #ffe082', borderRadius: 8, padding: '10px 14px', margin: '8px 0', fontSize: 11 }}>
-              <strong>⚠️ Extras de instalación incluidos en el precio:</strong><br />
-              <span style={{ color: '#888' }}>Pozo profundo ({profundidadM}m) — Cable y soga: {metrosTotal}m totales.</span><br />
-              {metrosExtraCable > 0 && <>🔌 Cable sumergible +{metrosExtraCable}m: <strong>{fmt(extraCable)}</strong><br /></>}
-              {metrosExtraSoga > 0 && <>🪢 Soga anti-UV +{metrosExtraSoga}m: <strong>{fmt(extraSoga)}</strong><br /></>}
-            </div>
           )}
 
           {/* Curva de rendimiento — INLINE (misma página) */}
