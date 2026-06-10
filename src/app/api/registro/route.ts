@@ -7,6 +7,14 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
 }
 
+// Escapar campos provistos por el usuario antes de interpolarlos en el HTML del
+// email al admin (evita HTML/email injection con nombre/empresa/notas, etc.).
+function esc(v: unknown): string {
+  return String(v ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c] as string
+  ))
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -107,13 +115,13 @@ export async function POST(req: NextRequest) {
         html: `
           <h2 style="color:#1a3a5c">Nueva solicitud de revendedor</h2>
           <table style="border-collapse:collapse;width:100%;font-family:sans-serif">
-            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Nombre</td><td style="padding:8px;border:1px solid #ddd">${nombre} ${apellido || ''}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Email</td><td style="padding:8px;border:1px solid #ddd">${email}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">WhatsApp</td><td style="padding:8px;border:1px solid #ddd"><a href="https://wa.me/54${whatsapp.replace(/\D/g,'')}">${whatsapp}</a></td></tr>
-            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Rol</td><td style="padding:8px;border:1px solid #ddd">${tiposLabel || '—'}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Provincia</td><td style="padding:8px;border:1px solid #ddd">${provincia} — ${localidad || '—'}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Empresa</td><td style="padding:8px;border:1px solid #ddd">${empresa || '—'}</td></tr>
-            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">CUIT</td><td style="padding:8px;border:1px solid #ddd">${cuit || '—'}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Nombre</td><td style="padding:8px;border:1px solid #ddd">${esc(nombre)} ${esc(apellido || '')}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Email</td><td style="padding:8px;border:1px solid #ddd">${esc(email)}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">WhatsApp</td><td style="padding:8px;border:1px solid #ddd"><a href="https://wa.me/54${esc(whatsapp.replace(/\D/g,''))}">${esc(whatsapp)}</a></td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Rol</td><td style="padding:8px;border:1px solid #ddd">${esc(tiposLabel || '—')}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Provincia</td><td style="padding:8px;border:1px solid #ddd">${esc(provincia)} — ${esc(localidad || '—')}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Empresa</td><td style="padding:8px;border:1px solid #ddd">${esc(empresa || '—')}</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">CUIT</td><td style="padding:8px;border:1px solid #ddd">${esc(cuit || '—')}</td></tr>
           </table>`,
       })
     }

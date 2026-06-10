@@ -12,6 +12,13 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
 })
 
+// Escapar campos de usuario antes de interpolar en el HTML del email al admin.
+function esc(v: unknown): string {
+  return String(v ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c] as string
+  ))
+}
+
 function fmt(n: number) {
   return '$' + Math.round(n).toLocaleString('es-AR')
 }
@@ -92,23 +99,23 @@ export async function POST(req: NextRequest) {
               <table style="width:100%;border-collapse:collapse;font-size:14px">
                 <tr style="border-bottom:1px solid #eee">
                   <td style="padding:10px 0;color:#666;width:40%">Bomba</td>
-                  <td style="padding:10px 0;font-weight:700;color:#1a1a18">${bomba_codigo}</td>
+                  <td style="padding:10px 0;font-weight:700;color:#1a1a18">${esc(bomba_codigo)}</td>
                 </tr>
                 ${bomba_descripcion ? `<tr style="border-bottom:1px solid #eee">
                   <td style="padding:10px 0;color:#666">Descripción</td>
-                  <td style="padding:10px 0;color:#333">${bomba_descripcion}</td>
+                  <td style="padding:10px 0;color:#333">${esc(bomba_descripcion)}</td>
                 </tr>` : ''}
                 <tr style="border-bottom:1px solid #eee">
                   <td style="padding:10px 0;color:#666">Revendedor</td>
-                  <td style="padding:10px 0;font-weight:600">${revendedor_nombre || '—'}${revendedor_email ? `<br><span style="font-weight:400;color:#666;font-size:12px">${revendedor_email}</span>` : ''}</td>
+                  <td style="padding:10px 0;font-weight:600">${esc(revendedor_nombre || '—')}${revendedor_email ? `<br><span style="font-weight:400;color:#666;font-size:12px">${esc(revendedor_email)}</span>` : ''}</td>
                 </tr>
                 <tr style="border-bottom:1px solid #eee">
                   <td style="padding:10px 0;color:#666">Tipo</td>
-                  <td style="padding:10px 0">${TIPO_LABEL[tipo_comprador] || tipo_comprador}</td>
+                  <td style="padding:10px 0">${esc(TIPO_LABEL[tipo_comprador] || tipo_comprador)}</td>
                 </tr>
                 <tr style="border-bottom:1px solid #eee">
                   <td style="padding:10px 0;color:#666">Método de pago</td>
-                  <td style="padding:10px 0;font-weight:600">${METODO_LABEL[metodo_pago] || metodo_pago}</td>
+                  <td style="padding:10px 0;font-weight:600">${esc(METODO_LABEL[metodo_pago] || metodo_pago)}</td>
                 </tr>
                 <tr style="border-bottom:1px solid #eee">
                   <td style="padding:10px 0;color:#666">Precio público</td>
@@ -124,7 +131,7 @@ export async function POST(req: NextRequest) {
                 </tr>` : ''}
                 ${notas_cliente ? `<tr>
                   <td style="padding:10px 0;color:#666">Notas</td>
-                  <td style="padding:10px 0;font-size:13px;color:#333">${notas_cliente}</td>
+                  <td style="padding:10px 0;font-size:13px;color:#333">${esc(notas_cliente)}</td>
                 </tr>` : ''}
               </table>
 
