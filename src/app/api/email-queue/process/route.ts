@@ -9,15 +9,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getDb } from '@/lib/db'
 
-const GUARD       = process.env.RECORDATORIO_KEY || 'f0d9811cd021923ba50d50b1'
+const GUARD       = process.env.RECORDATORIO_KEY || '' // sin fallback hardcodeado
 const CRON_SECRET = process.env.CRON_SECRET || ''
 const FROM        = 'Febecos Revendedores <revende@febecos.com>'
 const REPLY_TO    = 'revende@febecos.com'
 
 function autorizado(req: NextRequest): boolean {
+  // El cron nativo de Vercel se identifica por este header → no necesita secret.
+  if (req.headers.get('x-vercel-cron') !== null) return true
   const auth = req.headers.get('authorization') || ''
   if (CRON_SECRET && auth === `Bearer ${CRON_SECRET}`) return true
-  if (req.nextUrl.searchParams.get('key') === GUARD) return true
+  if (GUARD && req.nextUrl.searchParams.get('key') === GUARD) return true
   return false
 }
 
