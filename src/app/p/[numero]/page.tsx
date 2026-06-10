@@ -2,16 +2,17 @@
 import { useEffect, useState } from 'react'
 
 const fmt = (n: number | null | undefined) =>
-  n != null ? '$ ' + Math.round(n).toLocaleString('es-AR') : '—'
+  n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
 
 const FAM_ORDEN: Record<string, number> = { bomba: 0, panel: 1, soporte: 2, caja: 3, proteccion: 3, cable: 4, accesorio: 5, otros: 6, otro: 6 }
 const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
+const SENSOR_MAX_M = 100
+const FEBECOS_LOGO = 'https://selector.febecos.com/images/febecos-logo.png'
+
+const esc = (s: any) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 export default function PresupuestoPublico({ params }: { params: { numero: string } }) {
-  const [p, setP] = useState<any>(null)
-  const [bomba, setBomba] = useState<any>(null)
-  const [kit, setKit] = useState<any[]>([])
-  const [curvas, setCurvas] = useState<any[]>([])
+  const [html, setHtml] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -19,268 +20,42 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
     fetch(`/api/presupuesto-publico?t=${encodeURIComponent(params.numero)}`)
       .then(r => (r.ok ? r.json() : Promise.reject()))
       .then(async d => {
-        setP(d.presupuesto)
-        if (d.presupuesto?.bomba_codigo) {
+        const p = d.presupuesto
+        let bomba: any = null, kit: any[] = [], curvas: any[] = []
+        if (p?.bomba_codigo) {
           try {
-            const r = await fetch(`https://roi.febecos.com/api/pump-detail?codigo=${encodeURIComponent(d.presupuesto.bomba_codigo)}`)
-            if (r.ok) { const dd = await r.json(); setBomba(dd.bomba); setKit(dd.kit || []); setCurvas(dd.curvas || []) }
+            const r = await fetch(`https://roi.febecos.com/api/pump-detail?codigo=${encodeURIComponent(p.bomba_codigo)}`)
+            if (r.ok) { const dd = await r.json(); bomba = dd.bomba; kit = dd.kit || []; curvas = dd.curvas || [] }
           } catch { /* sin datos extra */ }
         }
+        setHtml(construirPDF(p, bomba, kit, curvas))
         setLoading(false)
       })
       .catch(() => { setError(true); setLoading(false) })
   }, [params.numero])
 
   if (loading) return <Center>⏳ Cargando presupuesto…</Center>
-  if (error || !p) return <Center>❌ Presupuesto no encontrado o no disponible.</Center>
-
-  const precio = p.precio_ofrecido ?? p.precio_publico
-  const descuento = p.descuento_pct ? Number(p.descuento_pct) : 0
-  const mostrarPublico = descuento === 0
-  const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''
-  const nombreCliente = [p.cliente_nombre, p.cliente_apellido].filter(Boolean).join(' ')
-  const profundidadM: number = parseFloat(p.profundidad_m) || 0
-  const busquedaMCA: number | null = p.altura_m ? parseFloat(p.altura_m) : null
-  const busquedaLitros: number | null = p.litros_dia ? parseFloat(p.litros_dia) : null
-
-  // Kit: bomba + items reales con notas, ordenado por familia — cantidades base ×N
-  const items: { nombre: string; notas: string; cantidad: number; _f: number }[] = []
-  items.push({ nombre: `Bomba ${bomba?.marca || p.bomba_marca || ''} ${bomba?.watts || p.bomba_watts || ''}W — ${bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, _f: 0 })
-  for (const it of kit) {
-    if ((it.nombre || '').toLowerCase().includes('bomba')) continue
-    if (/\bmc4\b|ficha mc/i.test(it.nombre || '')) continue
-    items.push({ nombre: it.nombre + (it.potencia_w ? ` ${it.potencia_w}W` : ''), notas: it.notas || '', cantidad: it.cantidad, _f: FAM_ORDEN[(it.familia || '').toLowerCase()] ?? 6 })
-  }
-  items.sort((a, b) => a._f - b._f)
-
-  // Panel del kit para descripción técnica
-  const panelKit = kit.find((i: any) => i.familia === 'panel')
-
-  // IVA desglose (solo para mayoristas o con CUIT)
-  const mostrarDesglose = !mostrarPublico || !!p.cliente_cuit
-  const panelPublico = kit.filter((i: any) => (i.familia || '').toLowerCase() === 'panel').reduce((s: number, i: any) => s + (i.precio_ars || 0) * (i.cantidad || 1), 0)
-  const factorDesc = mostrarPublico ? 1 : (1 - descuento / 100)
-  const panelEnPrecio = panelPublico * factorDesc
-  const netoPanel = precio ? Math.round(panelEnPrecio / 1.105) : 0
-  const netoResto = precio ? Math.round((precio - panelEnPrecio) / 1.21) : 0
-  const netoTotal = netoPanel + netoResto
-  const ivaTotal  = precio ? precio - netoTotal : 0
+  if (error || !html) return <Center>❌ Presupuesto no encontrado o no disponible.</Center>
 
   return (
     <>
       <style>{`
+        ${PDF_CSS}
         @media print {
           .no-print { display: none !important; }
           body { background: #fff !important; }
-          .sheet { box-shadow: none !important; margin: 0 !important; padding: 16px 24px !important; border-radius: 0 !important; }
-          .page-break { page-break-before: always; }
+          .sheet { box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
         }
         @page { size: A4; margin: 12mm; }
       `}</style>
       <div style={{ minHeight: '100vh', background: '#0d1a2a', padding: '24px 12px 60px' }}>
-        {/* Barra de acciones */}
-        <div className="no-print" style={{ maxWidth: 720, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+        <div className="no-print" style={{ maxWidth: 760, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <a href="https://www.febecos.com" style={{ color: '#7a9ab5', textDecoration: 'none', fontSize: 13 }}>← Febecos Bombeo Solar</a>
           <button onClick={() => window.print()} style={{ padding: '10px 18px', background: '#1a6b3c', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>📥 Descargar PDF</button>
         </div>
-
-        {/* ── PÁGINA 1: Presupuesto completo ──────────────────────────────── */}
-        <div className="sheet" style={{ maxWidth: 720, margin: '0 auto', background: '#fff', borderRadius: 12, padding: '28px 32px', color: '#1a1a18', fontFamily: 'Arial, sans-serif', boxShadow: '0 10px 40px rgba(0,0,0,.4)' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #1a6b3c', paddingBottom: 12, marginBottom: 16 }}>
-            {p.rev_logo ? (
-              <div>
-                <img src={p.rev_logo} alt={p.rev_empresa || 'Logo'} style={{ height: 42, maxWidth: 200, objectFit: 'contain' }} />
-                {p.rev_empresa && <div style={{ fontSize: 10, color: '#555', marginTop: 3 }}>{p.rev_empresa}{p.rev_cuit ? ` · CUIT ${p.rev_cuit}` : ''}</div>}
-                {p.rev_domicilio && <div style={{ fontSize: 10, color: '#888' }}>📍 {p.rev_domicilio}</div>}
-              </div>
-            ) : (
-              <div>
-                <img src="https://selector.febecos.com/images/febecos-logo.png" alt="Febecos" style={{ height: 40, objectFit: 'contain' }} />
-                <div style={{ fontSize: 10, color: '#666', marginTop: 2 }}>Bombeo Solar — febecos.com</div>
-              </div>
-            )}
-            <div style={{ textAlign: 'right' }}>
-              <h2 style={{ fontSize: 16, margin: 0 }}>Presupuesto N° {p.numero}</h2>
-              <p style={{ margin: '3px 0', color: '#666', fontSize: 11 }}>Fecha: {fecha}</p>
-              <p style={{ margin: '3px 0', color: '#666', fontSize: 11 }}>⏱ Válido por 48 horas</p>
-            </div>
-          </div>
-
-          {/* Cliente — con "Sr./Sra." si es persona física */}
-          {(nombreCliente || p.cliente_razon_social) && (
-            <div style={{ background: '#f0f9f4', border: '2px solid #1a6b3c', borderRadius: 10, padding: '12px 18px', marginBottom: 16 }}>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#4a7a5a', fontWeight: 700, marginBottom: 5 }}>Presupuesto para</div>
-              {p.cliente_razon_social
-                ? <>
-                    <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{p.cliente_razon_social}</div>
-                    {nombreCliente && <div style={{ fontSize: 12, color: '#1a6b3c', fontWeight: 600, marginTop: 2 }}>Contacto: {nombreCliente}</div>}
-                  </>
-                : <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>Sr./Sra. {nombreCliente}</div>
-              }
-              <div style={{ fontSize: 13, color: '#1a6b3c', fontWeight: 600, marginTop: 3 }}>
-                {p.cliente_cuit && <>🏢 CUIT {p.cliente_cuit}&nbsp;&nbsp;·&nbsp;&nbsp;</>}
-                {p.cliente_telefono && <>📱 {p.cliente_telefono}</>}
-                {p.cliente_telefono && p.cliente_zona && <>&nbsp;&nbsp;·&nbsp;&nbsp;</>}
-                {p.cliente_zona && <>📍 {p.cliente_zona}</>}
-              </div>
-            </div>
-          )}
-
-          {/* Equipo */}
-          <h3 style={sectionTitle}>Equipo de bombeo solar</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '6px 16px', marginBottom: 14 }}>
-            <Spec label="Marca"              val={bomba?.marca    || p.bomba_marca || '—'} />
-            <Spec label="Tipo"               val={bomba?.impulsor || '—'} />
-            <Spec label="Potencia"           val={`${bomba?.watts || p.bomba_watts || '—'} W`} />
-            <Spec label="Voltaje"            val={bomba?.voltaje  || '—'} />
-            <Spec label="Paneles solares"    val={bomba?.cant_paneles ?? '—'} />
-            <Spec label="Diám. bomba"        val={bomba?.diam_bomba ? `${bomba.diam_bomba}"` : '—'} />
-            <Spec label="Diám. perf. mín."   val={bomba?.diam_perf || '—'} />
-            <Spec label="Disponibilidad"     val={bomba ? (bomba.stock > 0 ? `✅ ${bomba.stock} en stock` : '⚠ Sin stock') : '—'} color={bomba?.stock > 0 ? '#1a6b3c' : '#c45c00'} />
-          </div>
-
-          {/* Precio */}
-          {precio != null && (
-            <>
-              <div style={{ background: '#f0f9f4', border: '2px solid #1a6b3c', borderRadius: 8, padding: '10px 16px', margin: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 10, color: '#666', marginBottom: 2 }}>
-                    {mostrarPublico ? 'Precio público' : `Precio especial (${descuento}% descuento)`}
-                  </div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#1a6b3c' }}>{fmt(precio)}</div>
-                </div>
-                {!mostrarPublico && bomba?.precio_full && (
-                  <div style={{ fontSize: 11, color: '#666' }}>Precio de lista: {fmt(bomba.precio_full)}</div>
-                )}
-              </div>
-              {mostrarDesglose && precio > 0 && (
-                <div style={{ border: '1px solid #dde8dd', borderRadius: 6, padding: '8px 14px', margin: '-6px 0 10px', fontSize: 10, color: '#555', display: 'flex', gap: 28, flexWrap: 'wrap' as const }}>
-                  <div><span style={{ color: '#888' }}>Neto gravado total:</span> <strong style={{ color: '#1a1a18' }}>{fmt(netoTotal)}</strong></div>
-                  <div><span style={{ color: '#888' }}>IVA incluido total:</span> <strong style={{ color: '#1a1a18' }}>{fmt(ivaTotal)}</strong></div>
-                  <div style={{ fontSize: 9, color: '#aaa', alignSelf: 'center' }}>Paneles 10,5% · Resto 21%</div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Curva de rendimiento — INLINE (misma página) */}
-          {curvas.length > 0 && (
-            <>
-              <h3 style={sectionTitle}>Rendimiento (L/día por altura)</h3>
-              <div style={{ fontSize: 10, color: '#888', marginBottom: 6 }}>
-                Calculado con horas solares pico regionales · ☀️ Verano {HSP.verano}h · 📅 Promedio {HSP.promedio}h · ❄️ Invierno {HSP.invierno}h
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, marginBottom: 8 }}>
-                <thead>
-                  <tr style={{ background: '#1a6b3c', color: '#fff' }}>
-                    <th style={{ padding: '5px 8px', textAlign: 'right' }}>Altura</th>
-                    <th style={{ padding: '5px 8px', textAlign: 'right' }}>Verano</th>
-                    <th style={{ padding: '5px 8px', textAlign: 'right' }}>Promedio</th>
-                    <th style={{ padding: '5px 8px', textAlign: 'right' }}>Invierno</th>
-                    <th style={{ padding: '5px 8px', textAlign: 'right' }}>L/hora</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {curvas.map((c: any, i: number) => {
-                    const esPozo = profundidadM > 0 && Math.abs(c.altura_m - profundidadM) <= 5
-                    return (
-                      <tr key={i} style={{ background: esPozo ? '#e8f5ee' : (i % 2 === 0 ? '#fafafa' : '#fff'), fontWeight: esPozo ? 700 : 400 }}>
-                        <td style={{ padding: '4px 8px', textAlign: 'right', color: esPozo ? '#1a6b3c' : '#e8681a' }}>{c.altura_m}m{esPozo ? ' ◄' : ''}</td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right' }}>{(c.litros_verano || 0).toLocaleString('es-AR')}</td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right' }}>{(c.litros_promedio || 0).toLocaleString('es-AR')}</td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right' }}>{(c.litros_invierno || 0).toLocaleString('es-AR')}</td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right', color: '#888' }}>{(c.litros_hora || 0).toLocaleString('es-AR')}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </>
-          )}
-
-          {/* Kit */}
-          {items.length > 1 && (
-            <>
-              <h3 style={sectionTitle}>Kit completo incluido</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, marginBottom: 8, tableLayout: 'fixed' }}>
-                <thead><tr style={{ background: '#f7f6f2' }}>
-                  <th style={{ textAlign: 'left', padding: '5px 8px', fontSize: 10, color: '#666', width: '88%' }}>Componente</th>
-                  <th style={{ width: '12%', textAlign: 'center', padding: '5px 8px', fontSize: 10, color: '#666' }}>Cant.</th>
-                </tr></thead>
-                <tbody>
-                  {items.map((it, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f0eeea' }}>
-                      <td style={{ padding: '4px 8px', fontSize: 11 }}>
-                        {it.nombre}
-                        {it.notas && <span style={{ color: '#888', fontSize: 9.5 }}> — {it.notas}</span>}
-                      </td>
-                      <td style={{ textAlign: 'center', padding: '4px 8px', whiteSpace: 'nowrap' }}>
-                        ×{it.cantidad}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-
-          {/* Footer */}
-          <div style={{ marginTop: 18, paddingTop: 12, borderTop: '1px solid #e2e0d8', fontSize: 10, color: '#888', lineHeight: 1.6 }}>
-            {p.rev_logo
-              ? <>{p.rev_empresa || p.revendedor_nombre}<br /></>
-              : p.revendedor_nombre
-                ? <>Revendedor: <strong>{p.revendedor_nombre}</strong><br /></>
-                : null
-            }
-            Cotización realizada a través de la plataforma de cotizaciones de <strong>febecos.com</strong> · Bombeo Solar Argentina<br />
-            Válido por 48 horas desde la fecha de emisión. Sujeto a disponibilidad de stock.
-          </div>
-        </div>
-
-        {/* ── PÁGINA 2: Por qué este equipo (solo si hay datos técnicos) ──── */}
-        {(busquedaMCA || busquedaLitros || profundidadM > 0) && (
-          <div className="sheet page-break" style={{ maxWidth: 720, margin: '32px auto 0', background: '#fff', borderRadius: 12, padding: '28px 32px', color: '#1a1a18', fontFamily: 'Arial, sans-serif', boxShadow: '0 10px 40px rgba(0,0,0,.4)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #1a6b3c', paddingBottom: 12, marginBottom: 16 }}>
-              {p.rev_logo
-                ? <div><img src={p.rev_logo} alt={p.rev_empresa || 'Logo'} style={{ height: 32, maxWidth: 160, objectFit: 'contain' }} /></div>
-                : <div><span style={{ fontSize: 16, fontWeight: 800, color: '#1a6b3c' }}>Febecos</span><span style={{ fontSize: 11, color: '#666' }}> · Bombeo Solar Argentina</span></div>
-              }
-              <div style={{ textAlign: 'right' }}>
-                <h2 style={{ fontSize: 13, margin: 0 }}>Análisis técnico — Pres. {p.numero}</h2>
-                <p style={{ margin: '3px 0', color: '#888', fontSize: 11 }}>Documento complementario</p>
-              </div>
-            </div>
-
-            <h3 style={sectionTitleGreen}>Necesidad relevada del sistema</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px 20px', marginBottom: 16 }}>
-              {busquedaMCA != null && <InfoBox label="Altura manométrica total" val={`${busquedaMCA.toFixed(1)} MCA`} />}
-              {busquedaLitros != null && <InfoBox label="Caudal requerido" val={`${busquedaLitros.toLocaleString('es-AR')} L/día`} />}
-              {profundidadM > 0 && <InfoBox label="Profundidad del pozo" val={`${profundidadM} m`} />}
-            </div>
-
-            <h3 style={sectionTitleGreen}>Por qué se seleccionó este equipo</h3>
-            <div style={{ background: '#f7f6f2', borderRadius: 8, padding: '12px 16px', marginBottom: 14, fontSize: 12, lineHeight: 1.7, color: '#333' }}>
-              {busquedaMCA != null && busquedaLitros != null
-                ? <>La búsqueda requería una bomba capaz de elevar al menos <strong>{busquedaLitros.toLocaleString('es-AR')} litros por día</strong> a una altura manométrica de <strong>{busquedaMCA.toFixed(1)} MCA</strong> desde un pozo de <strong>{profundidadM} metros</strong> de profundidad.</>
-                : <>La bomba fue seleccionada considerando la profundidad del pozo ({profundidadM} m) y las características del sistema.</>
-              }
-              <br />
-              El equipo <strong>{bomba?.marca || p.bomba_marca || ''} {bomba?.watts || p.bomba_watts || ''}W</strong> cumple con estos requerimientos operando con <strong>{bomba?.cant_paneles || '?'} panel{(bomba?.cant_paneles || 1) > 1 ? 'es' : ''} solar{(bomba?.cant_paneles || 1) > 1 ? 'es' : ''} de {panelKit?.potencia_w || panelKit?.nombre?.match(/(\d+)\s*[Ww]/)?.[1] || bomba?.watts || '?'}W</strong> en condiciones de irradiación solar típicas de la región.
-            </div>
-
-            <div style={{ marginTop: 24, paddingTop: 10, borderTop: '1px solid #e2e0d8', fontSize: 10, color: '#888', lineHeight: 1.6 }}>
-              Este análisis es orientativo. Los caudales reales pueden variar según la irradiación solar local, la temperatura del agua y el estado del pozo.<br />
-              {p.rev_logo
-                ? <>Para consultas: <strong>{p.revendedor_email || ''}</strong></>
-                : <>Para asesoramiento técnico: <strong>ventas@febecos.com</strong> · febecos.com</>
-              }
-            </div>
-          </div>
-        )}
-
-        {/* CTA al final */}
-        <div className="no-print" style={{ maxWidth: 720, margin: '20px auto 0', textAlign: 'center' }}>
+        <div className="sheet" style={{ maxWidth: 760, margin: '0 auto', background: '#fff', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,.4)' }}
+          dangerouslySetInnerHTML={{ __html: html }} />
+        <div className="no-print" style={{ maxWidth: 760, margin: '20px auto 0', textAlign: 'center' }}>
           <a href="https://wa.me/5491127399430" target="_blank" rel="noopener" style={{ display: 'inline-block', padding: '12px 24px', background: '#25d366', color: '#fff', borderRadius: 10, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>💬 Consultanos por WhatsApp</a>
         </div>
       </div>
@@ -288,25 +63,272 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   )
 }
 
-const sectionTitle = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: '#666', borderBottom: '1px solid #e2e0d8', paddingBottom: 4, margin: '14px 0 10px' as const }
-const sectionTitleGreen = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: '#1a6b3c', borderBottom: '2px solid #1a6b3c', paddingBottom: 5, margin: '18px 0 12px' as const }
+// CSS idéntico al del PDF generado en el portal (generarPDF)
+const PDF_CSS = `
+  .pdf { font-family: Arial, sans-serif; color: #1a1a18; padding: 24px 32px; font-size: 12px; }
+  .pdf .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1a6b3c; padding-bottom: 12px; margin-bottom: 16px; }
+  .pdf .logo img { height: 40px; object-fit: contain; }
+  .pdf .presup-num { text-align: right; }
+  .pdf .presup-num h2 { font-size: 16px; margin: 0; color: #1a1a18; }
+  .pdf .presup-num p { margin: 3px 0; color: #666; font-size: 11px; }
+  .pdf .cliente-box { background: #f0f9f4; border: 2px solid #1a6b3c; border-radius: 10px; padding: 14px 20px; margin-bottom: 16px; }
+  .pdf .cliente-nombre { font-size: 22px; font-weight: 800; color: #1a1a18; margin-bottom: 5px; line-height: 1.2; }
+  .pdf .cliente-detalle { font-size: 13px; color: #1a6b3c; font-weight: 600; }
+  .pdf h3 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #666; border-bottom: 1px solid #e2e0d8; padding-bottom: 4px; margin: 14px 0 10px; }
+  .pdf .specs-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px 16px; }
+  .pdf .spec { display: flex; flex-direction: column; }
+  .pdf .spec-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 1px; }
+  .pdf .spec-val { font-size: 12px; font-weight: 600; }
+  .pdf .precio-box { background: #f0f9f4; border: 2px solid #1a6b3c; border-radius: 8px; padding: 10px 16px; margin: 12px 0; display: flex; align-items: center; gap: 24px; }
+  .pdf .precio-label { font-size: 10px; color: #666; margin-bottom: 2px; }
+  .pdf .precio-val { font-size: 20px; font-weight: 800; color: #1a6b3c; }
+  .pdf .stock-ok { color: #1a6b3c; font-weight: 700; }
+  .pdf .stock-no { color: #c45c00; font-weight: 700; }
+  .pdf table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .pdf th { background: #f7f6f2; padding: 5px 8px; text-align: left; font-size: 10px; color: #666; border-bottom: 1px solid #e2e0d8; }
+  .pdf td { padding: 4px 8px; border-bottom: 1px solid #f0eeea; }
+  .pdf .footer { margin-top: 20px; border-top: 1px solid #e2e0d8; padding-top: 10px; font-size: 10px; color: #888; text-align: center; }
+`
 
-function Spec({ label, val, color }: { label: string; val: any; color?: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888', marginBottom: 1 }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 600, color: color || '#1a1a18' }}>{val || '—'}</span>
-    </div>
-  )
-}
+function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
+  const nro = p.numero
+  const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''
+  const descuento = p.descuento_pct ? Number(p.descuento_pct) : 0
+  const mostrarPublico = descuento === 0
+  const precioPDF: number | null = p.precio_ofrecido != null ? Number(p.precio_ofrecido) : (p.precio_publico != null ? Number(p.precio_publico) : null)
 
-function InfoBox({ label, val }: { label: string; val: string }) {
-  return (
-    <div style={{ background: '#f0f9f4', borderRadius: 8, padding: '10px 14px' }}>
-      <div style={{ fontSize: 9, textTransform: 'uppercase' as const, color: '#4a7a5a', letterSpacing: '.06em', marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 800, color: '#1a6b3c' }}>{val}</div>
-    </div>
-  )
+  const revLogo = p.rev_logo, revEmpresa = p.rev_empresa, revCuit = p.rev_cuit, revDomicilio = p.rev_domicilio
+  const revendedor = p.revendedor_nombre, revProvincia = p.rev_provincia, revEmail = p.revendedor_email, revTipo = p.rev_tipo
+
+  const cd = {
+    nombre: p.cliente_nombre, apellido: p.cliente_apellido, telefono: p.cliente_telefono,
+    zona: p.cliente_zona, razonSocial: p.cliente_razon_social, cuit: p.cliente_cuit,
+  }
+  const tieneCliente = !!(cd.nombre || cd.apellido || cd.telefono || cd.razonSocial)
+
+  const profInput: number = p.profundidad_m ? Number(p.profundidad_m) : 0
+  const distanciaTablero: number | null = p.longitud_total_m != null ? Number(p.longitud_total_m) : null
+  const busquedaMCA: number | null = p.altura_m != null ? Number(p.altura_m) : null
+  const busquedaLitros: number | null = p.litros_dia != null ? Number(p.litros_dia) : null
+  const busquedaLitrosHora: number | null = busquedaLitros != null ? Math.round(busquedaLitros / HSP.verano) : null
+  const busquedaDiametro = bomba?.diam_perf ? String(bomba.diam_perf).replace(/[^\d.]/g, '') : null
+
+  // ── Extras (idéntico a generarPDF) ───────────────────────────────────────
+  const factorDesc = mostrarPublico ? 1 : (1 - descuento / 100)
+  const esPozosProfundo = profInput > 30 && (bomba?.tipo || '').toLowerCase().includes('sumergi')
+  const cabItem = kit.find((i: any) => i.familia === 'cable' && (i.nombre || '').toLowerCase().includes('sumergible'))
+  const sogaItem = kit.find((i: any) => (i.nombre || '').toLowerCase().includes('soga') || (i.nombre || '').toLowerCase().includes('anti-uv'))
+  const precioCableM = cabItem?.precio_ars ?? 7699.45
+  const precioSogaM = sogaItem?.precio_ars ?? 1809.59
+  const metrosBaseCable = cabItem?.cantidad ?? 30
+  const metrosBaseSoga = sogaItem?.cantidad ?? 30
+  const metrosNecesarios = Math.ceil((profInput + 10) / 10) * 10
+  const metrosTotal = esPozosProfundo ? metrosNecesarios : 0
+  const metrosExtraCable = esPozosProfundo ? Math.max(0, metrosTotal - metrosBaseCable) : 0
+  const metrosExtraSoga = esPozosProfundo ? Math.max(0, metrosTotal - metrosBaseSoga) : 0
+  const extraCable = Math.round(precioCableM * metrosExtraCable * factorDesc)
+  const extraSoga = Math.round(precioSogaM * metrosExtraSoga * factorDesc)
+
+  const sensorItem = kit.find((i: any) => i.familia === 'cable' && (i.nombre || '').toLowerCase().includes('sensor'))
+  const metrosBaseSensor = sensorItem?.cantidad ?? 20
+  const precioSensorM = sensorItem?.precio_ars ?? 1736.96
+  const sensorFueraRango = distanciaTablero != null && distanciaTablero > SENSOR_MAX_M
+  const metrosExtraSensor = (!sensorFueraRango && distanciaTablero != null) ? Math.max(0, distanciaTablero - metrosBaseSensor) : 0
+  const extraSensor = Math.round(precioSensorM * metrosExtraSensor * factorDesc)
+
+  // ── Kit (idéntico a generarPDF) ──────────────────────────────────────────
+  const kitOrdenado: { nombre: string; notas: string; cantidad: number; unidad: string; _f: number }[] = []
+  kitOrdenado.push({ nombre: `Bomba ${bomba?.marca || p.bomba_marca || ''} ${bomba?.watts || p.bomba_watts || ''}W — ${bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, unidad: 'unidad', _f: 0 })
+  for (const item of kit) {
+    if ((item.nombre || '').toLowerCase().includes('bomba')) continue
+    if (/\bmc4\b|ficha mc/i.test(item.nombre || '')) continue
+    const isSogaPdf = (item.nombre || '').toLowerCase().includes('soga') || (item.nombre || '').toLowerCase().includes('anti-uv')
+    const familiaKey = isSogaPdf ? 'cable' : (item.familia || '').toLowerCase()
+    const f = FAM_ORDEN[familiaKey] ?? 6
+    const esCableLargo = item.unidad === 'metro' && (item.nombre || '').toLowerCase().includes('sumergible')
+    const esSensorPdf = item.unidad === 'metro' && (item.nombre || '').toLowerCase().includes('sensor')
+    if (sensorFueraRango && esSensorPdf) continue
+    const cant = esPozosProfundo && (esCableLargo || isSogaPdf)
+      ? Math.max(item.cantidad, metrosTotal)
+      : !sensorFueraRango && esSensorPdf && distanciaTablero != null && distanciaTablero > item.cantidad
+        ? distanciaTablero
+        : item.cantidad
+    const esMedidoEnMetros = item.unidad === 'metro' || ((esCableLargo || isSogaPdf || esSensorPdf) && cant > 5)
+    kitOrdenado.push({ nombre: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''), notas: item.notas || '', cantidad: cant, unidad: esMedidoEnMetros ? 'metro' : (item.unidad || 'unidad'), _f: f })
+  }
+  kitOrdenado.sort((a, b) => a._f - b._f)
+  const kitHtml2Col = kitOrdenado.map(it => `<tr>
+    <td style="padding:4px 8px;font-size:11px">${esc(it.nombre)}${it.notas ? `<span style="color:#888;font-size:9.5px"> — ${esc(it.notas)}</span>` : ''}</td>
+    <td style="text-align:center;padding:4px 8px;white-space:nowrap">${it.unidad === 'metro' ? `${it.cantidad} m` : `×${it.cantidad}`}</td></tr>`).join('')
+
+  const panelKit = kit.find((i: any) => i.familia === 'panel')
+
+  const curvasHtml = curvas.length > 0
+    ? curvas.map((c: any, i: number) => {
+      const esPozo = Math.abs(c.altura_m - profInput) <= 5
+      return `<tr style="background:${esPozo ? '#e8f5ee' : (i % 2 === 0 ? '#fafafa' : '#fff')};${esPozo ? 'font-weight:700;' : ''}">
+        <td style="padding:5px 10px;text-align:right;color:${esPozo ? '#1a6b3c' : '#e8681a'}">${c.altura_m}m${esPozo ? ' ◄' : ''}</td>
+        <td style="padding:5px 10px;text-align:right">${(c.litros_verano || 0).toLocaleString('es-AR')}</td>
+        <td style="padding:5px 10px;text-align:right">${(c.litros_promedio || 0).toLocaleString('es-AR')}</td>
+        <td style="padding:5px 10px;text-align:right">${(c.litros_invierno || 0).toLocaleString('es-AR')}</td>
+        <td style="padding:5px 10px;text-align:right;color:#888">${(c.litros_hora || 0).toLocaleString('es-AR')}</td>
+      </tr>`
+    }).join('')
+    : ''
+
+  const mostrarDesglose = !mostrarPublico || !!cd.cuit
+  const desgloseHtml = (() => {
+    if (!mostrarDesglose || !precioPDF) return ''
+    const factorPrecio = mostrarPublico ? 1 : (1 - descuento / 100)
+    const panelPublico = kit.filter((i: any) => (i.familia || '').toLowerCase() === 'panel').reduce((s: number, i: any) => s + (i.precio_ars || 0) * (i.cantidad || 1), 0)
+    const panelEnPrecio = panelPublico * factorPrecio
+    const netoPanel = Math.round(panelEnPrecio / 1.105)
+    const netoResto = Math.round((precioPDF - panelEnPrecio) / 1.21)
+    const netoTotal = netoPanel + netoResto
+    const ivaTotal = precioPDF - netoTotal
+    return `<div style="border:1px solid #dde8dd;border-radius:6px;padding:8px 14px;margin:-6px 0 10px;font-size:10px;color:#555;display:flex;gap:28px;flex-wrap:wrap">
+      <div><span style="color:#888">Neto gravado total:</span> <strong style="color:#1a1a18">${fmt(netoTotal)}</strong></div>
+      <div><span style="color:#888">IVA incluido total:</span> <strong style="color:#1a1a18">${fmt(ivaTotal)}</strong></div>
+      <div style="font-size:9px;color:#aaa;align-self:center">Paneles 10,5% · Resto 21%</div>
+    </div>`
+  })()
+
+  const stock = bomba?.stock ?? null
+  const paneles = bomba?.cant_paneles ?? 1
+
+  return `<div class="pdf">
+${revLogo ? `
+<div class="header">
+  <div class="logo">
+    <img src="${revLogo}" style="height:42px;max-width:200px;object-fit:contain" alt="Logo"/>
+    <div style="font-size:10px;color:#555;margin-top:3px">${esc(revEmpresa || '')}${revCuit ? ` &nbsp;·&nbsp; CUIT ${esc(revCuit)}` : ''}${revDomicilio ? `<br>${esc(revDomicilio)}` : ''}</div>
+  </div>
+  <div class="presup-num">
+    <h2>Presupuesto N° ${esc(nro)}</h2>
+    <p>Fecha: ${fecha}</p>
+    <p>⏱ Válido por 48 horas</p>
+  </div>
+</div>` : `
+<div class="header">
+  <div class="logo">
+    <img src="${FEBECOS_LOGO}" style="height:38px;object-fit:contain" alt="Febecos" />
+    <div style="font-size:10px;color:#666;margin-top:2px">Bombeo Solar — febecos.com</div>
+  </div>
+  <div class="presup-num">
+    <h2>Presupuesto N° ${esc(nro)}</h2>
+    <p>Fecha: ${fecha}</p>
+    <p>⏱ Válido por 48 horas</p>
+  </div>
+</div>`}
+${tieneCliente ? `<div class="cliente-box">
+  ${cd.razonSocial ? `<div class="cliente-nombre">${esc(cd.razonSocial)}</div>${(cd.nombre || cd.apellido) ? `<div class="cliente-detalle" style="margin-bottom:3px">Contacto: ${esc(cd.nombre || '')} ${esc(cd.apellido || '')}</div>` : ''}` : `<div class="cliente-nombre">Sr./Sra. ${esc(cd.nombre || '')} ${esc(cd.apellido || '')}</div>`}
+  <div class="cliente-detalle">${cd.cuit ? `🏢 CUIT ${esc(cd.cuit)}&nbsp;&nbsp;·&nbsp;&nbsp;` : ''}${cd.telefono ? `📱 ${esc(cd.telefono)}` : ''}${cd.zona ? `&nbsp;&nbsp;·&nbsp;&nbsp;📍 ${esc(cd.zona)}` : ''}</div>
+</div>` : ''}
+<h3>Equipo de bombeo solar</h3>
+<div class="specs-grid">
+  <div class="spec"><span class="spec-label">Marca</span><span class="spec-val">${esc(bomba?.marca || p.bomba_marca || '—')}</span></div>
+  <div class="spec"><span class="spec-label">Tipo</span><span class="spec-val">${esc(bomba?.impulsor || '—')}</span></div>
+  <div class="spec"><span class="spec-label">Potencia</span><span class="spec-val">${esc(bomba?.watts || p.bomba_watts || '—')} W</span></div>
+  <div class="spec"><span class="spec-label">Voltaje</span><span class="spec-val">${esc(bomba?.voltaje || '—')}</span></div>
+  <div class="spec"><span class="spec-label">Paneles solares</span><span class="spec-val">${esc(bomba?.cant_paneles ?? '—')}</span></div>
+  <div class="spec"><span class="spec-label">Diám. bomba</span><span class="spec-val">${esc(bomba?.diam_bomba || '—')}"</span></div>
+  <div class="spec"><span class="spec-label">Diám. perf. mín.</span><span class="spec-val">${esc(bomba?.diam_perf || '—')}</span></div>
+  <div class="spec"><span class="spec-label">Disponibilidad</span><span class="spec-val ${stock != null && stock > 0 ? 'stock-ok' : 'stock-no'}">${stock != null && stock > 0 ? `✅ ${stock} en stock` : '⚠ Sin stock'}</span></div>
+</div>
+${precioPDF ? `<div class="precio-box">
+  <div>
+    <div class="precio-label">${mostrarPublico ? 'Precio público' : `Precio especial (${descuento}% descuento)`}</div>
+    <div class="precio-val">${fmt(precioPDF)}</div>
+  </div>
+  ${!mostrarPublico && bomba?.precio_full ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(bomba.precio_full)}</div>` : ''}
+</div>
+${desgloseHtml}` : ''}
+${(esPozosProfundo || extraSensor > 0) ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px">
+  <strong>⚠️ Extras de instalación incluidos en el precio:</strong><br>
+  ${esPozosProfundo ? `<span style="color:#888">Pozo profundo (${profInput}m) — Cable y soga: ${metrosTotal}m totales. El kit incluye ${metrosBaseCable}m de cable y ${metrosBaseSoga}m de soga:</span><br>
+  🔌 Cable sumergible +${metrosExtraCable}m: <strong>${fmt(extraCable)}</strong><br>
+  🪢 Soga anti-UV +${metrosExtraSoga}m: <strong>${fmt(extraSoga)}</strong><br>` : ''}
+  ${extraSensor > 0 ? `📡 Cable sensor +${metrosExtraSensor}m (distancia al tablero: ${distanciaTablero}m): <strong>${fmt(extraSensor)}</strong><br>` : ''}
+</div>` : ''}
+${sensorFueraRango ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px;color:#b91c1c">
+  <strong>⚠️ NOTA TÉCNICA:</strong> La distancia al tablero (${distanciaTablero}m) supera el rango máximo del cable de sensor estándar (${SENSOR_MAX_M}m).<br>
+  Se requiere un <strong>sistema de control de sensor a distancia</strong> — cotizar por separado. El cable de sensor no está incluido en este presupuesto.
+</div>` : ''}
+${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
+<table style="table-layout:fixed;width:100%"><thead><tr><th style="width:88%">Componente</th><th style="width:12%;text-align:center">Cant.</th></tr></thead>
+<tbody>${kitHtml2Col}</tbody></table>` : ''}
+<div class="footer">
+  ${revLogo
+      ? `<strong>${esc(revEmpresa || revendedor)}</strong>${revProvincia ? ` &nbsp;·&nbsp; ${esc(revProvincia)}` : ''}${revCuit ? ` &nbsp;·&nbsp; CUIT ${esc(revCuit)}` : ''}<br>`
+      : (revTipo && revTipo !== 'admin')
+        ? `Asesor comercial: <strong>${esc(revendedor)}</strong>${revProvincia ? ` &nbsp;·&nbsp; ${esc(revProvincia)}` : ''}<br>`
+        : `Asesor Febecos: <strong>${esc(revendedor)}</strong><br>`
+    }
+  ${revLogo
+      ? `<span style="font-size:9px;color:#bbb">Generado con la plataforma online de <strong>Febecos®</strong> · Bombeo Solar Argentina</span><br>`
+      : `Cotización realizada a través de la plataforma de cotizaciones de <strong>febecos.com</strong> · Bombeo Solar Argentina<br>`
+    }
+  Válido por 48 horas desde la fecha de emisión. Sujeto a disponibilidad de stock.
+</div>
+
+${(busquedaMCA || busquedaLitros || profInput > 0) ? `
+<div style="page-break-before:always"></div>
+
+<div class="header">
+  <div class="logo">
+    ${revLogo
+        ? `<img src="${revLogo}" style="height:32px;max-width:160px;object-fit:contain" alt="Logo"/><div style="font-size:10px;color:#555;margin-top:2px">${esc(revEmpresa || '')}</div>`
+        : `<span style="font-size:16px;font-weight:800;color:#1a6b3c">Febecos</span> <span style="font-size:11px;color:#666"> · Bombeo Solar Argentina</span>`
+      }
+  </div>
+  <div class="presup-num"><h2 style="font-size:13px">Análisis técnico — Pres. ${esc(nro)}</h2><p>Documento complementario</p></div>
+</div>
+
+<h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#1a6b3c;border-bottom:2px solid #1a6b3c;padding-bottom:5px;margin:18px 0 12px">Necesidad relevada del sistema</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 20px;margin-bottom:16px">
+  ${busquedaMCA ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Altura manométrica total</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${busquedaMCA.toFixed(1)} <span style="font-size:13px">MCA</span></div></div>` : ''}
+  ${busquedaLitros ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Caudal requerido</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${busquedaLitros.toLocaleString('es-AR')} <span style="font-size:13px">L/día</span></div>${busquedaLitrosHora ? `<div style="font-size:10px;color:#4a7a5a;margin-top:4px">${busquedaLitrosHora.toLocaleString('es-AR')} L/h × 5,5 hs sol = ${busquedaLitros.toLocaleString('es-AR')} L/día</div>` : ''}</div>` : ''}
+  ${profInput > 0 ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Profundidad del pozo</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${profInput} <span style="font-size:13px">m</span></div></div>` : ''}
+  ${busquedaDiametro ? `<div style="background:#f7f6f2;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#666;letter-spacing:.06em;margin-bottom:3px">Diám. mínimo perforación</div><div style="font-size:16px;font-weight:700;color:#1a1a18">${esc(busquedaDiametro)}"</div></div>` : ''}
+</div>
+
+<h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#1a6b3c;border-bottom:2px solid #1a6b3c;padding-bottom:5px;margin:18px 0 12px">Por qué se seleccionó este equipo</h3>
+<div style="background:#f7f6f2;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#333">
+  ${busquedaMCA && busquedaLitros ? `
+  La búsqueda requería una bomba capaz de elevar al menos <strong>${busquedaLitros.toLocaleString('es-AR')} litros por día</strong>
+  a una altura manométrica de <strong>${busquedaMCA.toFixed(1)} MCA</strong> desde un pozo de <strong>${profInput} metros</strong> de profundidad.
+  ` : `La bomba fue seleccionada considerando la profundidad del pozo (${profInput} m) y las características del sistema.`}
+  <br>
+  El equipo <strong>${esc(bomba?.marca || p.bomba_marca || '')} ${esc(bomba?.watts || p.bomba_watts || '')}W</strong> cumple con estos requerimientos operando
+  con <strong>${esc(paneles)} panel${(paneles || 1) > 1 ? 'es' : ''} solar${(paneles || 1) > 1 ? 'es' : ''} de ${esc(panelKit?.potencia_w || panelKit?.nombre?.match(/(\d+)\s*[Ww]/)?.[1] || bomba?.watts || '?')}W</strong>
+  en condiciones de irradiación solar típicas de la región.
+</div>
+
+${curvasHtml ? `
+<h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#1a6b3c;border-bottom:2px solid #1a6b3c;padding-bottom:5px;margin:18px 0 12px">Curva de rendimiento del equipo (L/día por altura)</h3>
+<div style="font-size:10px;color:#888;margin-bottom:8px">Calculado con horas solares pico regionales · ☀️ Verano ${HSP.verano}h · 📅 Promedio ${HSP.promedio}h · ❄️ Invierno ${HSP.invierno}h</div>
+<table style="width:100%;border-collapse:collapse;font-size:11px">
+  <thead><tr style="background:#1a6b3c;color:#fff">
+    <th style="padding:6px 10px;text-align:right">Altura (m)</th>
+    <th style="padding:6px 10px;text-align:right">Verano</th>
+    <th style="padding:6px 10px;text-align:right">Promedio anual</th>
+    <th style="padding:6px 10px;text-align:right">Invierno</th>
+    <th style="padding:6px 10px;text-align:right">L/hora</th>
+  </tr></thead>
+  <tbody>${curvasHtml}</tbody>
+</table>
+<div style="margin-top:8px;font-size:10px;color:#888">◄ Fila resaltada = altura más cercana a la profundidad del pozo (${profInput}m)</div>
+` : ''}
+
+<div class="footer" style="margin-top:24px">
+  Este análisis es orientativo. Los caudales reales pueden variar según la irradiación solar local, la temperatura del agua y el estado del pozo.<br>
+  ${revLogo
+      ? `Para consultas: <strong>${esc(revEmail || '')}</strong>${revDomicilio ? ` · ${esc(revDomicilio)}` : ''}`
+      : `Para asesoramiento técnico: <strong>ventas@febecos.com</strong> · febecos.com`
+    }
+</div>
+` : ''}
+</div>`
 }
 
 function Center({ children }: { children: React.ReactNode }) {
