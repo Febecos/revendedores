@@ -15,6 +15,14 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const [html, setHtml] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  // Datos crudos guardados en state para poder re-renderizar con descuento editado
+  const [presupData, setPresupData] = useState<any>(null)
+  const [bombaData, setBombaData] = useState<any>(null)
+  const [kitData, setKitData] = useState<any[]>([])
+  const [curvasData, setCurvasData] = useState<any[]>([])
+  const [descuentoEdit, setDescuentoEdit] = useState<number>(0)
+  const [guardando, setGuardando] = useState(false)
+  const [guardadoOk, setGuardadoOk] = useState(false)
 
   useEffect(() => {
     fetch(`/api/presupuesto-publico?t=${encodeURIComponent(params.numero)}`)
@@ -29,14 +37,63 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
           } catch { /* sin datos extra */ }
         }
         if (p?.numero) document.title = p.numero
+        setPresupData(p)
+        setBombaData(bomba)
+        setKitData(kit)
+        setCurvasData(curvas)
+        setDescuentoEdit(p.descuento_pct ? Number(p.descuento_pct) : 0)
         setHtml(construirPDF(p, bomba, kit, curvas))
         setLoading(false)
       })
       .catch(() => { setError(true); setLoading(false) })
   }, [params.numero])
 
+  function aplicarDescuento() {
+    if (!presupData) return
+    const precioBase = presupData.precio_publico ? Number(presupData.precio_publico) : null
+    if (!precioBase) return
+    // Inferir extras: lo que hay en precio_ofrecido por encima del precio sin descuento original
+    const descOriginal = presupData.descuento_pct ? Number(presupData.descuento_pct) : 0
+    const precioSinExtras = Math.round(precioBase * (1 - descOriginal / 100))
+    const extras = (presupData.precio_ofrecido ? Number(presupData.precio_ofrecido) : precioBase) - precioSinExtras
+    const nuevoPrecio = Math.round(precioBase * (1 - descuentoEdit / 100)) + extras
+    const pModificado = { ...presupData, descuento_pct: descuentoEdit || null, precio_ofrecido: nuevoPrecio }
+    document.title = presupData.numero
+    setHtml(construirPDF(pModificado, bombaData, kitData, curvasData))
+  }
+
+  async function guardarDescuento() {
+    if (!presupData) return
+    setGuardando(true)
+    const precioBase = presupData.precio_publico ? Number(presupData.precio_publico) : null
+    const descOriginal = presupData.descuento_pct ? Number(presupData.descuento_pct) : 0
+    const precioSinExtras = Math.round((precioBase || 0) * (1 - descOriginal / 100))
+    const extras = (presupData.precio_ofrecido ? Number(presupData.precio_ofrecido) : (precioBase || 0)) - precioSinExtras
+    const nuevoPrecio = Math.round((precioBase || 0) * (1 - descuentoEdit / 100)) + extras
+    try {
+      await fetch('/api/presupuestos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          numero: presupData.numero,
+          descuento_pct: descuentoEdit || null,
+          precio_ofrecido: nuevoPrecio,
+          tipo_precio: descuentoEdit > 0 ? 'mayorista' : 'publico',
+        }),
+      })
+      setPresupData((prev: any) => ({ ...prev, descuento_pct: descuentoEdit || null, precio_ofrecido: nuevoPrecio }))
+      setGuardadoOk(true)
+      setTimeout(() => setGuardadoOk(false), 3000)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
   if (loading) return <Center>⏳ Cargando presupuesto…</Center>
   if (error || !html) return <Center>❌ Presupuesto no encontrado o no disponible.</Center>
+
+  const precioBase = presupData?.precio_publico ? Number(presupData.precio_publico) : null
+  const precioPreview = precioBase ? Math.round(precioBase * (1 - descuentoEdit / 100)) : null
 
   return (
     <>
@@ -54,6 +111,35 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
           <a href="https://www.febecos.com" style={{ color: '#7a9ab5', textDecoration: 'none', fontSize: 13 }}>← Febecos Bombeo Solar</a>
           <button onClick={() => window.print()} style={{ padding: '10px 18px', background: '#1a6b3c', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>📥 Descargar PDF</button>
         </div>
+
+        {/* ── Barra de edición de descuento ───────────────────────────────── */}
+        {presupData && (
+          <div className="no-print" style={{ maxWidth: 760, margin: '0 auto 16px', background: '#132233', border: '1px solid #1e3248', borderRadius: 10, padding: '12px 16px', display: 'flex', flexWrap: 'wrap' as const, alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 12, color: '#7a9ab5', fontWeight: 600 }}>✏️ Editar descuento</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="number" min="0" max="100" step="1" value={descuentoEdit}
+                onChange={e => setDescuentoEdit(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+                style={{ width: 70, background: '#0d1a2a', border: '1px solid #2a4a6a', borderRadius: 6, padding: '6px 8px', color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit', outline: 'none', textAlign: 'center' as const }}
+              />
+              <span style={{ fontSize: 12, color: '#3a5a7a' }}>%</span>
+            </div>
+            {precioBase && (
+              <span style={{ fontSize: 12, color: descuentoEdit > 0 ? '#1a6b3c' : '#7a9ab5' }}>
+                {descuentoEdit > 0
+                  ? <>Lista <strong style={{ color: '#7a9ab5' }}>{fmt(precioBase)}</strong> → <strong style={{ color: '#4ade80' }}>{fmt(precioPreview)}</strong></>
+                  : `Precio público: ${fmt(precioBase)}`}
+              </span>
+            )}
+            <button onClick={aplicarDescuento} style={{ padding: '6px 14px', background: '#e8681a', border: 'none', borderRadius: 7, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              Aplicar
+            </button>
+            <button onClick={guardarDescuento} disabled={guardando} style={{ padding: '6px 14px', background: guardadoOk ? '#1a6b3c' : '#1e3a5a', border: '1px solid #2a5a7a', borderRadius: 7, color: '#e8f0f8', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              {guardando ? 'Guardando…' : guardadoOk ? '✓ Guardado' : '💾 Guardar en DB'}
+            </button>
+          </div>
+        )}
+
         <div className="sheet" style={{ maxWidth: 760, margin: '0 auto', background: '#fff', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,.4)' }}
           dangerouslySetInnerHTML={{ __html: html }} />
         <div className="no-print" style={{ maxWidth: 760, margin: '20px auto 0', textAlign: 'center' }}>

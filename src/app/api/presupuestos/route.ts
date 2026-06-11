@@ -84,6 +84,27 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  try {
+    const { numero, descuento_pct, precio_ofrecido, tipo_precio } = await req.json()
+    if (!numero) return NextResponse.json({ error: 'numero requerido' }, { status: 400 })
+
+    const sql = getDb()
+    await sql`
+      UPDATE presupuestos
+      SET
+        descuento_pct  = ${descuento_pct ?? null},
+        precio_ofrecido = ${precio_ofrecido ?? null},
+        tipo_precio    = ${tipo_precio || 'publico'}
+      WHERE numero = ${numero}
+    `
+    return NextResponse.json({ ok: true })
+  } catch (err: any) {
+    console.error('PATCH /api/presupuestos error:', err)
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const token = req.nextUrl.searchParams.get('token')
