@@ -607,13 +607,41 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     }
   }
 
+  // Actualiza cliente/precio en un presupuesto ya existente (no crea uno nuevo)
+  function actualizarPresupuestoDB(
+    publicToken: string,
+    precio: number | null,
+    desc: number,
+    cdData: { nombre: string; apellido: string; telefono: string; zona: string; email?: string; razonSocial?: string; cuit?: string } | null
+  ) {
+    const precioPublico = data?.bomba?.precio_full || null
+    fetch('/api/presupuestos', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        public_token: publicToken,
+        descuento_pct: desc > 0 ? desc : null,
+        precio_ofrecido: precio,
+        precio_publico: precioPublico,
+        tipo_precio: desc === 0 ? 'publico' : 'mayorista',
+        cliente_nombre: cdData?.nombre || null,
+        cliente_apellido: cdData?.apellido || null,
+        cliente_telefono: cdData?.telefono || null,
+        cliente_email: cdData?.email || null,
+        cliente_zona: cdData?.zona || null,
+        cliente_razon_social: cdData?.razonSocial || null,
+        cliente_cuit: cdData?.cuit || null,
+      }),
+    }).catch(() => {})
+  }
+
   async function generarPDF(forceClienteData?: { nombre: string; apellido: string; telefono: string; zona: string; razonSocial?: string; cuit?: string }) {
     // Usar descuento del estado (puede haber sido modificado en el form)
     const descuento = descuentoEfectivo
     const mostrarPublico = descuento === 0
 
     // Si es precio público y aún no tenemos datos del cliente, mostrar formulario
-    if (mostrarPublico && !clienteReady && !forceClienteData) {
+    if (mostrarPublico && !clienteReady && !forceClienteData && !presupToken) {
       setShowClienteForm(true)
       return
     }
@@ -643,6 +671,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
 
     // Guardar en DB solo la primera vez (evita duplicados al re-generar el PDF)
     if (esNuevo) guardarPresupuestoDB(nro, precioPDF, cd, tok)
+    else actualizarPresupuestoDB(tok, precioPDF, descuento, cd)
     const fecha = new Date().toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' })
     const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
 
@@ -1033,7 +1062,6 @@ ${curvasHtml ? `
               <button
                 onClick={() => {
                   setClienteReady(false)
-                  setNroPresup(null)
                   setShowClienteForm(true)
                 }}
                 style={{ padding:'7px 10px', background:'transparent', border:'1px solid #3a5a7a', borderRadius:8, color:'#7a9ab5', fontSize:11, cursor:'pointer' }}
@@ -1378,6 +1406,11 @@ ${curvasHtml ? `
               <button onClick={() => setShowShareModal(false)} style={{ background:'none', border:'none', color:'#7a9ab5', fontSize:22, cursor:'pointer', lineHeight:1 }}>✕</button>
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <button onClick={() => { setShowShareModal(false); setClienteReady(false); setShowClienteForm(true) }}
+                style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#1e3248', border:'1px solid #3a5a7a', borderRadius:10, color:'#7a9ab5', fontSize:14, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
+                <span style={{ fontSize:22 }}>✏️</span>
+                <div><div>Editar datos del cliente / descuento</div><div style={{ fontSize:11, color:'#3a5a7a', fontWeight:400 }}>Modifica nombre, email, CUIT o descuento y regenera el PDF</div></div>
+              </button>
               <button onClick={() => {
                 window.open(`/p/${pdfToken || pdfNro}`, '_blank')
               }} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#1e3248', border:'1px solid #2a4a6a', borderRadius:10, color:'#e8f0f8', fontSize:14, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
