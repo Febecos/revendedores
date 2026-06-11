@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHmac } from 'crypto'
 import { getDb } from '@/lib/db'
+import { antiSpam } from '@/lib/anti-spam'
 
 const SECRET  = process.env.DEMO_SECRET || 'febecos-demo-secret-2025'
 const DIAS    = 7
@@ -45,14 +46,18 @@ export async function GET(req: NextRequest) {
 // ── POST — iniciar demo ──────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let nombre = '', email = '', whatsapp = '', localidad = ''
+  let nombre = '', email = '', whatsapp = '', localidad = '', website: unknown = ''
   try {
     const body = await req.json()
     nombre    = body.nombre    || ''
     email     = body.email     || ''
     whatsapp  = body.whatsapp  || ''
     localidad = body.localidad || ''
+    website   = body.website   || ''
   } catch { /* body vacío — ok */ }
+
+  const blocked = antiSpam(req, { honeypot: website, email })
+  if (blocked) return blocked
 
   // Guardar en solicitudes_revendedor con estado='demo' (para analytics en admin)
   if (nombre || email) {

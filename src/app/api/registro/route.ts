@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { Resend } from 'resend'
 import { randomBytes } from 'crypto'
+import { antiSpam } from '@/lib/anti-spam'
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
@@ -22,8 +23,11 @@ export async function POST(req: NextRequest) {
       nombre, apellido, email, whatsapp, empresa,
       provincia, localidad, cuit, tipo_revendedor,
       experiencia_anos, experiencia_solar, equipos_mes,
-      acepta_terminos, acepta_marketing, version_terminos
+      acepta_terminos, acepta_marketing, version_terminos, website
     } = body
+
+    const blocked = antiSpam(req, { honeypot: website, email })
+    if (blocked) return blocked
 
     if (!nombre || !email || !whatsapp || !provincia) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
@@ -50,7 +54,7 @@ export async function POST(req: NextRequest) {
     // Base de clientes unificada (fire-and-forget, no bloquea el registro)
     fetch('https://febecos.com/api/admin?action=upsert_cliente', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.INTERNAL_SERVICE_SECRET || ''}` },
       body: JSON.stringify({
         tipo: 'revendedor', nombre, apellido, empresa, razon_social: empresa,
         email, whatsapp, cuit, provincia, localidad, origen: 'alta_rev',
