@@ -608,6 +608,10 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   }
 
   async function generarPDF(forceClienteData?: { nombre: string; apellido: string; telefono: string; zona: string; razonSocial?: string; cuit?: string }) {
+    // Usar descuento del estado (puede haber sido modificado en el form)
+    const descuento = descuentoEfectivo
+    const mostrarPublico = descuento === 0
+
     // Si es precio público y aún no tenemos datos del cliente, mostrar formulario
     if (mostrarPublico && !clienteReady && !forceClienteData) {
       setShowClienteForm(true)
@@ -616,9 +620,6 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
 
     setShowClienteForm(false)
     setGenerandoPDF(true)
-    // Usar descuento del estado (puede haber sido modificado en el form)
-    const descuento = descuentoEfectivo
-    const mostrarPublico = descuento === 0
     let nro = nroPresup
     let tok = presupToken
     const esNuevo = !tok  // solo guardamos en DB la primera vez
