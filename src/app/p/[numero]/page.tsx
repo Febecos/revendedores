@@ -270,14 +270,43 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
     const panelPublico = kit.filter((i: any) => (i.familia || '').toLowerCase() === 'panel').reduce((s: number, i: any) => s + (i.precio_ars || 0) * (i.cantidad || 1), 0)
     const panelEnPrecio = panelPublico * factorPrecio
     const netoPanel = Math.round(panelEnPrecio / 1.105)
+    const ivaPanel  = Math.round(netoPanel * 0.105)
     const netoResto = Math.round((precioPDF - panelEnPrecio) / 1.21)
+    const ivaResto  = Math.round(netoResto * 0.21)
     const netoTotal = netoPanel + netoResto
-    const ivaTotal = precioPDF - netoTotal
-    return `<div style="border:1px solid #dde8dd;border-radius:6px;padding:8px 14px;margin:-6px 0 10px;font-size:10px;color:#555;display:flex;gap:28px;flex-wrap:wrap">
-      <div><span style="color:#888">Neto gravado total:</span> <strong style="color:#1a1a18">${fmt(netoTotal)}</strong></div>
-      <div><span style="color:#888">IVA incluido total:</span> <strong style="color:#1a1a18">${fmt(ivaTotal)}</strong></div>
-      <div style="font-size:9px;color:#aaa;align-self:center">Paneles 10,5% · Resto 21%</div>
-    </div>`
+    const ivaTotal  = ivaPanel + ivaResto
+    return `<table style="width:100%;border-collapse:collapse;font-size:10px;color:#555;margin:-6px 0 10px;border:1px solid #dde8dd;border-radius:6px;overflow:hidden">
+  <thead><tr style="background:#f0f9f4">
+    <th style="padding:5px 10px;text-align:left;font-weight:600;color:#1a6b3c;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Concepto</th>
+    <th style="padding:5px 10px;text-align:right;font-weight:600;color:#1a6b3c;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Neto</th>
+    <th style="padding:5px 10px;text-align:right;font-weight:600;color:#1a6b3c;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Alíc.</th>
+    <th style="padding:5px 10px;text-align:right;font-weight:600;color:#1a6b3c;font-size:9px;text-transform:uppercase;letter-spacing:.05em">IVA</th>
+    <th style="padding:5px 10px;text-align:right;font-weight:600;color:#1a6b3c;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Total c/IVA</th>
+  </tr></thead>
+  <tbody>
+    <tr style="border-top:1px solid #eef4ee">
+      <td style="padding:4px 10px">Paneles solares</td>
+      <td style="padding:4px 10px;text-align:right">${fmt(netoPanel)}</td>
+      <td style="padding:4px 10px;text-align:right;color:#888">10,5%</td>
+      <td style="padding:4px 10px;text-align:right">${fmt(ivaPanel)}</td>
+      <td style="padding:4px 10px;text-align:right;font-weight:600">${fmt(netoPanel + ivaPanel)}</td>
+    </tr>
+    <tr style="border-top:1px solid #eef4ee">
+      <td style="padding:4px 10px">Bomba, controlador y accesorios</td>
+      <td style="padding:4px 10px;text-align:right">${fmt(netoResto)}</td>
+      <td style="padding:4px 10px;text-align:right;color:#888">21%</td>
+      <td style="padding:4px 10px;text-align:right">${fmt(ivaResto)}</td>
+      <td style="padding:4px 10px;text-align:right;font-weight:600">${fmt(netoResto + ivaResto)}</td>
+    </tr>
+    <tr style="border-top:2px solid #1a6b3c;background:#f7fdf9;font-weight:700">
+      <td style="padding:5px 10px;color:#1a1a18">TOTAL</td>
+      <td style="padding:5px 10px;text-align:right;color:#1a1a18">${fmt(netoTotal)}</td>
+      <td style="padding:5px 10px"></td>
+      <td style="padding:5px 10px;text-align:right;color:#1a1a18">${fmt(ivaTotal)}</td>
+      <td style="padding:5px 10px;text-align:right;color:#1a6b3c;font-size:12px">${fmt(precioPDF)}</td>
+    </tr>
+  </tbody>
+</table>`
   })()
 
   const stock = bomba?.stock ?? null
