@@ -62,6 +62,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, puede_cotizar_con_marca: nuevo })
     }
 
+    if (tipo === 'toggle_interno') {
+      const nuevoTipo = sol.tipo_usuario === 'interno' ? 'revendedor' : 'interno'
+      await sql`UPDATE solicitudes_revendedor SET tipo_usuario = ${nuevoTipo} WHERE id = ${id}`
+      return NextResponse.json({ ok: true, tipo_usuario: nuevoTipo })
+    }
+
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('Error en accion admin:', err)

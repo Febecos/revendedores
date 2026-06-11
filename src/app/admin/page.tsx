@@ -19,6 +19,7 @@ type Solicitud = {
   puede_cotizar_con_marca: boolean
   logo_base64: string | null
   domicilio: string | null
+  tipo_usuario: string | null
 }
 
 const TIPO_LABELS: Record<string, string> = {
@@ -69,7 +70,7 @@ export default function Admin() {
     setLoading(false)
   }
 
-  const accion = async (id: number, tipo: 'aprobar' | 'rechazar' | 'borrar' | 'toggle_marca') => {
+  const accion = async (id: number, tipo: 'aprobar' | 'rechazar' | 'borrar' | 'toggle_marca' | 'toggle_interno') => {
     if (tipo === 'borrar' && !confirm('¿Seguro que querés borrar este registro?')) return
     try {
       const res = await fetch('/api/admin/accion', {
@@ -83,6 +84,7 @@ export default function Admin() {
           tipo === 'aprobar' ? '✅ Aprobado y notificado por email' :
           tipo === 'rechazar' ? '❌ Rechazado' :
           tipo === 'toggle_marca' ? (data.puede_cotizar_con_marca ? '🏷 Marca propia habilitada' : '🏷 Marca propia deshabilitada') :
+          tipo === 'toggle_interno' ? (data.tipo_usuario === 'interno' ? '🏠 Marcado como vendedor interno' : '🔄 Marcado como revendedor externo') :
           '🗑 Registro borrado'
         )
         setTimeout(() => setMensaje(''), 3000)
@@ -94,6 +96,8 @@ export default function Admin() {
           setSolicitudes(prev => prev.map(s => s.id === id ? { ...s, estado: 'aprobado', aprobado: true } : s))
         } else if (tipo === 'toggle_marca') {
           setSolicitudes(prev => prev.map(s => s.id === id ? { ...s, puede_cotizar_con_marca: data.puede_cotizar_con_marca } : s))
+        } else if (tipo === 'toggle_interno') {
+          setSolicitudes(prev => prev.map(s => s.id === id ? { ...s, tipo_usuario: data.tipo_usuario } : s))
         }
       } else {
         alert(data.error || 'Error al procesar la acción')
@@ -263,6 +267,21 @@ export default function Admin() {
                       style={{ padding: '8px 20px', background: '#fff', color: '#c0392b', border: '2px solid #c0392b', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
                     >
                       ❌ Rechazar
+                    </button>
+                  )}
+                  {/* Toggle vendedor interno — solo para aprobados */}
+                  {sol.aprobado && (
+                    <button
+                      onClick={() => accion(sol.id, 'toggle_interno')}
+                      style={{
+                        padding: '8px 20px',
+                        background: sol.tipo_usuario === 'interno' ? '#1a3a5c' : '#fff',
+                        color: sol.tipo_usuario === 'interno' ? '#fff' : '#1a3a5c',
+                        border: '2px solid #1a3a5c',
+                        borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14,
+                      }}
+                    >
+                      {sol.tipo_usuario === 'interno' ? '🏠 Vendedor interno' : '🔄 Marcar como interno'}
                     </button>
                   )}
                   {/* Toggle marca propia — solo para aprobados con CUIT */}
