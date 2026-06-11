@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { C } from './colores'
 
 export default function FormularioUnirse() {
-  const [form, setForm] = useState({ nombre: '', email: '', whatsapp: '', localidad: '' })
+  const [form, setForm] = useState({ nombre: '', email: '', whatsapp: '', localidad: '', website: '' })
   const [errores, setErrores] = useState<Record<string, boolean>>({})
   const [estadoDemo, setEstadoDemo] = useState<'idle' | 'cargando' | 'error'>('idle')
 
@@ -77,6 +77,11 @@ export default function FormularioUnirse() {
 
   return (
     <div style={{ background: C.blanco, border: `1px solid ${C.grisB}`, borderRadius: 16, padding: '32px 28px' }}>
+
+      {/* honeypot anti-bot */}
+      <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
+        value={form.website} onChange={handleChange}
+        style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
 
       {/* Campos */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
