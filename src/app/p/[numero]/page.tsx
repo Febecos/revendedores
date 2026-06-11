@@ -177,7 +177,7 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
     }).join('')
     : ''
 
-  const mostrarDesglose = !mostrarPublico || !!cd.cuit
+  const mostrarDesglose = descuento > 0 || !!cd.cuit
   const desgloseHtml = (() => {
     if (!mostrarDesglose || !precioPDF) return ''
     const factorPrecio = mostrarPublico ? 1 : (1 - descuento / 100)

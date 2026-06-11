@@ -516,6 +516,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [clienteCuit, setClienteCuit] = useState(clienteInicial?.cuit || '')
   const [clienteCuitLoading, setClienteCuitLoading] = useState(false)
   const [clienteReady, setClienteReady] = useState(!!(clienteInicial?.nombre || clienteInicial?.razonSocial))
+  const [descuentoEfectivo, setDescuentoEfectivo] = useState<number>(descuento)
 
   async function buscarCuit(raw: string) {
     const cuit = raw.replace(/[-\s]/g, '')
@@ -570,10 +571,10 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
         altura_m:         busquedaMCA    || null,
         longitud_total_m: (distanciaTablero != null && distanciaTablero > 0) ? distanciaTablero : null,
         profundidad_m:    profInput > 0 ? profInput : null,
-        tipo_precio: mostrarPublico ? 'publico' : 'mayorista',
+        tipo_precio: descuentoEfectivo === 0 ? 'publico' : 'mayorista',
         precio_publico: precioPublico,
         precio_ofrecido: precio,
-        descuento_pct: mostrarPublico ? null : descuento,
+        descuento_pct: descuentoEfectivo > 0 ? descuentoEfectivo : null,
         cliente_nombre: tieneCliente ? cdData?.nombre : null,
         cliente_apellido: tieneCliente ? cdData?.apellido : null,
         cliente_telefono: tieneCliente ? cdData?.telefono : null,
@@ -615,6 +616,9 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
 
     setShowClienteForm(false)
     setGenerandoPDF(true)
+    // Usar descuento del estado (puede haber sido modificado en el form)
+    const descuento = descuentoEfectivo
+    const mostrarPublico = descuento === 0
     let nro = nroPresup
     let tok = presupToken
     const esNuevo = !tok  // solo guardamos en DB la primera vez
@@ -758,8 +762,8 @@ ${precioPDF ? `<div class="precio-box">
   ${!mostrarPublico && data?.bomba?.precio_full ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(data.bomba.precio_full)}</div>` : ''}
 </div>
 ${(() => {
-  // Mostrar desglose IVA solo cuando: precio mayorista O cliente final con CUIT
-  const mostrarDesglose = !mostrarPublico || !!cd?.cuit
+  // Mostrar desglose IVA cuando hay descuento aplicado O cliente con CUIT
+  const mostrarDesglose = descuento > 0 || !!cd?.cuit
   if (!mostrarDesglose) return ''
   const factorPrecio = mostrarPublico ? 1 : (1 - descuento / 100)
   const panelPublico = (data?.kit || [])
@@ -1079,6 +1083,22 @@ ${curvasHtml ? `
                   onBlur={e => buscarCuit(e.target.value)}
                   placeholder="30-12345678-9" type="text"
                   style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
+              {/* Descuento */}
+              <div style={{ gridColumn: '1/-1', borderTop: '1px solid #1e3248', paddingTop: 10, marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>
+                  Descuento (%) <span style={{ fontWeight: 400, color: '#7a9ab5', textTransform: 'none' as const }}>— 0 = precio público sin desglose IVA</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input value={descuentoEfectivo} onChange={e => setDescuentoEfectivo(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+                    type="number" min="0" max="100" step="1" placeholder="0"
+                    style={{ width: 90, background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+                  {descuentoEfectivo > 0 && data?.bomba?.precio_full ? (
+                    <span style={{ fontSize: 12, color: '#1a6b3c' }}>
+                      Lista {fmt(data.bomba.precio_full)} → <strong>{fmt(Math.round(data.bomba.precio_full * (1 - descuentoEfectivo / 100)))}</strong>
+                    </span>
+                  ) : <span style={{ fontSize: 11, color: '#3a5a7a' }}>Precio público</span>}
+                </div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
