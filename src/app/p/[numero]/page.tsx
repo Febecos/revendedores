@@ -48,16 +48,35 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
       .catch(() => { setError(true); setLoading(false) })
   }, [params.numero])
 
+  // Calcula el precio base y el nuevo precio con el descuento editado.
+  // Si precio_publico no está en DB, lo infiere desde precio_ofrecido + descuento original.
+  function calcularPrecios(descNuevo: number) {
+    const descOriginal = presupData?.descuento_pct ? Number(presupData.descuento_pct) : 0
+    const precioOfrecido = presupData?.precio_ofrecido != null ? Number(presupData.precio_ofrecido) : null
+    const precioPublicoDB = presupData?.precio_publico != null ? Number(presupData.precio_publico) : null
+    // Precio de lista: usar precio_publico si existe, sino back-calcular desde precio_ofrecido
+    const precioLista = precioPublicoDB
+      ?? (precioOfrecido != null && descOriginal > 0
+          ? Math.round(precioOfrecido / (1 - descOriginal / 100))
+          : precioOfrecido)
+    if (!precioLista) return null
+    // Extras = diferencia entre lo almacenado y el precio puro con descuento original
+    const precioBaseConDesc = Math.round(precioLista * (1 - descOriginal / 100))
+    const extras = (precioOfrecido ?? precioLista) - precioBaseConDesc
+    const nuevoPrecio = Math.round(precioLista * (1 - descNuevo / 100)) + extras
+    return { precioLista, nuevoPrecio }
+  }
+
   function aplicarDescuento() {
     if (!presupData) return
-    const precioBase = presupData.precio_publico ? Number(presupData.precio_publico) : null
-    if (!precioBase) return
-    // Inferir extras: lo que hay en precio_ofrecido por encima del precio sin descuento original
-    const descOriginal = presupData.descuento_pct ? Number(presupData.descuento_pct) : 0
-    const precioSinExtras = Math.round(precioBase * (1 - descOriginal / 100))
-    const extras = (presupData.precio_ofrecido ? Number(presupData.precio_ofrecido) : precioBase) - precioSinExtras
-    const nuevoPrecio = Math.round(precioBase * (1 - descuentoEdit / 100)) + extras
-    const pModificado = { ...presupData, descuento_pct: descuentoEdit || null, precio_ofrecido: nuevoPrecio }
+    const calc = calcularPrecios(descuentoEdit)
+    if (!calc) return
+    const pModificado = {
+      ...presupData,
+      descuento_pct: descuentoEdit || null,
+      precio_ofrecido: calc.nuevoPrecio,
+      precio_publico: calc.precioLista,
+    }
     document.title = presupData.numero
     setHtml(construirPDF(pModificado, bombaData, kitData, curvasData))
   }
@@ -65,23 +84,26 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   async function guardarDescuento() {
     if (!presupData) return
     setGuardando(true)
-    const precioBase = presupData.precio_publico ? Number(presupData.precio_publico) : null
-    const descOriginal = presupData.descuento_pct ? Number(presupData.descuento_pct) : 0
-    const precioSinExtras = Math.round((precioBase || 0) * (1 - descOriginal / 100))
-    const extras = (presupData.precio_ofrecido ? Number(presupData.precio_ofrecido) : (precioBase || 0)) - precioSinExtras
-    const nuevoPrecio = Math.round((precioBase || 0) * (1 - descuentoEdit / 100)) + extras
+    const calc = calcularPrecios(descuentoEdit)
+    if (!calc) { setGuardando(false); return }
     try {
       await fetch('/api/presupuestos', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          numero: presupData.numero,
+          public_token: params.numero,   // clave única, no el numero (puede duplicarse)
           descuento_pct: descuentoEdit || null,
-          precio_ofrecido: nuevoPrecio,
+          precio_ofrecido: calc.nuevoPrecio,
+          precio_publico: calc.precioLista,
           tipo_precio: descuentoEdit > 0 ? 'mayorista' : 'publico',
         }),
       })
-      setPresupData((prev: any) => ({ ...prev, descuento_pct: descuentoEdit || null, precio_ofrecido: nuevoPrecio }))
+      setPresupData((prev: any) => ({
+        ...prev,
+        descuento_pct: descuentoEdit || null,
+        precio_ofrecido: calc.nuevoPrecio,
+        precio_publico: calc.precioLista,
+      }))
       setGuardadoOk(true)
       setTimeout(() => setGuardadoOk(false), 3000)
     } finally {
@@ -92,8 +114,9 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   if (loading) return <Center>⏳ Cargando presupuesto…</Center>
   if (error || !html) return <Center>❌ Presupuesto no encontrado o no disponible.</Center>
 
-  const precioBase = presupData?.precio_publico ? Number(presupData.precio_publico) : null
-  const precioPreview = precioBase ? Math.round(precioBase * (1 - descuentoEdit / 100)) : null
+  const calcPreview = calcularPrecios(descuentoEdit)
+  const precioPreview = calcPreview?.nuevoPrecio ?? null
+  const precioLista = calcPreview?.precioLista ?? null
 
   return (
     <>
@@ -124,11 +147,11 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
               />
               <span style={{ fontSize: 12, color: '#3a5a7a' }}>%</span>
             </div>
-            {precioBase && (
+            {precioLista && (
               <span style={{ fontSize: 12, color: descuentoEdit > 0 ? '#1a6b3c' : '#7a9ab5' }}>
                 {descuentoEdit > 0
-                  ? <>Lista <strong style={{ color: '#7a9ab5' }}>{fmt(precioBase)}</strong> → <strong style={{ color: '#4ade80' }}>{fmt(precioPreview)}</strong></>
-                  : `Precio público: ${fmt(precioBase)}`}
+                  ? <>Lista <strong style={{ color: '#7a9ab5' }}>{fmt(precioLista)}</strong> → <strong style={{ color: '#4ade80' }}>{fmt(precioPreview)}</strong></>
+                  : `Precio público: ${fmt(precioLista)}`}
               </span>
             )}
             <button onClick={aplicarDescuento} style={{ padding: '6px 14px', background: '#e8681a', border: 'none', borderRadius: 7, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>

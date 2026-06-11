@@ -86,18 +86,31 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { numero, descuento_pct, precio_ofrecido, tipo_precio } = await req.json()
-    if (!numero) return NextResponse.json({ error: 'numero requerido' }, { status: 400 })
+    const { public_token, numero, descuento_pct, precio_ofrecido, precio_publico, tipo_precio } = await req.json()
+    if (!public_token && !numero) return NextResponse.json({ error: 'public_token o numero requerido' }, { status: 400 })
 
     const sql = getDb()
-    await sql`
-      UPDATE presupuestos
-      SET
-        descuento_pct  = ${descuento_pct ?? null},
-        precio_ofrecido = ${precio_ofrecido ?? null},
-        tipo_precio    = ${tipo_precio || 'publico'}
-      WHERE numero = ${numero}
-    `
+    await ensureTable(sql)
+
+    if (public_token) {
+      await sql`
+        UPDATE presupuestos SET
+          descuento_pct   = ${descuento_pct ?? null},
+          precio_ofrecido = ${precio_ofrecido ?? null},
+          precio_publico  = COALESCE(precio_publico, ${precio_publico ?? null}),
+          tipo_precio     = ${tipo_precio || 'publico'}
+        WHERE public_token = ${public_token}
+      `
+    } else {
+      await sql`
+        UPDATE presupuestos SET
+          descuento_pct   = ${descuento_pct ?? null},
+          precio_ofrecido = ${precio_ofrecido ?? null},
+          precio_publico  = COALESCE(precio_publico, ${precio_publico ?? null}),
+          tipo_precio     = ${tipo_precio || 'publico'}
+        WHERE numero = ${numero}
+      `
+    }
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     console.error('PATCH /api/presupuestos error:', err)
