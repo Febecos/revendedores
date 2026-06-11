@@ -617,6 +617,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     setGenerandoPDF(true)
     let nro = nroPresup
     let tok = presupToken
+    const esNuevo = !tok  // solo guardamos en DB la primera vez
     if (!nro) {
       nro = await obtenerNroPresupuesto()
       setNroPresup(nro)
@@ -635,8 +636,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     const cd = forceClienteData || (clienteReady ? { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit } : null)
     const tieneCliente = !!(cd?.nombre || cd?.apellido || cd?.telefono)
 
-    // Guardar en DB (best-effort, en background)
-    guardarPresupuestoDB(nro, precioPDF, cd, tok)
+    // Guardar en DB solo la primera vez (evita duplicados al re-generar el PDF)
+    if (esNuevo) guardarPresupuestoDB(nro, precioPDF, cd, tok)
     const fecha = new Date().toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' })
     const HSP = { verano: 5.5, promedio: 4, invierno: 3.5 }
 
@@ -788,7 +789,9 @@ ${sensorFueraRango ? `<div style="background:#fef2f2;border:1px solid #fecaca;bo
 </div>` : ''}
 ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
 <table style="table-layout:fixed;width:100%"><thead><tr><th style="width:88%">Componente</th><th style="width:12%;text-align:center">Cant.</th></tr></thead>
-<tbody>${kitHtml2Col}</tbody></table>` : ''}
+<tbody>${kitHtml2Col}${!mostrarPublico && descuento > 0 && data?.bomba?.precio_full ? `<tr style="background:#f0faf4;border-top:2px solid #1a6b3c">
+  <td style="padding:6px 8px;font-size:11px;color:#1a6b3c;font-weight:700">✂ Descuento revendedor (${descuento}%) — Ahorro sobre precio de lista ${fmt(data.bomba.precio_full)}</td>
+  <td style="text-align:center;padding:6px 8px;white-space:nowrap;color:#1a6b3c;font-weight:700">-${fmt(Math.round(data.bomba.precio_full * descuento / 100))}</td></tr>` : ''}</tbody></table>` : ''}
 <div class="footer">
   ${revLogo
     ? `<strong>${revEmpresa || revendedor}</strong>${revProvincia ? ` &nbsp;·&nbsp; ${revProvincia}` : ''}${revCuit ? ` &nbsp;·&nbsp; CUIT ${revCuit}` : ''}<br>`

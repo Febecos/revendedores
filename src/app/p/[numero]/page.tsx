@@ -28,6 +28,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
             if (r.ok) { const dd = await r.json(); bomba = dd.bomba; kit = dd.kit || []; curvas = dd.curvas || [] }
           } catch { /* sin datos extra */ }
         }
+        if (p?.numero) document.title = p.numero
         setHtml(construirPDF(p, bomba, kit, curvas))
         setLoading(false)
       })
