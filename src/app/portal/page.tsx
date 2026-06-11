@@ -514,7 +514,22 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [clienteZona, setClienteZona] = useState(clienteInicial?.zona || '')
   const [clienteRazonSocial, setClienteRazonSocial] = useState(clienteInicial?.razonSocial || '')
   const [clienteCuit, setClienteCuit] = useState(clienteInicial?.cuit || '')
+  const [clienteCuitLoading, setClienteCuitLoading] = useState(false)
   const [clienteReady, setClienteReady] = useState(!!(clienteInicial?.nombre || clienteInicial?.razonSocial))
+
+  async function buscarCuit(raw: string) {
+    const cuit = raw.replace(/[-\s]/g, '')
+    if (cuit.length !== 11) return
+    setClienteCuitLoading(true)
+    try {
+      const r = await fetch(`/api/cuit-lookup?cuit=${cuit}`)
+      if (r.ok) {
+        const d = await r.json()
+        if (d.razonSocial && !clienteRazonSocial) setClienteRazonSocial(d.razonSocial)
+      }
+    } catch { /* silencioso */ }
+    setClienteCuitLoading(false)
+  }
 
   async function obtenerNroPresupuesto(): Promise<string> {
     try {
@@ -1049,13 +1064,17 @@ ${curvasHtml ? `
                 <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 8 }}>🏢 Si el presupuesto es para una empresa, completá estos datos (opcional):</div>
               </div>
               <div style={{ gridColumn: '1/-1' }}>
-                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Razón social</div>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>
+                  Razón social{clienteCuitLoading ? <span style={{ marginLeft: 6, color: '#7a9ab5', fontWeight: 400 }}>buscando en ARCA…</span> : ''}
+                </div>
                 <input value={clienteRazonSocial} onChange={e => setClienteRazonSocial(e.target.value)} placeholder="La Jota Group SRL"
                   style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
               <div style={{ gridColumn: '1/-1' }}>
                 <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>CUIT</div>
-                <input value={clienteCuit} onChange={e => setClienteCuit(e.target.value)} placeholder="30-12345678-9" type="text"
+                <input value={clienteCuit} onChange={e => setClienteCuit(e.target.value)}
+                  onBlur={e => buscarCuit(e.target.value)}
+                  placeholder="30-12345678-9" type="text"
                   style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
             </div>
