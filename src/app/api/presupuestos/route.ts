@@ -99,10 +99,10 @@ export async function PATCH(req: NextRequest) {
     const key = public_token ? sql`public_token = ${public_token}` : sql`numero = ${numero}`
     await sql`
       UPDATE presupuestos SET
-        descuento_pct        = ${descuento_pct ?? null},
-        precio_ofrecido      = ${precio_ofrecido ?? null},
-        precio_publico       = COALESCE(precio_publico, ${precio_publico ?? null}),
-        tipo_precio          = ${tipo_precio || 'publico'},
+        descuento_pct        = COALESCE(${descuento_pct ?? null}, descuento_pct),
+        precio_ofrecido      = COALESCE(${precio_ofrecido ?? null}, precio_ofrecido),
+        precio_publico       = COALESCE(${precio_publico ?? null}, precio_publico),
+        tipo_precio          = COALESCE(${tipo_precio ?? null}, tipo_precio),
         cliente_nombre       = COALESCE(${cliente_nombre ?? null}, cliente_nombre),
         cliente_apellido     = COALESCE(${cliente_apellido ?? null}, cliente_apellido),
         cliente_telefono     = COALESCE(${cliente_telefono ?? null}, cliente_telefono),
