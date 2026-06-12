@@ -715,6 +715,12 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     const esBombaItem = (n: string) => (n||'').toLowerCase().includes('bomba')
     const kitOrdenado: {nombre: string, notas: string, cantidad: number, unidad: string, _f: number}[] = []
     kitOrdenado.push({ nombre: `Bomba ${data?.bomba?.marca || ''} ${data?.bomba?.watts || ''}W — ${data?.bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, unidad: 'unidad', _f: 0 })
+    const tienePanelEnKit = (data?.kit || []).some((i: any) => (i.familia || '').toLowerCase() === 'panel')
+    if (!tienePanelEnKit && data?.bomba?.cant_paneles) {
+      const panelRef = (data?.kit || []).find((i: any) => (i.familia || '').toLowerCase() === 'panel')
+      const potW = panelRef?.potencia_w || null
+      kitOrdenado.push({ nombre: `Panel solar${potW ? ` ${potW}W` : ''}`, notas: 'Panel Solar Monocristalino', cantidad: data.bomba.cant_paneles, unidad: 'unidad', _f: 1 })
+    }
     if (data?.kit) {
       for (const item of data.kit) {
         if (esBombaItem(item.nombre)) continue

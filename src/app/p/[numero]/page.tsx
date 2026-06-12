@@ -250,6 +250,13 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
   // ── Kit (idéntico a generarPDF) ──────────────────────────────────────────
   const kitOrdenado: { nombre: string; notas: string; cantidad: number; unidad: string; _f: number }[] = []
   kitOrdenado.push({ nombre: `Bomba ${bomba?.marca || p.bomba_marca || ''} ${bomba?.watts || p.bomba_watts || ''}W — ${bomba?.impulsor || 'centrifuga'}`, notas: '', cantidad: 1, unidad: 'unidad', _f: 0 })
+  const tienePanelEnKit = kit.some((i: any) => (i.familia || '').toLowerCase() === 'panel')
+  if (!tienePanelEnKit && (bomba?.cant_paneles || p.bomba_watts)) {
+    const cantP = bomba?.cant_paneles || Math.ceil((p.bomba_watts || 0) / 400) || 1
+    const panelItem = kit.find((i: any) => (i.familia || '').toLowerCase() === 'panel')
+    const potW = panelItem?.potencia_w || null
+    kitOrdenado.push({ nombre: `Panel solar${potW ? ` ${potW}W` : ''}`, notas: 'Panel Solar Monocristalino', cantidad: cantP, unidad: 'unidad', _f: 1 })
+  }
   for (const item of kit) {
     if ((item.nombre || '').toLowerCase().includes('bomba')) continue
     if (/\bmc4\b|ficha mc/i.test(item.nombre || '')) continue
