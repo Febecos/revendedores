@@ -517,6 +517,9 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [clienteCuitLoading, setClienteCuitLoading] = useState(false)
   const [clienteReady, setClienteReady] = useState(!!(clienteInicial?.nombre || clienteInicial?.razonSocial))
   const [descuentoEfectivo, setDescuentoEfectivo] = useState<number>(descuento)
+  const [busquedaCliente, setBusquedaCliente] = useState('')
+  const [sugerenciasCliente, setSugerenciasCliente] = useState<any[]>([])
+  const [buscandoCliente, setBuscandoCliente] = useState(false)
 
   async function buscarCuit(raw: string) {
     const cuit = raw.replace(/[-\s]/g, '')
@@ -530,6 +533,28 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
       }
     } catch { /* silencioso */ }
     setClienteCuitLoading(false)
+  }
+
+  async function buscarClienteDB(q: string) {
+    if (q.length < 2) { setSugerenciasCliente([]); return }
+    setBuscandoCliente(true)
+    try {
+      const r = await fetch(`/api/clientes-buscar?q=${encodeURIComponent(q)}`)
+      if (r.ok) { const d = await r.json(); setSugerenciasCliente(d.clientes || []) }
+    } catch { /* silencioso */ }
+    setBuscandoCliente(false)
+  }
+
+  function seleccionarCliente(c: any) {
+    setClienteNombre(c.nombre || '')
+    setClienteApellido(c.apellido || '')
+    setClienteTelefono(c.telefono || '')
+    setClienteEmail(c.email || '')
+    setClienteZona(c.zona || '')
+    setClienteRazonSocial(c.razon_social || '')
+    setClienteCuit(c.cuit || '')
+    setBusquedaCliente('')
+    setSugerenciasCliente([])
   }
 
   async function obtenerNroPresupuesto(): Promise<string> {
@@ -1088,6 +1113,39 @@ ${curvasHtml ? `
             <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 14 }}>
               El presupuesto saldrá a nombre del cliente. El teléfono nos ayuda a saber si este cliente ya nos contactó antes.
             </div>
+
+            {/* Buscador de clientes — solo vendedores internos Febecos */}
+            {revTipo === 'interno' && (
+              <div style={{ position: 'relative', marginBottom: 16 }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>🔍 Buscar cliente existente</div>
+                <input
+                  value={busquedaCliente}
+                  onChange={e => { setBusquedaCliente(e.target.value); buscarClienteDB(e.target.value) }}
+                  placeholder="Nombre, apellido o razón social…"
+                  style={{ width: '100%', background: '#0d2a1a', border: '1px solid #25d366', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }}
+                />
+                {buscandoCliente && <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 4 }}>Buscando…</div>}
+                {sugerenciasCliente.length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#0d1a2a', border: '1px solid #25d366', borderRadius: 8, zIndex: 100, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,.5)' }}>
+                    {sugerenciasCliente.map((c, i) => (
+                      <div key={i} onClick={() => seleccionarCliente(c)}
+                        style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: i < sugerenciasCliente.length - 1 ? '1px solid #1e3248' : 'none' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#132233')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <div style={{ fontWeight: 700, color: '#e8f0f8', fontSize: 13 }}>{c.nombre} {c.apellido}</div>
+                        <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 2 }}>
+                          {c.telefono && <span>📱 {c.telefono}</span>}
+                          {c.razon_social && <span style={{ marginLeft: 8 }}>🏢 {c.razon_social}</span>}
+                          {c.zona && <span style={{ marginLeft: 8 }}>📍 {c.zona}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginBottom: 12 }}>
               {/* Nombre */}
               <div>
