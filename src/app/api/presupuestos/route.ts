@@ -96,23 +96,42 @@ export async function PATCH(req: NextRequest) {
     const sql = getDb()
     await ensureTable(sql)
 
-    const key = public_token ? sql`public_token = ${public_token}` : sql`numero = ${numero}`
-    const updated = await sql`
-      UPDATE presupuestos SET
-        descuento_pct        = COALESCE(${descuento_pct ?? null}, descuento_pct),
-        precio_ofrecido      = COALESCE(${precio_ofrecido ?? null}, precio_ofrecido),
-        precio_publico       = COALESCE(${precio_publico ?? null}, precio_publico),
-        tipo_precio          = COALESCE(${tipo_precio ?? null}, tipo_precio),
-        cliente_nombre       = COALESCE(${cliente_nombre ?? null}, cliente_nombre),
-        cliente_apellido     = COALESCE(${cliente_apellido ?? null}, cliente_apellido),
-        cliente_telefono     = COALESCE(${cliente_telefono ?? null}, cliente_telefono),
-        cliente_email        = COALESCE(${cliente_email ?? null}, cliente_email),
-        cliente_zona         = COALESCE(${cliente_zona ?? null}, cliente_zona),
-        cliente_razon_social = COALESCE(${cliente_razon_social ?? null}, cliente_razon_social),
-        cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit)
-      WHERE ${key}
-      RETURNING id, numero, cliente_nombre, cliente_apellido
-    `
+    // NOTE: @neondatabase/serverless NO soporta fragmentos sql anidados
+    // (sql`... WHERE ${sql`...`}`) → binda el fragmento como valor y rompe.
+    // Por eso se duplica la query según la clave disponible.
+    const updated = public_token
+      ? await sql`
+          UPDATE presupuestos SET
+            descuento_pct        = COALESCE(${descuento_pct ?? null}, descuento_pct),
+            precio_ofrecido      = COALESCE(${precio_ofrecido ?? null}, precio_ofrecido),
+            precio_publico       = COALESCE(${precio_publico ?? null}, precio_publico),
+            tipo_precio          = COALESCE(${tipo_precio ?? null}, tipo_precio),
+            cliente_nombre       = COALESCE(${cliente_nombre ?? null}, cliente_nombre),
+            cliente_apellido     = COALESCE(${cliente_apellido ?? null}, cliente_apellido),
+            cliente_telefono     = COALESCE(${cliente_telefono ?? null}, cliente_telefono),
+            cliente_email        = COALESCE(${cliente_email ?? null}, cliente_email),
+            cliente_zona         = COALESCE(${cliente_zona ?? null}, cliente_zona),
+            cliente_razon_social = COALESCE(${cliente_razon_social ?? null}, cliente_razon_social),
+            cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit)
+          WHERE public_token = ${public_token}
+          RETURNING id, numero, cliente_nombre, cliente_apellido
+        `
+      : await sql`
+          UPDATE presupuestos SET
+            descuento_pct        = COALESCE(${descuento_pct ?? null}, descuento_pct),
+            precio_ofrecido      = COALESCE(${precio_ofrecido ?? null}, precio_ofrecido),
+            precio_publico       = COALESCE(${precio_publico ?? null}, precio_publico),
+            tipo_precio          = COALESCE(${tipo_precio ?? null}, tipo_precio),
+            cliente_nombre       = COALESCE(${cliente_nombre ?? null}, cliente_nombre),
+            cliente_apellido     = COALESCE(${cliente_apellido ?? null}, cliente_apellido),
+            cliente_telefono     = COALESCE(${cliente_telefono ?? null}, cliente_telefono),
+            cliente_email        = COALESCE(${cliente_email ?? null}, cliente_email),
+            cliente_zona         = COALESCE(${cliente_zona ?? null}, cliente_zona),
+            cliente_razon_social = COALESCE(${cliente_razon_social ?? null}, cliente_razon_social),
+            cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit)
+          WHERE numero = ${numero}
+          RETURNING id, numero, cliente_nombre, cliente_apellido
+        `
     if (!updated.length) {
       console.error('PATCH /api/presupuestos: no rows matched', { public_token, numero })
       return NextResponse.json({ ok: false, error: 'Presupuesto no encontrado', rows_updated: 0 }, { status: 404 })
