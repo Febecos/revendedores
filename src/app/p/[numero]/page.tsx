@@ -35,6 +35,11 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const [cliCuit, setCliCuit] = useState('')
   const [guardandoCli, setGuardandoCli] = useState(false)
   const [guardadoCliOk, setGuardadoCliOk] = useState(false)
+  const [busquedaCli, setBusquedaCli] = useState('')
+  const [sugerenciasCli, setSugerenciasCli] = useState<any[]>([])
+  const [buscandoCli, setBuscandoCli] = useState(false)
+  const [sugerenciaIdx, setSugerenciaIdx] = useState(-1)
+  const [cuitLoading, setCuitLoading] = useState(false)
 
   useEffect(() => {
     fetch(`/api/presupuesto-publico?t=${encodeURIComponent(params.numero)}`)
@@ -66,6 +71,48 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
       })
       .catch(() => { setError(true); setLoading(false) })
   }, [params.numero])
+
+  async function buscarClienteDB(q: string) {
+    if (q.length < 2) { setSugerenciasCli([]); return }
+    setBuscandoCli(true)
+    try {
+      const r = await fetch(`/api/clientes-buscar?q=${encodeURIComponent(q)}`)
+      if (r.ok) { const d = await r.json(); setSugerenciasCli(d.clientes || []) }
+    } catch { /* silencioso */ }
+    setBuscandoCli(false)
+  }
+
+  function seleccionarCliente(c: any) {
+    setCliNombre(c.nombre || '')
+    setCliApellido(c.apellido || '')
+    setCliTelefono(c.telefono || '')
+    setCliEmail(c.email || '')
+    setCliZona(c.zona || '')
+    setCliRazonSocial(c.razon_social || '')
+    setCliCuit(c.cuit || '')
+    setBusquedaCli('')
+    setSugerenciasCli([])
+    setSugerenciaIdx(-1)
+  }
+
+  async function buscarCuitARCA(raw: string) {
+    const cuit = raw.replace(/[-\s]/g, '')
+    if (cuit.length !== 11) return
+    setCuitLoading(true)
+    try {
+      const r = await fetch(`/api/cuit-lookup?cuit=${cuit}`)
+      if (r.ok) {
+        const d = await r.json()
+        if (d.razonSocial && !cliRazonSocial) setCliRazonSocial(d.razonSocial)
+        if (d.tipo === 'FISICA') {
+          const partes = (d.razonSocial || '').split(',').map((s: string) => s.trim())
+          if (partes[0] && !cliApellido) setCliApellido(partes[0])
+          if (partes[1] && !cliNombre) setCliNombre(partes[1])
+        }
+      }
+    } catch { /* silencioso */ }
+    setCuitLoading(false)
+  }
 
   async function guardarCliente() {
     setGuardandoCli(true)
@@ -252,23 +299,54 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
         )}
         {esRevendedor && showClienteEdit && (
           <div className="no-print" style={{ maxWidth: 760, margin: '-8px auto 16px', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 10, padding: '16px' }}>
+            {/* Buscador de cliente existente */}
+            <div style={{ position: 'relative', marginBottom: 14 }}>
+              <div style={{ fontSize: 10, color: '#25d366', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' as const }}>🔍 Buscar cliente existente</div>
+              <input
+                value={busquedaCli}
+                onChange={e => { setBusquedaCli(e.target.value); setSugerenciaIdx(-1); buscarClienteDB(e.target.value) }}
+                onKeyDown={e => {
+                  if (!sugerenciasCli.length) return
+                  if (e.key === 'ArrowDown') { e.preventDefault(); setSugerenciaIdx(i => Math.min(i + 1, sugerenciasCli.length - 1)) }
+                  else if (e.key === 'ArrowUp') { e.preventDefault(); setSugerenciaIdx(i => Math.max(i - 1, 0)) }
+                  else if (e.key === 'Enter' && sugerenciaIdx >= 0) { e.preventDefault(); seleccionarCliente(sugerenciasCli[sugerenciaIdx]) }
+                  else if (e.key === 'Escape') { setSugerenciasCli([]); setSugerenciaIdx(-1) }
+                }}
+                placeholder="Nombre, apellido, teléfono o razón social…"
+                style={{ width: '100%', background: '#0d2a1a', border: '1px solid #25d366', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }}
+              />
+              {buscandoCli && <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 4 }}>Buscando…</div>}
+              {sugerenciasCli.length > 0 && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#0d1a2a', border: '1px solid #25d366', borderRadius: 8, zIndex: 100, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,.5)' }}>
+                  {sugerenciasCli.map((c, i) => (
+                    <div key={i} onClick={() => seleccionarCliente(c)}
+                      style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: i < sugerenciasCli.length - 1 ? '1px solid #1e3248' : 'none', background: i === sugerenciaIdx ? '#1e3a28' : 'transparent' }}
+                      onMouseEnter={() => setSugerenciaIdx(i)} onMouseLeave={() => setSugerenciaIdx(-1)}
+                    >
+                      <div style={{ fontSize: 13, color: '#e8f0f8', fontWeight: 600 }}>{[c.nombre, c.apellido].filter(Boolean).join(' ') || c.razon_social}</div>
+                      <div style={{ fontSize: 11, color: '#7a9ab5' }}>{c.telefono}{c.zona ? ` · ${c.zona}` : ''}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Campos manuales */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              {[
-                ['Nombre', cliNombre, setCliNombre],
-                ['Apellido', cliApellido, setCliApellido],
-                ['Teléfono / WhatsApp', cliTelefono, setCliTelefono],
-                ['Email', cliEmail, setCliEmail],
-                ['Zona / Provincia', cliZona, setCliZona],
-                ['CUIT', cliCuit, setCliCuit],
-              ].map(([label, val, setter]: any) => (
+              {([['Nombre', cliNombre, setCliNombre], ['Apellido', cliApellido, setCliApellido], ['Teléfono / WhatsApp', cliTelefono, setCliTelefono], ['Email', cliEmail, setCliEmail], ['Zona / Provincia', cliZona, setCliZona]] as [string, string, (v: string) => void][]).map(([label, val, setter]) => (
                 <div key={label}>
                   <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>{label}</div>
                   <input value={val} onChange={e => setter(e.target.value)}
                     style={{ width: '100%', background: '#132233', border: '1px solid #2a4a6a', borderRadius: 6, padding: '7px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
                 </div>
               ))}
+              <div>
+                <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>CUIT {cuitLoading && <span style={{ color: '#7a9ab5' }}>· consultando ARCA…</span>}</div>
+                <input value={cliCuit} onChange={e => setCliCuit(e.target.value)} onBlur={e => buscarCuitARCA(e.target.value)}
+                  placeholder="30-12345678-9"
+                  style={{ width: '100%', background: '#132233', border: '1px solid #2a4a6a', borderRadius: 6, padding: '7px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
             </div>
-            <div style={{ gridColumn: '1/-1', marginBottom: 10 }}>
+            <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>Razón social (empresa)</div>
               <input value={cliRazonSocial} onChange={e => setCliRazonSocial(e.target.value)}
                 style={{ width: '100%', background: '#132233', border: '1px solid #2a4a6a', borderRadius: 6, padding: '7px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
