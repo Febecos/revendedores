@@ -25,6 +25,16 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const [descuentoEdit, setDescuentoEdit] = useState<number>(0)
   const [guardando, setGuardando] = useState(false)
   const [guardadoOk, setGuardadoOk] = useState(false)
+  const [showClienteEdit, setShowClienteEdit] = useState(false)
+  const [cliNombre, setCliNombre] = useState('')
+  const [cliApellido, setCliApellido] = useState('')
+  const [cliTelefono, setCliTelefono] = useState('')
+  const [cliEmail, setCliEmail] = useState('')
+  const [cliZona, setCliZona] = useState('')
+  const [cliRazonSocial, setCliRazonSocial] = useState('')
+  const [cliCuit, setCliCuit] = useState('')
+  const [guardandoCli, setGuardandoCli] = useState(false)
+  const [guardadoCliOk, setGuardadoCliOk] = useState(false)
 
   useEffect(() => {
     fetch(`/api/presupuesto-publico?t=${encodeURIComponent(params.numero)}`)
@@ -40,6 +50,13 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
         }
         if (p?.numero) document.title = p.numero
         setPresupData(p)
+        setCliNombre(p.cliente_nombre || '')
+        setCliApellido(p.cliente_apellido || '')
+        setCliTelefono(p.cliente_telefono || '')
+        setCliEmail(p.cliente_email || '')
+        setCliZona(p.cliente_zona || '')
+        setCliRazonSocial(p.cliente_razon_social || '')
+        setCliCuit(p.cliente_cuit || '')
         setBombaData(bomba)
         setKitData(kit)
         setCurvasData(curvas)
@@ -49,6 +66,45 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
       })
       .catch(() => { setError(true); setLoading(false) })
   }, [params.numero])
+
+  async function guardarCliente() {
+    setGuardandoCli(true)
+    try {
+      await fetch('/api/presupuestos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          public_token: params.numero,
+          cliente_nombre: cliNombre || null,
+          cliente_apellido: cliApellido || null,
+          cliente_telefono: cliTelefono || null,
+          cliente_email: cliEmail || null,
+          cliente_zona: cliZona || null,
+          cliente_razon_social: cliRazonSocial || null,
+          cliente_cuit: cliCuit || null,
+        }),
+      })
+      setPresupData((prev: any) => ({
+        ...prev,
+        cliente_nombre: cliNombre || null,
+        cliente_apellido: cliApellido || null,
+        cliente_telefono: cliTelefono || null,
+        cliente_email: cliEmail || null,
+        cliente_zona: cliZona || null,
+        cliente_razon_social: cliRazonSocial || null,
+        cliente_cuit: cliCuit || null,
+      }))
+      setHtml(construirPDF(
+        { ...presupData, cliente_nombre: cliNombre || null, cliente_apellido: cliApellido || null, cliente_telefono: cliTelefono || null, cliente_email: cliEmail || null, cliente_zona: cliZona || null, cliente_razon_social: cliRazonSocial || null, cliente_cuit: cliCuit || null },
+        bombaData, kitData, curvasData
+      ))
+      setGuardadoCliOk(true)
+      setShowClienteEdit(false)
+      setTimeout(() => setGuardadoCliOk(false), 3000)
+    } finally {
+      setGuardandoCli(false)
+    }
+  }
 
   // Recalcula extras de instalación igual que construirPDF
   function calcExtrasKit(descNuevo: number) {
@@ -188,6 +244,37 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
             </button>
             <button onClick={guardarDescuento} disabled={guardando} style={{ padding: '6px 14px', background: guardadoOk ? '#1a6b3c' : '#1e3a5a', border: '1px solid #2a5a7a', borderRadius: 7, color: '#e8f0f8', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
               {guardando ? 'Guardando…' : guardadoOk ? '✓ Guardado' : '💾 Guardar en DB'}
+            </button>
+            <button onClick={() => setShowClienteEdit(v => !v)} style={{ padding: '6px 14px', background: guardadoCliOk ? '#1a6b3c' : '#1e3a5a', border: '1px solid #2a5a7a', borderRadius: 7, color: guardadoCliOk ? '#4ade80' : '#e8f0f8', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              {guardadoCliOk ? '✓ Cliente guardado' : '👤 Editar cliente'}
+            </button>
+          </div>
+        )}
+        {esRevendedor && showClienteEdit && (
+          <div className="no-print" style={{ maxWidth: 760, margin: '-8px auto 16px', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 10, padding: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              {[
+                ['Nombre', cliNombre, setCliNombre],
+                ['Apellido', cliApellido, setCliApellido],
+                ['Teléfono / WhatsApp', cliTelefono, setCliTelefono],
+                ['Email', cliEmail, setCliEmail],
+                ['Zona / Provincia', cliZona, setCliZona],
+                ['CUIT', cliCuit, setCliCuit],
+              ].map(([label, val, setter]: any) => (
+                <div key={label}>
+                  <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>{label}</div>
+                  <input value={val} onChange={e => setter(e.target.value)}
+                    style={{ width: '100%', background: '#132233', border: '1px solid #2a4a6a', borderRadius: 6, padding: '7px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ gridColumn: '1/-1', marginBottom: 10 }}>
+              <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>Razón social (empresa)</div>
+              <input value={cliRazonSocial} onChange={e => setCliRazonSocial(e.target.value)}
+                style={{ width: '100%', background: '#132233', border: '1px solid #2a4a6a', borderRadius: 6, padding: '7px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+            </div>
+            <button onClick={guardarCliente} disabled={guardandoCli} style={{ padding: '8px 20px', background: '#e8681a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              {guardandoCli ? 'Guardando…' : '💾 Guardar cliente'}
             </button>
           </div>
         )}
