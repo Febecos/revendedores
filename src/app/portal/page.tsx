@@ -674,8 +674,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
     const descuento = descuentoEfectivo
     const mostrarPublico = descuento === 0
 
-    // Si es precio público y aún no tenemos datos del cliente, mostrar formulario
-    if (mostrarPublico && !clienteReady && !forceClienteData && !presupToken) {
+    // Si no tenemos datos del cliente, mostrar formulario (siempre, no solo precio público)
+    if (!clienteReady && !forceClienteData && !presupToken) {
       setShowClienteForm(true)
       return
     }

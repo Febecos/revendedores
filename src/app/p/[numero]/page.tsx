@@ -89,7 +89,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
     const precioLista = precioListaBase + extrasLista
     const extrasNuevo = calcExtrasKit(descNuevo)
     const nuevoPrecio = Math.round(precioListaBase * (1 - descNuevo / 100)) + extrasNuevo
-    return { precioLista, nuevoPrecio }
+    return { precioListaBase, precioLista, nuevoPrecio }
   }
 
   function aplicarDescuento() {
@@ -100,7 +100,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
       ...presupData,
       descuento_pct: descuentoEdit || null,
       precio_ofrecido: calc.nuevoPrecio,
-      precio_publico: calc.precioLista,
+      precio_publico: calc.precioListaBase,
     }
     document.title = presupData.numero
     setHtml(construirPDF(pModificado, bombaData, kitData, curvasData))
@@ -119,7 +119,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
           public_token: params.numero,   // clave única, no el numero (puede duplicarse)
           descuento_pct: descuentoEdit || null,
           precio_ofrecido: calc.nuevoPrecio,
-          precio_publico: calc.precioLista,
+          precio_publico: calc.precioListaBase,
           tipo_precio: descuentoEdit > 0 ? 'mayorista' : 'publico',
         }),
       })
@@ -127,7 +127,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
         ...prev,
         descuento_pct: descuentoEdit || null,
         precio_ofrecido: calc.nuevoPrecio,
-        precio_publico: calc.precioLista,
+        precio_publico: calc.precioListaBase,
       }))
       setGuardadoOk(true)
       setTimeout(() => setGuardadoOk(false), 3000)
