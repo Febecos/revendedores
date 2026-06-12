@@ -620,22 +620,27 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
       }),
     }).catch(() => { /* silencioso */ })
 
-    // CRM: registrar cliente (fire & forget)
+    // CRM: registrar cliente (fire & forget) — vía ruta SERVER-SIDE que tiene el
+    // INTERNAL_SERVICE_SECRET (el navegador no puede mandarlo → daba 401).
+    // Pasa la atribución del revendedor para marcar "cliente del revendedor".
     if (tieneCliente) {
-      fetch('https://febecos.com/api/admin?action=upsert_cliente', {
+      fetch('/api/registrar-cliente', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: 'cliente_final',
           nombre: cdData?.nombre || null,
           apellido: cdData?.apellido || null,
           email: cdData?.email || null,
           telefono: cdData?.telefono || null,
           cuit: cdData?.cuit || null,
-          empresa: cdData?.razonSocial || null,
-          provincia: cdData?.zona || null,
+          razonSocial: cdData?.razonSocial || null,
+          zona: cdData?.zona || null,
           origen: 'presupuesto_bombas',
           bump: 'presupuesto',
           monto: precio || 0,
+          // Atribución: quién generó el presupuesto
+          rev_tipo: revTipo || 'revendedor',
+          revendedor_token: revToken || null,
+          revendedor_nombre: revendedor || null,
         }),
       }).catch(() => {})
     }
