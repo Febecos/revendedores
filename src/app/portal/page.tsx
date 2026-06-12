@@ -1608,15 +1608,16 @@ export default function Portal() {
 
   async function abrirCotizaciones() {
     setShowCotis(true)
-    if (cotis === null) {
-      setCargandoCotis(true)
-      try {
-        const r = await fetch(`/api/presupuestos?token=${encodeURIComponent(token || '')}&limit=100`)
-        const d = await r.json()
-        setCotis(d?.presupuestos || [])
-      } catch { setCotis([]) }
-      setCargandoCotis(false)
-    }
+    // Siempre re-consultar: el cliente/descuento puede haberse editado en /p/[token]
+    // (otra pestaña). El spinner solo en la 1ra carga; despues refresca en silencio.
+    const primeraVez = cotis === null
+    if (primeraVez) setCargandoCotis(true)
+    try {
+      const r = await fetch(`/api/presupuestos?token=${encodeURIComponent(token || '')}&limit=100`)
+      const d = await r.json()
+      setCotis(d?.presupuestos || [])
+    } catch { if (primeraVez) setCotis([]) }
+    if (primeraVez) setCargandoCotis(false)
   }
 
   // ── PIN DE SEGURIDAD ──────────────────────────────────────────────────────
