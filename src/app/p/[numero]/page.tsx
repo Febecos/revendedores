@@ -283,31 +283,37 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
           <button onClick={() => window.print()} style={{ padding: '10px 18px', background: '#1a6b3c', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>📥 Descargar PDF</button>
         </div>
 
-        {/* ── Barra de edición de descuento — solo visible para el revendedor ── */}
+        {/* ── Barra de edición — visible para el revendedor (interno o externo) ── */}
         {esRevendedor && presupData && (
           <div className="no-print" style={{ maxWidth: 760, margin: '0 auto 16px', background: '#132233', border: '1px solid #1e3248', borderRadius: 10, padding: '12px 16px', display: 'flex', flexWrap: 'wrap' as const, alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 12, color: '#7a9ab5', fontWeight: 600 }}>✏️ Editar descuento</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                type="number" min="0" max="100" step="1" value={descuentoEdit}
-                onChange={e => setDescuentoEdit(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-                style={{ width: 70, background: '#0d1a2a', border: '1px solid #2a4a6a', borderRadius: 6, padding: '6px 8px', color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit', outline: 'none', textAlign: 'center' as const }}
-              />
-              <span style={{ fontSize: 12, color: '#3a5a7a' }}>%</span>
-            </div>
-            {precioLista && (
-              <span style={{ fontSize: 12, color: descuentoEdit > 0 ? '#1a6b3c' : '#7a9ab5' }}>
-                {descuentoEdit > 0
-                  ? <>Lista <strong style={{ color: '#7a9ab5' }}>{fmt(precioLista)}</strong> → <strong style={{ color: '#4ade80' }}>{fmt(precioPreview)}</strong></>
-                  : `Precio público: ${fmt(precioLista)}`}
-              </span>
+            {/* Edición de descuento — SOLO vendedores internos. El revendedor externo
+                tiene su descuento FIJO (el que Febecos le asigna), no lo puede cambiar. */}
+            {esVendedorInterno && (
+              <>
+                <span style={{ fontSize: 12, color: '#7a9ab5', fontWeight: 600 }}>✏️ Editar descuento</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="number" min="0" max="100" step="1" value={descuentoEdit}
+                    onChange={e => setDescuentoEdit(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+                    style={{ width: 70, background: '#0d1a2a', border: '1px solid #2a4a6a', borderRadius: 6, padding: '6px 8px', color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit', outline: 'none', textAlign: 'center' as const }}
+                  />
+                  <span style={{ fontSize: 12, color: '#3a5a7a' }}>%</span>
+                </div>
+                {precioLista && (
+                  <span style={{ fontSize: 12, color: descuentoEdit > 0 ? '#1a6b3c' : '#7a9ab5' }}>
+                    {descuentoEdit > 0
+                      ? <>Lista <strong style={{ color: '#7a9ab5' }}>{fmt(precioLista)}</strong> → <strong style={{ color: '#4ade80' }}>{fmt(precioPreview)}</strong></>
+                      : `Precio público: ${fmt(precioLista)}`}
+                  </span>
+                )}
+                <button onClick={aplicarDescuento} style={{ padding: '6px 14px', background: '#e8681a', border: 'none', borderRadius: 7, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  Aplicar
+                </button>
+                <button onClick={guardarDescuento} disabled={guardando} style={{ padding: '6px 14px', background: guardadoOk ? '#1a6b3c' : '#1e3a5a', border: '1px solid #2a5a7a', borderRadius: 7, color: '#e8f0f8', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  {guardando ? 'Guardando…' : guardadoOk ? '✓ Guardado' : '💾 Guardar en DB'}
+                </button>
+              </>
             )}
-            <button onClick={aplicarDescuento} style={{ padding: '6px 14px', background: '#e8681a', border: 'none', borderRadius: 7, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              Aplicar
-            </button>
-            <button onClick={guardarDescuento} disabled={guardando} style={{ padding: '6px 14px', background: guardadoOk ? '#1a6b3c' : '#1e3a5a', border: '1px solid #2a5a7a', borderRadius: 7, color: '#e8f0f8', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-              {guardando ? 'Guardando…' : guardadoOk ? '✓ Guardado' : '💾 Guardar en DB'}
-            </button>
             <button onClick={() => setShowClienteEdit(v => !v)} style={{ padding: '6px 14px', background: guardadoCliOk ? '#1a6b3c' : '#1e3a5a', border: '1px solid #2a5a7a', borderRadius: 7, color: guardadoCliOk ? '#4ade80' : '#e8f0f8', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
               {guardadoCliOk ? '✓ Cliente guardado' : '👤 Editar cliente'}
             </button>
