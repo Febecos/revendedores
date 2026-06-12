@@ -620,10 +620,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
       }),
     }).catch(() => { /* silencioso */ })
 
-    // CRM: registrar cliente en la base CENTRAL de Febecos — SOLO vendedores internos.
-    // Los clientes de un revendedor externo son suyos: NO se mezclan con nuestra base.
-    // Igual quedan guardados en el presupuesto (ligados a su token) vía guardarPresupuestoDB.
-    if (tieneCliente && revTipo === 'interno') {
+    // CRM: registrar cliente (fire & forget)
+    if (tieneCliente) {
       fetch('https://febecos.com/api/admin?action=upsert_cliente', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
