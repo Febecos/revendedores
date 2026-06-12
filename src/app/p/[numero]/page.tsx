@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 const fmt = (n: number | null | undefined) =>
   n != null ? '$' + Math.round(n).toLocaleString('es-AR') : '—'
@@ -12,6 +13,7 @@ const FEBECOS_LOGO = 'https://selector.febecos.com/images/febecos-logo.png'
 const esc = (s: any) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 export default function PresupuestoPublico({ params }: { params: { numero: string } }) {
+  const searchParams = useSearchParams()
   const [html, setHtml] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -142,6 +144,8 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const calcPreview = calcularPrecios(descuentoEdit)
   const precioPreview = calcPreview?.nuevoPrecio ?? null
   const precioLista = calcPreview?.precioLista ?? null
+  // Mostrar barra de edición solo si el parámetro ?rev coincide con el token del revendedor
+  const esRevendedor = !!searchParams.get('rev') && searchParams.get('rev') === presupData?.revendedor_token
 
   return (
     <>
@@ -160,8 +164,8 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
           <button onClick={() => window.print()} style={{ padding: '10px 18px', background: '#1a6b3c', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>📥 Descargar PDF</button>
         </div>
 
-        {/* ── Barra de edición de descuento ───────────────────────────────── */}
-        {presupData && (
+        {/* ── Barra de edición de descuento — solo visible para el revendedor ── */}
+        {esRevendedor && presupData && (
           <div className="no-print" style={{ maxWidth: 760, margin: '0 auto 16px', background: '#132233', border: '1px solid #1e3248', borderRadius: 10, padding: '12px 16px', display: 'flex', flexWrap: 'wrap' as const, alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 12, color: '#7a9ab5', fontWeight: 600 }}>✏️ Editar descuento</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

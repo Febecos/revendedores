@@ -1497,7 +1497,7 @@ ${curvasHtml ? `
                 <div><div>Editar datos del cliente / descuento</div><div style={{ fontSize:11, color:'#3a5a7a', fontWeight:400 }}>Modifica nombre, email, CUIT o descuento y regenera el PDF</div></div>
               </button>
               <button onClick={() => {
-                window.open(`/p/${pdfToken || pdfNro}`, '_blank')
+                window.open(`/p/${pdfToken || pdfNro}?rev=${revToken || ''}`, '_blank')
               }} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#1e3248', border:'1px solid #2a4a6a', borderRadius:10, color:'#e8f0f8', fontSize:14, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
                 <span style={{ fontSize:22 }}>📥</span>
                 <div><div>Guardar / Imprimir PDF</div><div style={{ fontSize:11, color:'#7a9ab5', fontWeight:400 }}>Abre el PDF para guardar o imprimir</div></div>
