@@ -517,6 +517,13 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   const [clienteCuitLoading, setClienteCuitLoading] = useState(false)
   const [clienteReady, setClienteReady] = useState(!!(clienteInicial?.nombre || clienteInicial?.razonSocial))
   const [descuentoEfectivo, setDescuentoEfectivo] = useState<number>(descuento)
+  // Solo el vendedor interno de Febecos puede poner un descuento a mano. El
+  // revendedor externo tiene su descuento FIJO: lo define la solapa
+  // (Mayorista = su % asignado, Precio público = 0). No lo puede editar.
+  const esVendInterno = revTipo === 'interno'
+  useEffect(() => {
+    if (!esVendInterno) setDescuentoEfectivo(mostrarPublico ? 0 : descuento)
+  }, [mostrarPublico, descuento, esVendInterno])
   const [busquedaCliente, setBusquedaCliente] = useState('')
   const [sugerenciasCliente, setSugerenciasCliente] = useState<any[]>([])
   const [buscandoCliente, setBuscandoCliente] = useState(false)
@@ -1237,15 +1244,20 @@ ${curvasHtml ? `
                   placeholder="30-12345678-9" type="text"
                   style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
-              {/* Descuento */}
+              {/* Descuento — editable solo para vendedor interno. El externo lo
+                  tiene fijo segun la solapa (Mayorista = su %, Publico = 0). */}
               <div style={{ gridColumn: '1/-1', borderTop: '1px solid #1e3248', paddingTop: 10, marginTop: 2 }}>
                 <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>
-                  Descuento (%) <span style={{ fontWeight: 400, color: '#7a9ab5', textTransform: 'none' as const }}>— 0 = precio público sin desglose IVA</span>
+                  Descuento (%) <span style={{ fontWeight: 400, color: '#7a9ab5', textTransform: 'none' as const }}>{esVendInterno ? '— 0 = precio público sin desglose IVA' : '— definido por la solapa (Mayorista / Precio público)'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <input value={descuentoEfectivo} onChange={e => setDescuentoEfectivo(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-                    type="number" min="0" max="100" step="1" placeholder="0"
-                    style={{ width: 90, background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+                  {esVendInterno ? (
+                    <input value={descuentoEfectivo} onChange={e => setDescuentoEfectivo(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+                      type="number" min="0" max="100" step="1" placeholder="0"
+                      style={{ width: 90, background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+                  ) : (
+                    <span style={{ width: 90, background: '#101d2c', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#7a9ab5', fontSize: 14, textAlign: 'center' as const }}>{descuentoEfectivo}%</span>
+                  )}
                   {descuentoEfectivo > 0 && data?.bomba?.precio_full ? (
                     <span style={{ fontSize: 12, color: '#1a6b3c' }}>
                       Lista {fmt(data.bomba.precio_full)} → <strong>{fmt(Math.round(data.bomba.precio_full * (1 - descuentoEfectivo / 100)))}</strong>
