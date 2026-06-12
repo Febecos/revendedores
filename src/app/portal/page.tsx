@@ -487,7 +487,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
 }
 
 
-function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, revProvincia, revTipo, revToken, revEmail, revEmpresa, revDomicilio, revCuit, revLogo, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaLitrosHora = null, busquedaDiametro = null, distSensorInicial = 0, clienteInicial = null }: any) {
+function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCreado, revendedor, revProvincia, revTipo, revToken, revEmail, revEmpresa, revDomicilio, revCuit, revLogo, profundidadInicial = 0, busquedaMCA = null, busquedaLitros = null, busquedaLitrosHora = null, busquedaDiametro = null, distSensorInicial = 0, clienteInicial = null }: any) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [nroPresup, setNroPresup] = useState<string | null>(null)
@@ -693,6 +693,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
       // token aleatorio no adivinable para el link público (seguridad)
       tok = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2, 12))
       setPresupToken(tok)
+      onPresupCreado?.(codigo)
     }
     const precio = data?.bomba?.precio_full
       ? (mostrarPublico ? data.bomba.precio_full : precioMayorista(data.bomba.precio_full, descuento))
@@ -1554,6 +1555,7 @@ export default function Portal() {
   const [mostrarCalculadora, setMostrarCalculadora] = useState(false)
   const [modalCodigo, setModalCodigo] = useState<string | null>(null)
   const [bombaSel, setBombaSel] = useState<string | null>(null)
+  const [codigoCotizado, setCodigoCotizado] = useState<string | null>(null)
   const [profundidad, setProfundidad] = useState(0)
   const [distSensorMCA, setDistSensorMCA] = useState<number>(0) // distancia al sensor calculada por la MCA
   const [litrosHoraMCA, setLitrosHoraMCA] = useState<number | null>(null) // L/hora original si se ingresó en esa unidad
@@ -1912,6 +1914,7 @@ export default function Portal() {
           descuento={rev.descuento_pct}
           mostrarPublico={mostrarPublico}
           onClose={() => setModalCodigo(null)}
+          onPresupCreado={(c: string) => setCodigoCotizado(c)}
           revendedor={`${rev.nombre} ${rev.apellido}`}
           revProvincia={rev.provincia || ''}
           revTipo={rev.tipo_usuario || 'revendedor'}
@@ -2151,7 +2154,7 @@ export default function Portal() {
         {/* RESULTADO BÚSQUEDA */}
         {resultado && !buscando && (
           <div style={{ textAlign: 'right' as const, marginTop: -8, marginBottom: 8 }}>
-            <button onClick={() => { setResultado(null); setAltura(''); setLitros(''); setErrCalc(null); setBombaSel(null); document.getElementById('buscar-bomba-section')?.scrollIntoView({ behavior:'smooth', block:'start' }) }} style={{ padding:'7px 14px', background:'transparent', border:'1px solid #1e3248', borderRadius:8, color:'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+            <button onClick={() => { setResultado(null); setAltura(''); setLitros(''); setErrCalc(null); setBombaSel(null); setCodigoCotizado(null); document.getElementById('buscar-bomba-section')?.scrollIntoView({ behavior:'smooth', block:'start' }) }} style={{ padding:'7px 14px', background:'transparent', border:'1px solid #1e3248', borderRadius:8, color:'#7a9ab5', fontSize:12, fontWeight:600, cursor:'pointer' }}>
               🔄 Volver a calcular
             </button>
           </div>
@@ -2192,11 +2195,11 @@ export default function Portal() {
               )
             })()}
             <div style={s.cardTitle}>{resultado.es_fallback ? '📋 Opción más cercana disponible' : '✅ Bombas disponibles — seleccioná la que mejor se adapta'}</div>
-            <BombaCard bomba={resultado.sugerencia} caudal={resultado.caudal_a_altura} nota={resultado.nota} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === resultado.sugerencia?.codigo} token={token} puedeOnline={!!rev.puede_pedir_online} esDemo={diasDemo !== null} />
+            <BombaCard bomba={resultado.sugerencia} caudal={resultado.caudal_a_altura} nota={resultado.nota} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === resultado.sugerencia?.codigo} esCotizada={codigoCotizado === resultado.sugerencia?.codigo} token={token} puedeOnline={!!rev.puede_pedir_online} esDemo={diasDemo !== null} />
             {resultado.opciones && resultado.opciones.length > 1 && (
               <>
                 {resultado.opciones.slice(1).map((b: any, i: number) => (
-                  <BombaCard key={i} bomba={b} caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: b.caudal_promedio || Math.round((b.caudal_verano + b.caudal_invierno) / 2) }} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === b.codigo} token={token} puedeOnline={!!rev.puede_pedir_online} esDemo={diasDemo !== null} />
+                  <BombaCard key={i} bomba={b} caudal={{ verano: b.caudal_verano, invierno: b.caudal_invierno, promedio: b.caudal_promedio || Math.round((b.caudal_verano + b.caudal_invierno) / 2) }} descuento={rev.descuento_pct} mostrarPublico={mostrarPublico} precioMostrar={precioMostrar} wa={rev} litros={Number(litros)} altura={Number(altura)} onVerDetalle={setModalCodigo} onSeleccionar={seleccionar} seleccionada={bombaSel === b.codigo} esCotizada={codigoCotizado === b.codigo} token={token} puedeOnline={!!rev.puede_pedir_online} esDemo={diasDemo !== null} />
                 ))}
               </>
             )}
@@ -2309,7 +2312,7 @@ export default function Portal() {
   )
 }
 
-function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostrar, wa, litros, altura, onVerDetalle, onSeleccionar, seleccionada = false, token, puedeOnline = false, esDemo = false }: any) {
+function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostrar, wa, litros, altura, onVerDetalle, onSeleccionar, seleccionada = false, esCotizada = false, token, puedeOnline = false, esDemo = false }: any) {
   const [mostrarROI, setMostrarROI] = useState(false)
   const [provincia, setProvincia] = useState('')
   const [sistemaActual, setSistemaActual] = useState('')
@@ -2399,10 +2402,15 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
   )
 
   return (
-    <div style={{ ...s.bombaCard, padding: '20px', border: seleccionada ? '2px solid #e8681a' : '1px solid #1e3248', position: 'relative' as const }}>
+    <div style={{ ...s.bombaCard, padding: '20px', border: seleccionada ? '2px solid #e8681a' : esCotizada ? '2px solid #3b82f6' : '1px solid #1e3248', position: 'relative' as const }}>
       {seleccionada && (
         <div style={{ position:'absolute' as const, top:12, right:12, background:'#e8681a', color:'#fff', borderRadius:6, padding:'3px 10px', fontSize:11, fontWeight:700 }}>
           ✓ Seleccionado
+        </div>
+      )}
+      {!seleccionada && esCotizada && (
+        <div style={{ position:'absolute' as const, top:12, right:12, background:'#1d4ed8', color:'#bfdbfe', borderRadius:6, padding:'3px 10px', fontSize:11, fontWeight:700 }}>
+          📄 Ya cotizado
         </div>
       )}
       {/* Info básica siempre visible */}
