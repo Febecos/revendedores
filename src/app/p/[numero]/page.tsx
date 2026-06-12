@@ -117,7 +117,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   async function guardarCliente() {
     setGuardandoCli(true)
     try {
-      await fetch('/api/presupuestos', {
+      const r = await fetch('/api/presupuestos', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -131,6 +131,11 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
           cliente_cuit: cliCuit || null,
         }),
       })
+      const data = await r.json()
+      if (!r.ok || !data.ok) {
+        alert(`Error al guardar cliente: ${data.error || 'Error desconocido'}\n\nToken: ${params.numero}`)
+        return
+      }
       setPresupData((prev: any) => ({
         ...prev,
         cliente_nombre: cliNombre || null,

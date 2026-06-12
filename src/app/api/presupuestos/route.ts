@@ -97,7 +97,7 @@ export async function PATCH(req: NextRequest) {
     await ensureTable(sql)
 
     const key = public_token ? sql`public_token = ${public_token}` : sql`numero = ${numero}`
-    await sql`
+    const updated = await sql`
       UPDATE presupuestos SET
         descuento_pct        = COALESCE(${descuento_pct ?? null}, descuento_pct),
         precio_ofrecido      = COALESCE(${precio_ofrecido ?? null}, precio_ofrecido),
@@ -111,8 +111,13 @@ export async function PATCH(req: NextRequest) {
         cliente_razon_social = COALESCE(${cliente_razon_social ?? null}, cliente_razon_social),
         cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit)
       WHERE ${key}
+      RETURNING id, numero, cliente_nombre, cliente_apellido
     `
-    return NextResponse.json({ ok: true })
+    if (!updated.length) {
+      console.error('PATCH /api/presupuestos: no rows matched', { public_token, numero })
+      return NextResponse.json({ ok: false, error: 'Presupuesto no encontrado', rows_updated: 0 }, { status: 404 })
+    }
+    return NextResponse.json({ ok: true, rows_updated: updated.length, presupuesto: updated[0] })
   } catch (err: any) {
     console.error('PATCH /api/presupuestos error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
