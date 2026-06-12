@@ -734,7 +734,11 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
         const esSensorPdf  = item.unidad === 'metro' && (item.nombre||'').toLowerCase().includes('sensor')
         // Si fuera de rango → no incluir cable sensor (se cotiza aparte)
         if (sensorFueraRango && esSensorPdf) continue
-        const cant = esPozosProfundo && (esCableLargo || isSogaPdf)
+        // Panel: usar cant_paneles del objeto bomba (la DB del kit a veces devuelve 1)
+        const esPanel = (item.familia || '').toLowerCase() === 'panel'
+        const cant = esPanel && data?.bomba?.cant_paneles
+          ? data.bomba.cant_paneles
+          : esPozosProfundo && (esCableLargo || isSogaPdf)
           ? Math.max(item.cantidad, metrosTotal)
           : !sensorFueraRango && esSensorPdf && distanciaTablero != null && distanciaTablero > item.cantidad
             ? distanciaTablero

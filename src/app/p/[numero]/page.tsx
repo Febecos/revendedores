@@ -266,7 +266,11 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
     const esCableLargo = item.unidad === 'metro' && (item.nombre || '').toLowerCase().includes('sumergible')
     const esSensorPdf = item.unidad === 'metro' && (item.nombre || '').toLowerCase().includes('sensor')
     if (sensorFueraRango && esSensorPdf) continue
-    const cant = esPozosProfundo && (esCableLargo || isSogaPdf)
+    // Panel: usar cant_paneles del objeto bomba (la DB del kit a veces devuelve 1)
+    const esPanel = (item.familia || '').toLowerCase() === 'panel'
+    const cant = esPanel && bomba?.cant_paneles
+      ? bomba.cant_paneles
+      : esPozosProfundo && (esCableLargo || isSogaPdf)
       ? Math.max(item.cantidad, metrosTotal)
       : !sensorFueraRango && esSensorPdf && distanciaTablero != null && distanciaTablero > item.cantidad
         ? distanciaTablero
