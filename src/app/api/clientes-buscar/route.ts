@@ -12,13 +12,14 @@ export async function GET(req: NextRequest) {
     const term = `%${q}%`
     const rows = await sql`
       SELECT DISTINCT ON (coalesce(nullif(cliente_telefono,''), cliente_nombre || cliente_apellido))
-        cliente_nombre      AS nombre,
-        cliente_apellido    AS apellido,
-        cliente_telefono    AS telefono,
-        cliente_email       AS email,
-        cliente_zona        AS zona,
+        cliente_nombre       AS nombre,
+        cliente_apellido     AS apellido,
+        cliente_telefono     AS telefono,
+        cliente_email        AS email,
+        cliente_zona         AS zona,
         cliente_razon_social AS razon_social,
-        cliente_cuit        AS cuit
+        cliente_cuit         AS cuit,
+        descuento_pct        AS descuento
       FROM presupuestos
       WHERE
         cliente_nombre IS NOT NULL

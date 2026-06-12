@@ -531,6 +531,12 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
       if (r.ok) {
         const d = await r.json()
         if (d.razonSocial && !clienteRazonSocial) setClienteRazonSocial(d.razonSocial)
+        // Si ARCA devuelve nombre/apellido (persona física) y los campos están vacíos, completar
+        if (d.tipo === 'FISICA') {
+          const partes = (d.razonSocial || '').split(',').map((s: string) => s.trim())
+          if (partes[0] && !clienteApellido) setClienteApellido(partes[0])
+          if (partes[1] && !clienteNombre) setClienteNombre(partes[1])
+        }
       }
     } catch { /* silencioso */ }
     setClienteCuitLoading(false)
@@ -554,6 +560,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     setClienteZona(c.zona || '')
     setClienteRazonSocial(c.razon_social || '')
     setClienteCuit(c.cuit || '')
+    if (c.descuento != null && Number(c.descuento) > 0) setDescuentoEfectivo(Number(c.descuento))
     setBusquedaCliente('')
     setSugerenciasCliente([])
     setSugerenciaIdx(-1)
