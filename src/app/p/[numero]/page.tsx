@@ -221,8 +221,15 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
     setGuardando(true)
     const calc = calcularPrecios(descuentoEdit)
     if (!calc) { setGuardando(false); return }
+    // Datos actualizados — sirven tanto para el PATCH como para re-render del PDF
+    const pModificado = {
+      ...presupData,
+      descuento_pct: descuentoEdit || null,
+      precio_ofrecido: calc.nuevoPrecio,
+      precio_publico: calc.precioListaBase,
+    }
     try {
-      await fetch('/api/presupuestos', {
+      const r = await fetch('/api/presupuestos', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -233,12 +240,14 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
           tipo_precio: descuentoEdit > 0 ? 'mayorista' : 'publico',
         }),
       })
-      setPresupData((prev: any) => ({
-        ...prev,
-        descuento_pct: descuentoEdit || null,
-        precio_ofrecido: calc.nuevoPrecio,
-        precio_publico: calc.precioListaBase,
-      }))
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok || !data.ok) {
+        alert(`Error al guardar descuento: ${data.error || 'Error desconocido'}`)
+        return
+      }
+      setPresupData(pModificado)
+      // Rebuild del PDF para que refleje el nuevo descuento sin tener que apretar "Aplicar"
+      setHtml(construirPDF(pModificado, bombaData, kitData, curvasData))
       setGuardadoOk(true)
       setTimeout(() => setGuardadoOk(false), 3000)
     } finally {
