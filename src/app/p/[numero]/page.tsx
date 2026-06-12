@@ -48,23 +48,47 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
       .catch(() => { setError(true); setLoading(false) })
   }, [params.numero])
 
-  // Calcula el precio base y el nuevo precio con el descuento editado.
-  // Si precio_publico no está en DB, lo infiere desde precio_ofrecido + descuento original.
+  // Recalcula extras de instalación igual que construirPDF
+  function calcExtrasKit(descNuevo: number) {
+    const profInput: number = presupData?.profundidad_m ? Number(presupData.profundidad_m) : 0
+    const distanciaTablero: number | null = presupData?.longitud_total_m != null ? Number(presupData.longitud_total_m) : null
+    const factorDesc = descNuevo === 0 ? 1 : (1 - descNuevo / 100)
+    const esPozosProfundo = profInput > 30 && (bombaData?.tipo || '').toLowerCase().includes('sumergi')
+    const cabItem = kitData.find((i: any) => i.familia === 'cable' && (i.nombre || '').toLowerCase().includes('sumergible'))
+    const sogaItem = kitData.find((i: any) => (i.nombre || '').toLowerCase().includes('soga') || (i.nombre || '').toLowerCase().includes('anti-uv'))
+    const sensorItem = kitData.find((i: any) => i.familia === 'cable' && (i.nombre || '').toLowerCase().includes('sensor'))
+    const precioCableM = cabItem?.precio_ars ?? 7699.45
+    const precioSogaM = sogaItem?.precio_ars ?? 1809.59
+    const precioSensorM = sensorItem?.precio_ars ?? 1736.96
+    const metrosBaseCable = cabItem?.cantidad ?? 30
+    const metrosBaseSoga = sogaItem?.cantidad ?? 30
+    const metrosBaseSensor = sensorItem?.cantidad ?? 20
+    const metrosNecesarios = esPozosProfundo ? Math.ceil((profInput + 10) / 10) * 10 : 0
+    const metrosExtraCable = esPozosProfundo ? Math.max(0, metrosNecesarios - metrosBaseCable) : 0
+    const metrosExtraSoga = esPozosProfundo ? Math.max(0, metrosNecesarios - metrosBaseSoga) : 0
+    const sensorFueraRango = distanciaTablero != null && distanciaTablero > SENSOR_MAX_M
+    const metrosExtraSensor = (!sensorFueraRango && distanciaTablero != null) ? Math.max(0, distanciaTablero - metrosBaseSensor) : 0
+    return Math.round(precioCableM * metrosExtraCable * factorDesc)
+         + Math.round(precioSogaM  * metrosExtraSoga  * factorDesc)
+         + Math.round(precioSensorM * metrosExtraSensor * factorDesc)
+  }
+
+  // Calcula el precio lista (sin descuento, con extras) y el precio con el nuevo descuento.
   function calcularPrecios(descNuevo: number) {
     const descOriginal = presupData?.descuento_pct ? Number(presupData.descuento_pct) : 0
-    const precioOfrecido = presupData?.precio_ofrecido != null ? Number(presupData.precio_ofrecido) : null
     const precioPublicoDB = presupData?.precio_publico != null ? Number(presupData.precio_publico) : null
-    // precioPDFActual = mismo origen que construirPDF (precio_ofrecido tiene prioridad)
-    const precioPDFActual = precioOfrecido ?? precioPublicoDB
-    // Precio de lista: si hay descuento original, back-calcular; sino el precio guardado ya ES el público
-    const precioLista = descOriginal > 0
-      ? (precioPublicoDB ?? (precioPDFActual != null ? Math.round(precioPDFActual / (1 - descOriginal / 100)) : null))
-      : precioPDFActual
-    if (!precioLista) return null
-    // Extras = diferencia entre lo almacenado y el precio puro con descuento original
-    const precioBaseConDesc = Math.round(precioLista * (1 - descOriginal / 100))
-    const extras = (precioPDFActual ?? precioLista) - precioBaseConDesc
-    const nuevoPrecio = Math.round(precioLista * (1 - descNuevo / 100)) + extras
+    const precioOfrecido  = presupData?.precio_ofrecido != null ? Number(presupData.precio_ofrecido) : null
+    // Precio de lista (bomba pura, sin extras y sin descuento)
+    const precioListaBase = precioPublicoDB
+      ?? (precioOfrecido != null && descOriginal > 0
+            ? Math.round(precioOfrecido / (1 - descOriginal / 100))
+            : precioOfrecido)
+    if (!precioListaBase) return null
+    // Recalcular extras usando datos del kit — igual que construirPDF
+    const extrasLista = calcExtrasKit(0)
+    const precioLista = precioListaBase + extrasLista
+    const extrasNuevo = calcExtrasKit(descNuevo)
+    const nuevoPrecio = Math.round(precioListaBase * (1 - descNuevo / 100)) + extrasNuevo
     return { precioLista, nuevoPrecio }
   }
 
