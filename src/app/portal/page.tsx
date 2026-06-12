@@ -520,6 +520,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
   const [busquedaCliente, setBusquedaCliente] = useState('')
   const [sugerenciasCliente, setSugerenciasCliente] = useState<any[]>([])
   const [buscandoCliente, setBuscandoCliente] = useState(false)
+  const [sugerenciaIdx, setSugerenciaIdx] = useState(-1)
 
   async function buscarCuit(raw: string) {
     const cuit = raw.replace(/[-\s]/g, '')
@@ -555,6 +556,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, revendedor, 
     setClienteCuit(c.cuit || '')
     setBusquedaCliente('')
     setSugerenciasCliente([])
+    setSugerenciaIdx(-1)
   }
 
   async function obtenerNroPresupuesto(): Promise<string> {
@@ -1120,7 +1122,14 @@ ${curvasHtml ? `
                 <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>🔍 Buscar cliente existente</div>
                 <input
                   value={busquedaCliente}
-                  onChange={e => { setBusquedaCliente(e.target.value); buscarClienteDB(e.target.value) }}
+                  onChange={e => { setBusquedaCliente(e.target.value); setSugerenciaIdx(-1); buscarClienteDB(e.target.value) }}
+                  onKeyDown={e => {
+                    if (!sugerenciasCliente.length) return
+                    if (e.key === 'ArrowDown') { e.preventDefault(); setSugerenciaIdx(i => Math.min(i + 1, sugerenciasCliente.length - 1)) }
+                    else if (e.key === 'ArrowUp') { e.preventDefault(); setSugerenciaIdx(i => Math.max(i - 1, 0)) }
+                    else if (e.key === 'Enter' && sugerenciaIdx >= 0) { e.preventDefault(); seleccionarCliente(sugerenciasCliente[sugerenciaIdx]) }
+                    else if (e.key === 'Escape') { setSugerenciasCliente([]); setSugerenciaIdx(-1) }
+                  }}
                   placeholder="Nombre, apellido o razón social…"
                   style={{ width: '100%', background: '#0d2a1a', border: '1px solid #25d366', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }}
                 />
@@ -1129,9 +1138,9 @@ ${curvasHtml ? `
                   <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#0d1a2a', border: '1px solid #25d366', borderRadius: 8, zIndex: 100, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,.5)' }}>
                     {sugerenciasCliente.map((c, i) => (
                       <div key={i} onClick={() => seleccionarCliente(c)}
-                        style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: i < sugerenciasCliente.length - 1 ? '1px solid #1e3248' : 'none' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#132233')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: i < sugerenciasCliente.length - 1 ? '1px solid #1e3248' : 'none', background: i === sugerenciaIdx ? '#1e3a28' : 'transparent' }}
+                        onMouseEnter={() => setSugerenciaIdx(i)}
+                        onMouseLeave={() => setSugerenciaIdx(-1)}
                       >
                         <div style={{ fontWeight: 700, color: '#e8f0f8', fontSize: 13 }}>{c.nombre} {c.apellido}</div>
                         <div style={{ fontSize: 11, color: '#7a9ab5', marginTop: 2 }}>
