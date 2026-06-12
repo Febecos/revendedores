@@ -1976,6 +1976,7 @@ export default function Portal() {
                 const precio = c.precio_ofrecido ?? c.precio_publico
                 const cli = [c.cliente_nombre, c.cliente_apellido].filter(Boolean).join(' ') || c.cliente_razon_social || 'Sin cliente'
                 const link = c.public_token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/p/${c.public_token}` : null
+                const linkRev = link ? `${link}?rev=${token || ''}` : null
                 return (
                   <div key={c.id} style={{ background: '#132233', border: '1px solid #1e3248', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
@@ -1988,7 +1989,7 @@ export default function Portal() {
                     <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' as const }}>
                       {link ? (
                         <>
-                          <a href={link} target="_blank" rel="noopener" style={{ flex: 1, minWidth: 120, textAlign: 'center' as const, padding: '8px 10px', background: '#1e3248', border: '1px solid #2a4a6a', borderRadius: 8, color: '#e8f0f8', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>🔗 Abrir / Ver</a>
+                          <a href={linkRev || link} target="_blank" rel="noopener" style={{ flex: 1, minWidth: 120, textAlign: 'center' as const, padding: '8px 10px', background: '#1e3248', border: '1px solid #2a4a6a', borderRadius: 8, color: '#e8f0f8', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>🔗 Abrir / Ver</a>
                           <button onClick={() => { navigator.clipboard?.writeText(link); }} style={{ padding: '8px 12px', background: 'rgba(37,211,102,0.12)', border: '1px solid #25d366', borderRadius: 8, color: '#25d366', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>📋 Copiar link</button>
                           <a href={`https://wa.me/?text=${encodeURIComponent(`Presupuesto Febecos N° ${c.numero}${precio != null ? ` — $${Math.round(precio).toLocaleString('es-AR')}` : ''}\n${link}`)}`} target="_blank" rel="noopener" style={{ padding: '8px 12px', background: 'rgba(37,211,102,0.12)', border: '1px solid #25d366', borderRadius: 8, color: '#25d366', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>💬 WhatsApp</a>
                         </>
