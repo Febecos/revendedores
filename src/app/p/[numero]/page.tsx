@@ -263,6 +263,8 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const precioLista = calcPreview?.precioLista ?? null
   // Mostrar barra de edición solo si el parámetro ?rev coincide con el token del revendedor
   const esRevendedor = !!searchParams.get('rev') && searchParams.get('rev') === presupData?.revendedor_token
+  // El buscador de clientes existentes es exclusivo de vendedores internos
+  const esVendedorInterno = esRevendedor && presupData?.rev_tipo === 'interno'
 
   return (
     <>
@@ -313,7 +315,8 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
         )}
         {esRevendedor && showClienteEdit && (
           <div className="no-print" style={{ maxWidth: 760, margin: '-8px auto 16px', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 10, padding: '16px' }}>
-            {/* Buscador de cliente existente */}
+            {/* Buscador de cliente existente — SOLO vendedores internos */}
+            {esVendedorInterno && (
             <div style={{ position: 'relative', marginBottom: 14 }}>
               <div style={{ fontSize: 10, color: '#25d366', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' as const }}>🔍 Buscar cliente existente</div>
               <input
@@ -344,6 +347,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
                 </div>
               )}
             </div>
+            )}
             {/* Campos manuales */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
               {([['Nombre', cliNombre, setCliNombre], ['Apellido', cliApellido, setCliApellido], ['Teléfono / WhatsApp', cliTelefono, setCliTelefono], ['Email', cliEmail, setCliEmail], ['Zona / Provincia', cliZona, setCliZona]] as [string, string, (v: string) => void][]).map(([label, val, setter]) => (
