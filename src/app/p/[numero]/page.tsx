@@ -432,6 +432,9 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
   const metrosExtraSoga = esPozosProfundo ? Math.max(0, metrosTotal - metrosBaseSoga) : 0
   const extraCable = Math.round(precioCableM * metrosExtraCable * factorDesc)
   const extraSoga = Math.round(precioSogaM * metrosExtraSoga * factorDesc)
+  // Extras a precio público (para mostrar "Precio de lista" completo)
+  const extraCablePub = Math.round(precioCableM * metrosExtraCable)
+  const extraSogaPub = Math.round(precioSogaM * metrosExtraSoga)
 
   const sensorItem = kit.find((i: any) => i.familia === 'cable' && (i.nombre || '').toLowerCase().includes('sensor'))
   const metrosBaseSensor = sensorItem?.cantidad ?? 20
@@ -439,6 +442,9 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
   const sensorFueraRango = distanciaTablero != null && distanciaTablero > SENSOR_MAX_M
   const metrosExtraSensor = (!sensorFueraRango && distanciaTablero != null) ? Math.max(0, distanciaTablero - metrosBaseSensor) : 0
   const extraSensor = Math.round(precioSensorM * metrosExtraSensor * factorDesc)
+  const extraSensorPub = Math.round(precioSensorM * metrosExtraSensor)
+  const precioListaConExtras = (bomba?.precio_full ? Number(bomba.precio_full) : (p.precio_publico ? Number(p.precio_publico) : null))
+  const precioListaTotal = precioListaConExtras != null ? precioListaConExtras + extraCablePub + extraSogaPub + extraSensorPub : null
 
   // ── Kit (idéntico a generarPDF) ──────────────────────────────────────────
   const kitOrdenado: { nombre: string; notas: string; cantidad: number; unidad: string; _f: number }[] = []
@@ -584,7 +590,7 @@ ${precioPDF ? `<div class="precio-box">
     <div class="precio-label">${mostrarPublico ? 'Precio público' : `Precio especial (${descuento}% descuento)`}</div>
     <div class="precio-val">${fmt(precioPDF)}</div>
   </div>
-  ${!mostrarPublico && bomba?.precio_full ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(bomba.precio_full)}</div>` : ''}
+  ${!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : ''}
 </div>
 ${desgloseHtml}` : ''}
 ${(esPozosProfundo || extraSensor > 0) ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px">

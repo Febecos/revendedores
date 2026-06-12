@@ -834,7 +834,7 @@ ${precioPDF ? `<div class="precio-box">
     <div class="precio-label">${mostrarPublico ? 'Precio público' : `Precio especial (${descuento}% descuento)`}</div>
     <div class="precio-val">${fmt(precioPDF)}</div>
   </div>
-  ${!mostrarPublico && data?.bomba?.precio_full ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(data.bomba.precio_full)}</div>` : ''}
+  ${!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : ''}
 </div>
 ${(() => {
   // Mostrar desglose IVA cuando hay descuento aplicado O cliente con CUIT
@@ -1040,6 +1040,11 @@ ${curvasHtml ? `
 
   const extrasTotal  = extraCable + extraSoga + extraSensor
   const precioConExtras = precio != null ? precio + extrasTotal : null
+  // Extras a precio público (sin descuento) para mostrar "Precio de lista" correcto
+  const extrasListaPublico = Math.round(precioCableM * metrosExtraCable)
+    + Math.round(precioSogaM * metrosExtraSoga)
+    + Math.round(precioSensorM * metrosExtraSensor)
+  const precioListaTotal = data?.bomba?.precio_full ? data.bomba.precio_full + extrasListaPublico : null
 
   // Helpers para identificar items especiales en el kit
   const esMC4 = (n: string) => /\bmc4\b|ficha mc/i.test(n || '')
