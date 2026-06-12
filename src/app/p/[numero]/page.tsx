@@ -54,15 +54,16 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
     const descOriginal = presupData?.descuento_pct ? Number(presupData.descuento_pct) : 0
     const precioOfrecido = presupData?.precio_ofrecido != null ? Number(presupData.precio_ofrecido) : null
     const precioPublicoDB = presupData?.precio_publico != null ? Number(presupData.precio_publico) : null
-    // Precio de lista: usar precio_publico si existe, sino back-calcular desde precio_ofrecido
-    const precioLista = precioPublicoDB
-      ?? (precioOfrecido != null && descOriginal > 0
-          ? Math.round(precioOfrecido / (1 - descOriginal / 100))
-          : precioOfrecido)
+    // precioPDFActual = mismo origen que construirPDF (precio_ofrecido tiene prioridad)
+    const precioPDFActual = precioOfrecido ?? precioPublicoDB
+    // Precio de lista: si hay descuento original, back-calcular; sino el precio guardado ya ES el público
+    const precioLista = descOriginal > 0
+      ? (precioPublicoDB ?? (precioPDFActual != null ? Math.round(precioPDFActual / (1 - descOriginal / 100)) : null))
+      : precioPDFActual
     if (!precioLista) return null
     // Extras = diferencia entre lo almacenado y el precio puro con descuento original
     const precioBaseConDesc = Math.round(precioLista * (1 - descOriginal / 100))
-    const extras = (precioOfrecido ?? precioLista) - precioBaseConDesc
+    const extras = (precioPDFActual ?? precioLista) - precioBaseConDesc
     const nuevoPrecio = Math.round(precioLista * (1 - descNuevo / 100)) + extras
     return { precioLista, nuevoPrecio }
   }
