@@ -521,6 +521,9 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   const [clienteCuitLoading, setClienteCuitLoading] = useState(false)
   const [clienteReady, setClienteReady] = useState(!!(clienteInicial?.nombre || clienteInicial?.razonSocial))
   const [descuentoEfectivo, setDescuentoEfectivo] = useState<number>(descuento)
+  // Aviso del guardado de cliente al CRM (demo sin token / token inactivo / rate-limit).
+  // El presupuesto se genera igual; esto solo informa por qué no se guardó el cliente.
+  const [avisoCliente, setAvisoCliente] = useState<{ tipo: 'demo' | 'inactivo' | 'rate'; txt: string } | null>(null)
   // Solo el vendedor interno de Febecos puede poner un descuento a mano. El
   // revendedor externo tiene su descuento FIJO: lo define la solapa
   // (Mayorista = su % asignado, Precio público = 0). No lo puede editar.
@@ -653,7 +656,22 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
           revendedor_token: revToken || null,
           revendedor_nombre: revendedor || null,
         }),
-      }).catch(() => {})
+      })
+        .then(async (res) => {
+          if (res.ok) { setAvisoCliente(null); return } // 200: cliente guardado
+          const d = await res.json().catch(() => ({} as any))
+          if (res.status === 403 && d?.error === 'token requerido') {
+            // Demo (no tiene token activo) → invitarlo a registrarse, no es un error.
+            setAvisoCliente({ tipo: 'demo', txt: 'Para guardar tus clientes y llevar tu cartera, registrate como revendedor.' })
+          } else if (res.status === 403) {
+            // token inválido → cuenta desactivada/suspendida.
+            setAvisoCliente({ tipo: 'inactivo', txt: 'Tu acceso está inactivo. Escribinos para reactivar tu cuenta y guardar clientes.' })
+          } else if (res.status === 429) {
+            setAvisoCliente({ tipo: 'rate', txt: 'Esperá un momento e intentá de nuevo.' })
+          }
+          // Otros errores: silencioso (el presupuesto ya se generó igual).
+        })
+        .catch(() => { /* el fallo del guardado NO frena la generación del presupuesto */ })
     }
   }
 
@@ -1115,6 +1133,19 @@ ${curvasHtml ? `
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      {/* Aviso del guardado de cliente (demo / token inactivo / rate-limit) — el presupuesto se generó igual */}
+      {avisoCliente && (
+        <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 1200, maxWidth: 440, width: 'calc(100% - 32px)', background: '#13233a', border: '1px solid #2a4a6a', borderRadius: 12, padding: '12px 14px', boxShadow: '0 8px 30px rgba(0,0,0,.5)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <span style={{ fontSize: 18, lineHeight: '20px' }}>{avisoCliente.tipo === 'rate' ? '⏳' : '📋'}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, color: '#e8f0f8', fontWeight: 600, lineHeight: 1.35 }}>{avisoCliente.txt}</div>
+            {avisoCliente.tipo === 'demo' && (
+              <a href="/unirse" style={{ display: 'inline-block', marginTop: 8, padding: '7px 14px', background: '#e8681a', color: '#fff', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Registrarme</a>
+            )}
+          </div>
+          <button onClick={() => setAvisoCliente(null)} style={{ background: 'transparent', border: 'none', color: '#7a9ab5', cursor: 'pointer', fontSize: 16, lineHeight: '16px', padding: 0 }}>×</button>
+        </div>
+      )}
       <div style={{ background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '92vh', overflowY: 'auto' }}>
 
         {/* Header */}
