@@ -104,12 +104,10 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
       const r = await fetch(`/api/cuit-lookup?cuit=${cuit}`)
       if (r.ok) {
         const d = await r.json()
+        // Campo único de nombre: denominacion = nombre completo / razón social.
+        if (d.denominacion && !cliNombre) setCliNombre(d.denominacion)
         if (d.razonSocial && !cliRazonSocial) setCliRazonSocial(d.razonSocial)
-        if (d.tipo === 'FISICA') {
-          const partes = (d.razonSocial || '').split(',').map((s: string) => s.trim())
-          if (partes[0] && !cliApellido) setCliApellido(partes[0])
-          if (partes[1] && !cliNombre) setCliNombre(partes[1])
-        }
+        if (d.provincia && !cliZona) setCliZona(d.provincia)
       }
     } catch { /* silencioso */ }
     setCuitLoading(false)

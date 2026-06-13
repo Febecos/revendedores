@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// GET /api/cuit-lookup?cuit=XXXXXXXXXXX
+// Consulta el padrón ARCA/AFIP reutilizando el endpoint del selector
+// (action=consultar_cuit), que usa credenciales reales (cert/key) y SÍ funciona.
+// El endpoint público directo de AFIP (sr-padron/v2) quedó muerto (404).
 export async function GET(req: NextRequest) {
   const cuit = req.nextUrl.searchParams.get('cuit')?.replace(/[-\s]/g, '')
   if (!cuit || !/^\d{11}$/.test(cuit)) {
@@ -7,22 +11,24 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(`https://soa.afip.gob.ar/sr-padron/v2/persona/${cuit}`, {
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(5000),
+    const r = await fetch(`https://febecos.com/api/admin?action=consultar_cuit&cuit=${cuit}`, {
+      signal: AbortSignal.timeout(9000),
     })
-    if (!res.ok) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
-
-    const data = await res.json()
-    const p = data?.data
-    if (!p) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
-
-    const razonSocial: string =
-      p.razonSocial ||
-      [p.apellido, p.nombre].filter(Boolean).join(', ') ||
-      ''
-
-    return NextResponse.json({ razonSocial, tipo: p.tipoPersona || null })
+    const d = await r.json().catch(() => ({} as any))
+    if (!r.ok || d?.ok === false || (!d?.denominacion && !d?.razonSocial)) {
+      return NextResponse.json({ error: d?.error || 'No encontrado' }, { status: 404 })
+    }
+    const dom = d.domicilio || {}
+    return NextResponse.json({
+      denominacion: d.denominacion || null,   // nombre completo o razón social
+      razonSocial: d.razonSocial || null,     // empresa (null si persona física)
+      tipoPersona: d.tipoPersona || null,
+      tipo: d.tipoPersona || null,            // compat con el front anterior
+      provincia: dom.provincia || null,
+      localidad: dom.localidad || null,
+      domicilio: dom.direccion || null,
+      codPostal: dom.codPostal || null,
+    })
   } catch {
     return NextResponse.json({ error: 'Error consultando ARCA' }, { status: 500 })
   }

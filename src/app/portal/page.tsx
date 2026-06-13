@@ -541,20 +541,37 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   const [sugerenciaIdx, setSugerenciaIdx] = useState(-1)
 
   async function buscarCuit(raw: string) {
-    const cuit = raw.replace(/[-\s]/g, '')
+    const cuit = raw.replace(/\D/g, '')
     if (cuit.length !== 11) return
     setClienteCuitLoading(true)
     try {
+      // 1) CRM primero — SOLO vendedores internos (no exponer clientes de otros revendedores).
+      if (esVendInterno) {
+        try {
+          const rc = await fetch(`/api/clientes-buscar?q=${cuit}`)
+          if (rc.ok) {
+            const dc = await rc.json()
+            const m = (dc.clientes || []).find((c: any) => String(c.cuit || '').replace(/\D/g, '') === cuit)
+            if (m) {
+              const full = [m.nombre, m.apellido].filter(Boolean).join(' ')
+              if (full && !clienteNombre) setClienteNombre(full)
+              if (m.razon_social && !clienteRazonSocial) setClienteRazonSocial(m.razon_social)
+              if (m.telefono && !clienteTelefono) setClienteTelefono(m.telefono)
+              if (m.email && !clienteEmail) setClienteEmail(m.email)
+              if (m.zona && !clienteZona) setClienteZona(m.zona)
+              setClienteCuitLoading(false)
+              return // encontrado en CRM, no consultar ARCA
+            }
+          }
+        } catch { /* si falla el CRM, seguimos a ARCA */ }
+      }
+      // 2) ARCA (padrón) — vía /api/cuit-lookup (proxy al endpoint del selector que funciona).
       const r = await fetch(`/api/cuit-lookup?cuit=${cuit}`)
       if (r.ok) {
         const d = await r.json()
+        if (d.denominacion && !clienteNombre) setClienteNombre(d.denominacion)
         if (d.razonSocial && !clienteRazonSocial) setClienteRazonSocial(d.razonSocial)
-        // Si ARCA devuelve nombre/apellido (persona física) y los campos están vacíos, completar
-        if (d.tipo === 'FISICA') {
-          const partes = (d.razonSocial || '').split(',').map((s: string) => s.trim())
-          if (partes[0] && !clienteApellido) setClienteApellido(partes[0])
-          if (partes[1] && !clienteNombre) setClienteNombre(partes[1])
-        }
+        if (d.provincia && !clienteZona) setClienteZona(d.provincia)
       }
     } catch { /* silencioso */ }
     setClienteCuitLoading(false)
