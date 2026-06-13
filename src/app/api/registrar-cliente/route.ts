@@ -1,22 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getDb } from '@/lib/db'
+import { antiSpam } from '@/lib/anti-spam'
 
 // POST /api/registrar-cliente
 // Proxy SERVER-SIDE hacia el CRM central de Febecos (upsert_cliente).
 // Necesario porque el endpoint del CRM exige INTERNAL_SERVICE_SECRET, que NO
 // puede mandarse desde el navegador (es env de servidor, se expondría al cliente).
 //
-// Atribución: cuando el presupuesto lo genera un revendedor externo, el cliente
-// se registra MARCADO como "cliente_revendedor" + el token/nombre del revendedor,
-// para detectar si ese cliente luego contacta a Febecos directo y decidir si se
-// deriva al mismo revendedor o lo seguimos nosotros.
+// SEGURIDAD: endpoint público (lo llama el portal sin sesión). Por eso:
+//  - rate-limit por IP (anti-spam) para que no se inyecten clientes en masa.
+//  - la atribución de revendedor NO se confía del body: se valida el
+//    revendedor_token contra solicitudes_revendedor (existe + token activo) y el
+//    tipo se DERIVA de la DB (no de b.rev_tipo, que es falsificable). Si el token
+//    no es válido, el cliente se registra igual pero SIN atribución.
 export async function POST(req: NextRequest) {
   try {
-    const b = await req.json()
+    const b = await req.json().catch(() => ({}))
 
-    // Si viene atribución de revendedor (y NO es vendedor interno de Febecos),
-    // marcamos el cliente con el token/nombre del revendedor (columnas dedicadas).
-    // NO tocamos `tipo` para no pisar clientes que ya son directos de Febecos.
-    const esInterno = b.rev_tipo === 'interno'
+    // Rate-limit por IP (mismo patrón que /api/registro y /api/demo).
+    const limite = antiSpam(req, { email: b.email })
+    if (limite) return limite
+
+    // Validar la atribución contra la DB. NO confiar en b.rev_tipo (spoofable).
+    let revToken: string | null = null
+    let revNombre: string | null = null
+    let revTipo: string | null = null
+    if (b.revendedor_token) {
+      try {
+        const sql = getDb()
+        const rows = await sql`
+          SELECT tipo_usuario, nombre, apellido
+          FROM solicitudes_revendedor
+          WHERE token_acceso = ${b.revendedor_token} AND token_acceso_activo = true
+          LIMIT 1`
+        const rev = rows[0]
+        if (rev) {
+          revTipo = rev.tipo_usuario || null
+          // Solo se atribuye si es un revendedor EXTERNO válido. Los internos de
+          // Febecos no marcan atribución (sus clientes son nuestros).
+          if (rev.tipo_usuario !== 'interno') {
+            revToken = b.revendedor_token
+            revNombre = [rev.nombre, rev.apellido].filter(Boolean).join(' ') || b.revendedor_nombre || null
+          }
+        }
+        // Si rev es null → token inválido/inactivo → se registra SIN atribución.
+      } catch (e: any) {
+        // Fallo de DB: registrar sin atribución (no bloquear el alta del cliente).
+        console.error('registrar-cliente: validación de token falló', e?.message)
+      }
+    }
 
     const payload = {
       tipo: b.tipo || 'cliente_final',
@@ -31,9 +63,10 @@ export async function POST(req: NextRequest) {
       origen: b.origen || 'presupuesto_bombas',
       bump: b.bump || 'presupuesto',
       monto: b.monto || 0,
-      // Atribución del revendedor (el CRM la guarda solo si no es interno)
-      revendedor_token: (!esInterno && b.revendedor_token) ? b.revendedor_token : null,
-      revendedor_nombre: (!esInterno && b.revendedor_nombre) ? b.revendedor_nombre : null,
+      // Atribución YA validada contra la DB (null si el token no era válido o es interno)
+      rev_tipo: revTipo,
+      revendedor_token: revToken,
+      revendedor_nombre: revNombre,
     }
 
     const r = await fetch('https://febecos.com/api/admin?action=upsert_cliente', {
