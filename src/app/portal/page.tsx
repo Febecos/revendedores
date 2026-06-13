@@ -567,8 +567,9 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   }
 
   function seleccionarCliente(c: any) {
-    setClienteNombre(c.nombre || '')
-    setClienteApellido(c.apellido || '')
+    // Campo único: fusiona nombre + apellido (si la fuente los trajera separados).
+    setClienteNombre([c.nombre, c.apellido].filter(Boolean).join(' '))
+    setClienteApellido('')
     setClienteTelefono(c.telefono || '')
     setClienteEmail(c.email || '')
     setClienteZona(c.zona || '')
@@ -1226,16 +1227,10 @@ ${curvasHtml ? `
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginBottom: 12 }}>
-              {/* Nombre */}
-              <div>
-                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Nombre *</div>
-                <input autoFocus value={clienteNombre} onChange={e => setClienteNombre(e.target.value)} placeholder="Juan"
-                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
-              </div>
-              {/* Apellido */}
-              <div>
-                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Apellido *</div>
-                <input value={clienteApellido} onChange={e => setClienteApellido(e.target.value)} placeholder="Pérez"
+              {/* Nombre y apellido — un solo campo (igual que el CRM / Febo Rev) */}
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Nombre y apellido / Razón social *</div>
+                <input autoFocus value={clienteNombre} onChange={e => setClienteNombre(e.target.value)} placeholder="Juan Pérez"
                   style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
               {/* Teléfono */}
@@ -1309,8 +1304,8 @@ ${curvasHtml ? `
                   setShowClienteForm(false)
                   generarPDF(cd)
                 }}
-                disabled={!clienteNombre.trim() || !clienteApellido.trim() || !clienteTelefono.trim()}
-                style={{ flex: 1, padding: '10px', background: (!clienteNombre.trim() || !clienteApellido.trim() || !clienteTelefono.trim()) ? '#1e3248' : '#e8681a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: (!clienteNombre.trim() || !clienteApellido.trim() || !clienteTelefono.trim()) ? 'not-allowed' : 'pointer' }}
+                disabled={!clienteNombre.trim() || !clienteTelefono.trim()}
+                style={{ flex: 1, padding: '10px', background: (!clienteNombre.trim() || !clienteTelefono.trim()) ? '#1e3248' : '#e8681a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: (!clienteNombre.trim() || !clienteTelefono.trim()) ? 'not-allowed' : 'pointer' }}
               >
                 📄 Confirmar y generar PDF
               </button>

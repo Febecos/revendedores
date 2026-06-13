@@ -55,8 +55,9 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
         }
         if (p?.numero) document.title = p.numero
         setPresupData(p)
-        setCliNombre(p.cliente_nombre || '')
-        setCliApellido(p.cliente_apellido || '')
+        // Campo único: fusiona nombre + apellido de presupuestos viejos.
+        setCliNombre([p.cliente_nombre, p.cliente_apellido].filter(Boolean).join(' '))
+        setCliApellido('')
         setCliTelefono(p.cliente_telefono || '')
         setCliEmail(p.cliente_email || '')
         setCliZona(p.cliente_zona || '')
@@ -83,8 +84,8 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   }
 
   function seleccionarCliente(c: any) {
-    setCliNombre(c.nombre || '')
-    setCliApellido(c.apellido || '')
+    setCliNombre([c.nombre, c.apellido].filter(Boolean).join(' '))
+    setCliApellido('')
     setCliTelefono(c.telefono || '')
     setCliEmail(c.email || '')
     setCliZona(c.zona || '')
@@ -356,7 +357,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
             )}
             {/* Campos manuales */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              {([['Nombre', cliNombre, setCliNombre], ['Apellido', cliApellido, setCliApellido], ['Teléfono / WhatsApp', cliTelefono, setCliTelefono], ['Email', cliEmail, setCliEmail], ['Zona / Provincia', cliZona, setCliZona]] as [string, string, (v: string) => void][]).map(([label, val, setter]) => (
+              {([['Nombre y apellido / Razón social', cliNombre, setCliNombre], ['Teléfono / WhatsApp', cliTelefono, setCliTelefono], ['Email', cliEmail, setCliEmail], ['Zona / Provincia', cliZona, setCliZona]] as [string, string, (v: string) => void][]).map(([label, val, setter]) => (
                 <div key={label}>
                   <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>{label}</div>
                   <input value={val} onChange={e => setter(e.target.value)}
