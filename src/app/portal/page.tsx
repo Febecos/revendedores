@@ -529,7 +529,11 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   // (Mayorista = su % asignado, Precio público = 0). No lo puede editar.
   const esVendInterno = revTipo === 'interno'
   useEffect(() => {
-    if (!esVendInterno) setDescuentoEfectivo(mostrarPublico ? 0 : descuento)
+    // "Precio público" = SIN descuento, para TODOS (interno y externo).
+    if (mostrarPublico) { setDescuentoEfectivo(0); return }
+    // "Mayorista": arranca en el % del revendedor. El interno lo puede editar a
+    // mano (el efecto no se re-dispara al tipear); el externo lo tiene fijo.
+    setDescuentoEfectivo(descuento)
   }, [mostrarPublico, descuento, esVendInterno])
   const [busquedaCliente, setBusquedaCliente] = useState('')
   const [sugerenciasCliente, setSugerenciasCliente] = useState<any[]>([])
