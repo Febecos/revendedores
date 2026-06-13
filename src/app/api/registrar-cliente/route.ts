@@ -9,10 +9,12 @@ import { antiSpam } from '@/lib/anti-spam'
 //
 // SEGURIDAD: endpoint público (lo llama el portal sin sesión). Por eso:
 //  - rate-limit por IP (anti-spam) para que no se inyecten clientes en masa.
-//  - la atribución de revendedor NO se confía del body: se valida el
-//    revendedor_token contra solicitudes_revendedor (existe + token activo) y el
-//    tipo se DERIVA de la DB (no de b.rev_tipo, que es falsificable). Si el token
-//    no es válido, el cliente se registra igual pero SIN atribución.
+//  - REQUIERE un revendedor_token VÁLIDO y activo para escribir: sin token
+//    válido NO se escribe nada (403). Esto evita que un externo inyecte
+//    clientes o falsifique atribución.
+//  - el tipo de revendedor se DERIVA de la DB (no de b.rev_tipo, falsificable).
+//    Externo válido → atribución; interno → sin atribución (sus clientes son
+//    de Febecos), pero igual escribe.
 export async function POST(req: NextRequest) {
   try {
     const b = await req.json().catch(() => ({}))
@@ -21,34 +23,37 @@ export async function POST(req: NextRequest) {
     const limite = antiSpam(req, { email: b.email })
     if (limite) return limite
 
-    // Validar la atribución contra la DB. NO confiar en b.rev_tipo (spoofable).
-    let revToken: string | null = null
-    let revNombre: string | null = null
-    let revTipo: string | null = null
-    if (b.revendedor_token) {
-      try {
-        const sql = getDb()
-        const rows = await sql`
-          SELECT tipo_usuario, nombre, apellido
-          FROM solicitudes_revendedor
-          WHERE token_acceso = ${b.revendedor_token} AND token_acceso_activo = true
-          LIMIT 1`
-        const rev = rows[0]
-        if (rev) {
-          revTipo = rev.tipo_usuario || null
-          // Solo se atribuye si es un revendedor EXTERNO válido. Los internos de
-          // Febecos no marcan atribución (sus clientes son nuestros).
-          if (rev.tipo_usuario !== 'interno') {
-            revToken = b.revendedor_token
-            revNombre = [rev.nombre, rev.apellido].filter(Boolean).join(' ') || b.revendedor_nombre || null
-          }
-        }
-        // Si rev es null → token inválido/inactivo → se registra SIN atribución.
-      } catch (e: any) {
-        // Fallo de DB: registrar sin atribución (no bloquear el alta del cliente).
-        console.error('registrar-cliente: validación de token falló', e?.message)
-      }
+    // Token de revendedor OBLIGATORIO para escribir al CRM.
+    const token = b.revendedor_token
+    if (!token) {
+      return NextResponse.json({ ok: false, error: 'token requerido' }, { status: 403 })
     }
+    // Validar contra la DB: el token debe existir y estar activo.
+    let rev: any = null
+    try {
+      const sql = getDb()
+      const rows = await sql`
+        SELECT tipo_usuario, nombre, apellido
+        FROM solicitudes_revendedor
+        WHERE token_acceso = ${token} AND token_acceso_activo = true
+        LIMIT 1`
+      rev = rows[0] || null
+    } catch (e: any) {
+      // Fallo de validación → NO escribir (fail-closed). El backfill recupera
+      // después los clientes desde la tabla presupuestos si hiciera falta.
+      console.error('registrar-cliente: validación de token falló', e?.message)
+      return NextResponse.json({ ok: false, error: 'error de validación' }, { status: 503 })
+    }
+    if (!rev) {
+      return NextResponse.json({ ok: false, error: 'token inválido' }, { status: 403 })
+    }
+    // Atribución derivada de la DB. Interno → sin atribución (pero igual escribe).
+    const esInterno = rev.tipo_usuario === 'interno'
+    const revTipo: string | null = rev.tipo_usuario || null
+    const revToken: string | null = esInterno ? null : token
+    const revNombre: string | null = esInterno
+      ? null
+      : [rev.nombre, rev.apellido].filter(Boolean).join(' ') || b.revendedor_nombre || null
 
     const payload = {
       tipo: b.tipo || 'cliente_final',
@@ -63,7 +68,8 @@ export async function POST(req: NextRequest) {
       origen: b.origen || 'presupuesto_bombas',
       bump: b.bump || 'presupuesto',
       monto: b.monto || 0,
-      // Atribución YA validada contra la DB (null si el token no era válido o es interno)
+      // Atribución validada contra la DB (null solo si el revendedor es interno;
+      // los tokens inválidos ya fueron rechazados con 403 más arriba)
       rev_tipo: revTipo,
       revendedor_token: revToken,
       revendedor_nombre: revNombre,
