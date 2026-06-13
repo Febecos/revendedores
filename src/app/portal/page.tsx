@@ -24,6 +24,10 @@ interface BombaCatalogo {
   cuota_mensual: number | null
 }
 
+// Dominio NEUTRO para los links que ve el cliente final (oculta "revendedores").
+// Configurable por env; default coti.febecos.com (apunta al mismo proyecto Vercel).
+const PUBLIC_BASE = process.env.NEXT_PUBLIC_PUBLIC_URL || 'https://coti.febecos.com'
+
 function precioMayorista(precio: number, descuento: number) {
   return Math.round(precio * (1 - descuento / 100))
 }
@@ -1527,7 +1531,7 @@ ${curvasHtml ? `
               <button onClick={() => {
                 const nombre = pdfCliente?.nombre ? ` para ${pdfCliente.nombre}${pdfCliente.apellido ? ' '+pdfCliente.apellido : ''}` : ''
                 const precio = pdfPrecio ? ` — Precio: $${Math.round(pdfPrecio).toLocaleString('es-AR')}` : ''
-                const link = `${window.location.origin}/p/${pdfToken || pdfNro}`
+                const link = `${PUBLIC_BASE}/p/${pdfToken || pdfNro}`
                 const msg = `Hola! Te comparto el presupuesto de bomba solar Febecos${nombre}${precio}.\n\nMirá el detalle completo y descargá el PDF acá:\n${link}\n\nPresupuesto N° ${pdfNro} — Febecos Bombeo Solar.`
                 window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
               }} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#0a2a1a', border:'1px solid #25d366', borderRadius:10, color:'#25d366', fontSize:14, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
@@ -1538,7 +1542,7 @@ ${curvasHtml ? `
                 <button onClick={async () => {
                   const nombre = pdfCliente?.nombre ? ` para ${pdfCliente.nombre}` : ''
                   const precio = pdfPrecio ? ` · $${Math.round(pdfPrecio).toLocaleString('es-AR')}` : ''
-                  const link = `${window.location.origin}/p/${pdfToken || pdfNro}`
+                  const link = `${PUBLIC_BASE}/p/${pdfToken || pdfNro}`
                   try { await navigator.share({ title: `Presupuesto Febecos ${pdfNro}`, text: `Presupuesto de bomba solar Febecos${nombre}${precio} — N° ${pdfNro}`, url: link }) } catch(_) {}
                 }} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#1e3248', border:'1px solid #2a4a6a', borderRadius:10, color:'#e8f0f8', fontSize:14, fontWeight:600, cursor:'pointer', textAlign:'left' as const }}>
                   <span style={{ fontSize:22 }}>📤</span>
@@ -1998,7 +2002,7 @@ export default function Portal() {
                 const fecha = c.created_at ? new Date(c.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''
                 const precio = c.precio_ofrecido ?? c.precio_publico
                 const cli = [c.cliente_nombre, c.cliente_apellido].filter(Boolean).join(' ') || c.cliente_razon_social || 'Sin cliente'
-                const link = c.public_token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/p/${c.public_token}` : null
+                const link = c.public_token ? `${PUBLIC_BASE}/p/${c.public_token}` : null
                 const linkRev = link ? `${link}?rev=${token || ''}` : null
                 return (
                   <div key={c.id} style={{ background: '#132233', border: '1px solid #1e3248', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
