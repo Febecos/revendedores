@@ -139,7 +139,7 @@ export async function PATCH(req: NextRequest) {
             cliente_razon_social = COALESCE(${cliente_razon_social ?? null}, cliente_razon_social),
             cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit)
           WHERE public_token = ${public_token}
-          RETURNING id, numero, cliente_nombre, cliente_apellido
+          RETURNING id, numero, cliente_id, cliente_nombre, cliente_apellido
         `
       : await sql`
           UPDATE presupuestos SET
@@ -155,11 +155,15 @@ export async function PATCH(req: NextRequest) {
             cliente_razon_social = COALESCE(${cliente_razon_social ?? null}, cliente_razon_social),
             cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit)
           WHERE numero = ${numero}
-          RETURNING id, numero, cliente_nombre, cliente_apellido
+          RETURNING id, numero, cliente_id, cliente_nombre, cliente_apellido
         `
     if (!updated.length) {
       console.error('PATCH /api/presupuestos: no rows matched', { public_token, numero })
       return NextResponse.json({ ok: false, error: 'Presupuesto no encontrado', rows_updated: 0 }, { status: 404 })
+    }
+    // Bidireccional: si se cambió el descuento, propagarlo al cliente del CRM (predeterminado).
+    if (descuento_pct != null && updated[0].cliente_id) {
+      await sql`UPDATE clientes SET descuento_pct = ${descuento_pct}, updated_at = now() WHERE id = ${updated[0].cliente_id}`.catch(() => {})
     }
     return NextResponse.json({ ok: true, rows_updated: updated.length, presupuesto: updated[0] })
   } catch (err: any) {
