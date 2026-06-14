@@ -48,16 +48,25 @@ export async function POST(req: NextRequest) {
     }
 
     const sql = getDb()
+
+    // Número de pedido correlativo ÚNICO (compartido bombas + FV) desde pedidos_counter.
+    await sql`CREATE TABLE IF NOT EXISTS pedidos_counter (clave TEXT PRIMARY KEY, ultimo_numero INT NOT NULL DEFAULT 0)`
+    await sql`INSERT INTO pedidos_counter (clave, ultimo_numero) VALUES ('PED', 0) ON CONFLICT (clave) DO NOTHING`
+    const numRow = await sql`UPDATE pedidos_counter SET ultimo_numero = ultimo_numero + 1 WHERE clave='PED' RETURNING ultimo_numero`
+    const numero = 'PED-' + String(numRow[0].ultimo_numero).padStart(4, '0')
+
     // revendedor_id es UUID en la tabla pero el portal usa INTEGER — omitir para evitar type error
     // revendedor_token es suficiente para identificar al revendedor
     const rows = await sql`
       INSERT INTO pedidos (
+        numero,
         revendedor_nombre, revendedor_email, revendedor_token,
         bomba_codigo, bomba_descripcion, litros_dia, altura_m,
         precio_publico, precio_final, descuento_pct,
         tipo_comprador, metodo_pago, notas_cliente,
         estado
       ) VALUES (
+        ${numero},
         ${revendedor_nombre || null},
         ${revendedor_email || null},
         ${revendedor_token || null},
