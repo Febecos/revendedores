@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const digits = q.replace(/\D/g, '')
 
     const clientes = await sql`
-      SELECT nombre, apellido, whatsapp AS telefono, email,
+      SELECT id, nombre, apellido, whatsapp AS telefono, email,
              provincia AS zona, razon_social, cuit, COALESCE(descuento_pct, 0) AS descuento
       FROM clientes
       WHERE (crm_eliminado IS NULL OR crm_eliminado = false)

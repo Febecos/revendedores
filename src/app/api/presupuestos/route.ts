@@ -33,6 +33,7 @@ async function ensureTable(sql: any) {
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_cuit TEXT`
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_email TEXT`
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS public_token TEXT`
+  await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_id INT`
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS profundidad_m NUMERIC`
   await sql`CREATE INDEX IF NOT EXISTS idx_presupuestos_token ON presupuestos(public_token)`
 }
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       litros_dia, altura_m, longitud_total_m, profundidad_m,
       tipo_precio, precio_publico, precio_ofrecido, descuento_pct,
       cliente_nombre, cliente_apellido, cliente_telefono, cliente_email, cliente_zona,
-      cliente_razon_social, cliente_cuit, public_token,
+      cliente_razon_social, cliente_cuit, cliente_id, public_token,
     } = body
 
     if (!numero) return NextResponse.json({ error: 'numero requerido' }, { status: 400 })
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
         litros_dia, altura_m, longitud_total_m, profundidad_m,
         tipo_precio, precio_publico, precio_ofrecido, descuento_pct,
         cliente_nombre, cliente_apellido, cliente_telefono, cliente_email, cliente_zona,
-        cliente_razon_social, cliente_cuit, public_token
+        cliente_razon_social, cliente_cuit, cliente_id, public_token
       ) VALUES (
         ${numero},
         ${revendedor_token || null}, ${revendedor_nombre || null}, ${revendedor_email || null},
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
         ${precio_publico || null}, ${precio_ofrecido || null}, ${descuento_pct || null},
         ${cliente_nombre || null}, ${cliente_apellido || null},
         ${cliente_telefono || null}, ${cliente_email || null}, ${cliente_zona || null},
-        ${cliente_razon_social || null}, ${cliente_cuit || null}, ${public_token || null}
+        ${cliente_razon_social || null}, ${cliente_cuit || null}, ${cliente_id || null}, ${public_token || null}
       )
       RETURNING id, numero, created_at
     `
@@ -114,7 +115,7 @@ export async function PATCH(req: NextRequest) {
     const {
       public_token, numero, descuento_pct, precio_ofrecido, precio_publico, tipo_precio,
       cliente_nombre, cliente_apellido, cliente_telefono, cliente_email,
-      cliente_zona, cliente_razon_social, cliente_cuit,
+      cliente_zona, cliente_razon_social, cliente_cuit, cliente_id,
     } = await req.json()
     if (!public_token && !numero) return NextResponse.json({ error: 'public_token o numero requerido' }, { status: 400 })
 
@@ -137,7 +138,8 @@ export async function PATCH(req: NextRequest) {
             cliente_email        = COALESCE(${cliente_email ?? null}, cliente_email),
             cliente_zona         = COALESCE(${cliente_zona ?? null}, cliente_zona),
             cliente_razon_social = COALESCE(${cliente_razon_social ?? null}, cliente_razon_social),
-            cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit)
+            cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit),
+            cliente_id           = COALESCE(${cliente_id ?? null}, cliente_id)
           WHERE public_token = ${public_token}
           RETURNING id, numero, cliente_id, cliente_nombre, cliente_apellido
         `
@@ -153,7 +155,8 @@ export async function PATCH(req: NextRequest) {
             cliente_email        = COALESCE(${cliente_email ?? null}, cliente_email),
             cliente_zona         = COALESCE(${cliente_zona ?? null}, cliente_zona),
             cliente_razon_social = COALESCE(${cliente_razon_social ?? null}, cliente_razon_social),
-            cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit)
+            cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit),
+            cliente_id           = COALESCE(${cliente_id ?? null}, cliente_id)
           WHERE numero = ${numero}
           RETURNING id, numero, cliente_id, cliente_nombre, cliente_apellido
         `

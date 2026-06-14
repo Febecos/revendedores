@@ -518,6 +518,9 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   const [clienteZona, setClienteZona] = useState(clienteInicial?.zona || '')
   const [clienteRazonSocial, setClienteRazonSocial] = useState(clienteInicial?.razonSocial || '')
   const [clienteCuit, setClienteCuit] = useState(clienteInicial?.cuit || '')
+  // ID del cliente del CRM cuando se eligió del buscador → relación EXACTA (sirve incluso
+  // para "Consumidor Final" sin cuit/teléfono). Si se tipea a mano, queda null.
+  const [clienteId, setClienteId] = useState<number | null>(clienteInicial?.id || null)
   const [clienteCuitLoading, setClienteCuitLoading] = useState(false)
   const [clienteReady, setClienteReady] = useState(!!(clienteInicial?.nombre || clienteInicial?.razonSocial))
   const [descuentoEfectivo, setDescuentoEfectivo] = useState<number>(descuento)
@@ -596,6 +599,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
     setClienteZona(c.zona || '')
     setClienteRazonSocial(c.razon_social || '')
     setClienteCuit(c.cuit || '')
+    setClienteId(c.id || null)
     if (c.descuento != null && Number(c.descuento) > 0) setDescuentoEfectivo(Number(c.descuento))
     setBusquedaCliente('')
     setSugerenciasCliente([])
@@ -652,6 +656,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
         cliente_zona: tieneCliente ? cdData?.zona : null,
         cliente_razon_social: cdData?.razonSocial || null,
         cliente_cuit: cdData?.cuit || null,
+        cliente_id: (cdData as any)?.id ?? clienteId ?? null,
         public_token: publicToken || null,
       }),
     }).catch(() => { /* silencioso */ })
@@ -721,6 +726,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
         cliente_zona: cdData?.zona || null,
         cliente_razon_social: cdData?.razonSocial || null,
         cliente_cuit: cdData?.cuit || null,
+        cliente_id: (cdData as any)?.id ?? clienteId ?? null,
       }),
     }).catch(() => {})
   }
