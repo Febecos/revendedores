@@ -353,9 +353,16 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
               )}
             </div>
             )}
-            {/* Campos manuales */}
+            {/* Nombre: SOLO LECTURA — la identidad del cliente vive en el CRM (fuente única) */}
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>Nombre / Razón social · no editable</div>
+              <input value={cliNombre} readOnly disabled
+                style={{ width: '100%', background: '#0d1722', border: '1px solid #2a4a6a', borderRadius: 6, padding: '7px 10px', color: '#8aa', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const, cursor: 'not-allowed' }} />
+              <div style={{ fontSize: 10, color: '#7a9ab5', marginTop: 3 }}>{esVendedorInterno ? 'Para cambiar de cliente, buscá uno existente arriba. El nombre se corrige en Clientes (gestión).' : 'El nombre lo gestiona Febecos.'}</div>
+            </div>
+            {/* Campos manuales (sin el nombre) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              {([['Nombre y apellido / Razón social', cliNombre, setCliNombre], ['Teléfono / WhatsApp', cliTelefono, setCliTelefono], ['Email', cliEmail, setCliEmail], ['Zona / Provincia', cliZona, setCliZona]] as [string, string, (v: string) => void][]).map(([label, val, setter]) => (
+              {([['Teléfono / WhatsApp', cliTelefono, setCliTelefono], ['Email', cliEmail, setCliEmail], ['Zona / Provincia', cliZona, setCliZona]] as [string, string, (v: string) => void][]).map(([label, val, setter]) => (
                 <div key={label}>
                   <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>{label}</div>
                   <input value={val} onChange={e => setter(e.target.value)}
@@ -370,9 +377,9 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
               </div>
             </div>
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>Razón social (empresa)</div>
-              <input value={cliRazonSocial} onChange={e => setCliRazonSocial(e.target.value)}
-                style={{ width: '100%', background: '#132233', border: '1px solid #2a4a6a', borderRadius: 6, padding: '7px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>Razón social (empresa) · no editable</div>
+              <input value={cliRazonSocial} readOnly disabled
+                style={{ width: '100%', background: '#0d1722', border: '1px solid #2a4a6a', borderRadius: 6, padding: '7px 10px', color: '#8aa', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const, cursor: 'not-allowed' }} />
             </div>
             <button onClick={guardarCliente} disabled={guardandoCli} style={{ padding: '8px 20px', background: '#e8681a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               {guardandoCli ? 'Guardando…' : '💾 Guardar cliente'}
