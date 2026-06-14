@@ -77,6 +77,31 @@ export async function POST(req: NextRequest) {
       RETURNING id, numero, created_at
     `
 
+    // CRM: registrar/actualizar el cliente automáticamente (dedup en upsert_cliente).
+    // Fire & forget — garantiza que TODO presupuesto de bombas tenga su cliente en el CRM.
+    // La atribución revendedor (interno/externo) la maneja el portal vía /api/registrar-cliente;
+    // acá NO atribuimos para no falsear (solo aseguramos la existencia del cliente).
+    if (cliente_nombre || cliente_email || cliente_telefono || cliente_cuit) {
+      fetch('https://febecos.com/api/admin?action=upsert_cliente', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.INTERNAL_SERVICE_SECRET || ''}`,
+        },
+        body: JSON.stringify({
+          tipo: 'cliente_final',
+          nombre: [cliente_nombre, cliente_apellido].filter(Boolean).join(' ') || null,
+          email: cliente_email || null,
+          whatsapp: cliente_telefono || null,
+          cuit: cliente_cuit || null,
+          razon_social: cliente_razon_social || null,
+          provincia: cliente_zona || null,
+          origen: 'cotizador_bombas',
+          bump: 'presupuesto',
+        }),
+      }).catch(() => {})
+    }
+
     return NextResponse.json({ ok: true, presupuesto: rows[0] })
   } catch (err: any) {
     console.error('POST /api/presupuestos error:', err)
