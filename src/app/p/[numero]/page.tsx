@@ -264,6 +264,10 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const esRevendedor = !!searchParams.get('rev') && searchParams.get('rev') === presupData?.revendedor_token
   // El buscador de clientes existentes es exclusivo de vendedores internos
   const esVendedorInterno = esRevendedor && presupData?.rev_tipo === 'interno'
+  // Al EDITAR un presupuesto ya creado NO se editan datos del cliente desde coti:
+  // la identidad del cliente se gestiona en el CRM (gestión) y se propaga. Acá, solo descuento.
+  // (El buscar/cargar cliente vive en el COTIZADOR al crear, no en esta vista de edición.)
+  const editarClienteEnCoti = false
 
   return (
     <>
@@ -313,12 +317,14 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
                 </button>
               </>
             )}
+            {editarClienteEnCoti && (
             <button onClick={() => setShowClienteEdit(v => !v)} style={{ padding: '6px 14px', background: guardadoCliOk ? '#1a6b3c' : '#1e3a5a', border: '1px solid #2a5a7a', borderRadius: 7, color: guardadoCliOk ? '#4ade80' : '#e8f0f8', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
               {guardadoCliOk ? '✓ Cliente guardado' : '👤 Editar cliente'}
             </button>
+            )}
           </div>
         )}
-        {esRevendedor && showClienteEdit && (
+        {editarClienteEnCoti && esRevendedor && showClienteEdit && (
           <div className="no-print" style={{ maxWidth: 760, margin: '-8px auto 16px', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 10, padding: '16px' }}>
             {/* Buscador de cliente existente — SOLO vendedores internos */}
             {esVendedorInterno && (
