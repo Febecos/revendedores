@@ -1815,6 +1815,12 @@ export default function Portal() {
       const data = await res.json()
       if (!data?.ok || !data.revendedor) { setError('token_invalido'); return }
       setRev(data.revendedor)
+      // Reset de PIN ordenado por el admin (one-shot): borrar el PIN viejo de este
+      // dispositivo y la sesión, para que el rev configure uno nuevo al entrar.
+      if (data.revendedor.pin_reset) {
+        localStorage.removeItem(llavePIN(t))
+        sessionStorage.removeItem(llaveSession(t))
+      }
       // Si tiene skip_pin o ya verificó en esta sesión → entrar directo
       if (data.revendedor.skip_pin || sessionStorage.getItem(llaveSession(t))) {
         setPinEstado('ok'); return
