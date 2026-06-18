@@ -188,10 +188,11 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
   const [resAv, setResAv] = useState<any>(null)
 
   const altGeoSimple = tipo==='sumergible' ? nivDin+altDesc : tipo==='superficial' ? altAsp+altDesc : altRiego
-  // Conversión caudal a m³/h
+  // Conversión caudal a m³/h. SIEMPRE sobre las horas de sol de VERANO (5.5h),
+  // que es el escenario de bombeo que usamos (no 8h genéricas).
   const HSP_VERANO = 5.5  // horas solares pico de verano (mismo valor que usan las curvas de rendimiento)
   const litrosDia = caudalModo==='animales' ? animales*60 : (caudalUnidad==='ldia' ? caudalVal : Math.round(caudalVal * HSP_VERANO))
-  const caudalM3h = litrosDia/1000/8
+  const caudalM3h = litrosDia/1000/HSP_VERANO
   const presionM = presionKg * 10
 
   function guardar(mca: number, friccion: number, tipo: string, tramosCalc: any[]) {
@@ -238,7 +239,7 @@ function CalculadoraMCA({ onUsarMCA, token, revendedor }: { onUsarMCA: (mca: num
   function calcAvanzado() {
     const tramosCalc = tramos.map(t => {
       const ldia = (t.caudalModo||'litros')==='animales' ? (t.animales||50)*60 : (t.caudalUnidad==='lh' ? Math.round((t.caudalLdia||3000)*5.5) : (t.caudalLdia||3000))
-      const q = ldia/1000/8
+      const q = ldia/1000/HSP_VERANO  // m³/h sobre 5.5h de sol verano (no 8h)
       const r = calcTramo(t.longitud, t.diam, q, t.mat, t.accs||{})
       return { nombre: t.nombre, diam: t.diam, mat: t.mat, ...r }
     })
@@ -1730,7 +1731,7 @@ export default function Portal() {
           tipo_instalacion: 'busqueda_directa',
           mca_total: Number(altura) || null,
           litros_dia: Number(litros) || null,
-          caudal_m3h: Number(litros) ? Number(litros) / 1000 / 8 : null,
+          caudal_m3h: Number(litros) ? Number(litros) / 1000 / 5.5 : null,  // 5.5h sol verano (no 8h)
           diametro: diametro || null,
           bomba_sugerida: bomba.codigo,
           origen: 'portal_revendedor',
