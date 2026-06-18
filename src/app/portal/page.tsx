@@ -21,7 +21,17 @@ interface ResultadoBomba {
 interface BombaCatalogo {
   codigo: string; marca: string; watts: number; diam_bomba: string
   diam_perf: string; cant_paneles: number; stock: number; precio_full: number
-  cuota_mensual: number | null
+  cuota_mensual: number | null; energia?: string | null
+}
+
+// Detecta bomba híbrida. Prioriza el campo `energia` (Solar/Hibrida, dato real
+// del sheet); si no viene, cae al código — incluye -AC/DC (WEGA) que el regex
+// viejo no agarraba y dejaba esas híbridas como "solar".
+function esBombaHibrida(b: any): boolean {
+  const e = String(b?.energia || '').toLowerCase()
+  if (e.includes('hibrid') || e.includes('híbrid')) return true
+  if (e === 'solar') return false
+  return /A\/D|AC\/?DC|220v|hibrida|híbrida/i.test(String(b?.codigo || ''))
 }
 
 // Dominio NEUTRO para los links que ve el cliente final (oculta "revendedores").
@@ -1804,7 +1814,7 @@ export default function Portal() {
       tipo: 'sumergible',
       impulsor: '',
       voltaje: '',
-      energia: 'solar',
+      energia: b.energia || 'solar',   // energia real del sheet (para detectar híbrida)
     }
     setResultado({ sugerencia: bomba, caudal_a_altura: null, es_fallback: false, nota: 'Seleccionado desde catálogo', opciones: [] })
     setBombaSel(null)
@@ -1984,7 +1994,7 @@ export default function Portal() {
     .filter(b => filtroDiam === 'todos' ? true : String(b.diam_bomba) === filtroDiam)
     .filter(b => {
       if (filtroTipo === 'todos') return true
-      const esHibrida = /A\/D|220v|hibrida|híbrida/i.test(b.codigo)
+      const esHibrida = esBombaHibrida(b)
       return filtroTipo === 'hibrida' ? esHibrida : !esHibrida
     })
     .filter(b => {
@@ -2508,8 +2518,8 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
       )}
       {/* Info básica siempre visible */}
       <div style={s.bombaCodigo}>{bomba.codigo}</div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: /A\/D|220v|hibrida|híbrida/i.test(bomba.codigo) ? '#fbbf24' : '#4ade80', marginBottom: 4 }}>
-        {/A\/D|220v|hibrida|híbrida/i.test(bomba.codigo)
+      <div style={{ fontSize: 11, fontWeight: 600, color: esBombaHibrida(bomba) ? '#fbbf24' : '#4ade80', marginBottom: 4 }}>
+        {esBombaHibrida(bomba)
           ? '⚡🌞 Bomba híbrida — funciona con sol y/o con generador'
           : '☀️ Bomba solar'}
       </div>
