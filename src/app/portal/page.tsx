@@ -1798,6 +1798,8 @@ export default function Portal() {
       cant_paneles: b.cant_paneles,
       stock: b.stock,
       precio_full: b.precio_full,
+      cuota_mensual: b.cuota_mensual ?? null,        // valor NAVE sincronizado del sheet
+      precio_6cuotas: (b as any).precio_6cuotas ?? null,
       tipo: 'sumergible',
       impulsor: '',
       voltaje: '',
