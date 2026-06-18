@@ -2470,8 +2470,11 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
   }
 
   const precioMayoristaCalc = precioMayorista(precioPublico, descuento)
-  // Usar cuota_mensual de la DB (con interés NAVE), no dividir precio/6
-  const cuotaNave = bomba.cuota_mensual || Math.ceil(precioPublico / 6)
+  // Cuota y total NAVE: se toman TAL CUAL los sincroniza el sheet (cuota_mensual y
+  // precio_6cuotas). NO se calculan acá. Si el sheet no los trae, es un dato a
+  // completar en la planilla — no se inventa con precio/6.
+  const cuotaNave = bomba.cuota_mensual || null
+  const totalNave = bomba.precio_6cuotas || null
   // En modo mayorista, solo transferencia está disponible
   const effectivePagoTab = mostrarPublico ? pagoTab : 'transferencia'
 
@@ -2686,8 +2689,14 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
                   <div>
                     <div style={{ background:'rgba(74,222,128,0.07)', border:'1px solid rgba(74,222,128,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
                       <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Precio público — 6 cuotas con NAVE</div>
-                      <div style={{ fontSize:22, fontWeight:800, color:'#4ade80', fontFamily:'monospace' }}>{fmt(cuotaNave)}<span style={{ fontSize:13, fontWeight:400, color:'#7a9ab5' }}>/mes</span></div>
-                      <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>Total: {fmt(precioPublico)} en 6 cuotas</div>
+                      {cuotaNave ? (
+                        <>
+                          <div style={{ fontSize:22, fontWeight:800, color:'#4ade80', fontFamily:'monospace' }}>{fmt(cuotaNave)}<span style={{ fontSize:13, fontWeight:400, color:'#7a9ab5' }}>/mes</span></div>
+                          {totalNave && <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>Total: {fmt(totalNave)} en 6 cuotas</div>}
+                        </>
+                      ) : (
+                        <div style={{ fontSize:14, fontWeight:700, color:'#7a9ab5' }}>Consultá la cuota</div>
+                      )}
                     </div>
                     <div style={{ fontSize:11, color:'#e8681a', background:'rgba(232,104,26,0.08)', borderRadius:8, padding:'8px 12px', marginBottom:12, display:'flex', gap:8 }}>
                       <span>ℹ️</span>
