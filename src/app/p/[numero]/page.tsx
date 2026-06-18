@@ -275,12 +275,14 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
         ${PDF_CSS}
         @media print {
           .no-print { display: none !important; }
-          body { background: #fff !important; }
+          html, body { background: #fff !important; }
+          /* el wrapper oscuro provocaba bordes negros en el PDF: lo blanqueamos */
+          .pdf-page-wrap { background: #fff !important; padding: 0 !important; min-height: 0 !important; }
           .sheet { box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
         }
         @page { size: A4; margin: 12mm; }
       `}</style>
-      <div style={{ minHeight: '100vh', background: '#0d1a2a', padding: '24px 12px 60px' }}>
+      <div className="pdf-page-wrap" style={{ minHeight: '100vh', background: '#0d1a2a', padding: '24px 12px 60px' }}>
         <div className="no-print" style={{ maxWidth: 760, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <a href="https://www.febecos.com" style={{ color: '#7a9ab5', textDecoration: 'none', fontSize: 13 }}>← Febecos Bombeo Solar</a>
           <button onClick={() => window.print()} style={{ padding: '10px 18px', background: '#1a6b3c', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>📥 Descargar PDF</button>
@@ -657,7 +659,7 @@ ${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
   Válido por 48 horas desde la fecha de emisión. Sujeto a disponibilidad de stock.
 </div>
 
-${(busquedaMCA || busquedaLitros || profInput > 0) ? `
+${(busquedaMCA || busquedaLitros || profInput > 0 || curvasHtml) ? `
 <div style="page-break-before:always"></div>
 
 <div class="header">
@@ -670,6 +672,7 @@ ${(busquedaMCA || busquedaLitros || profInput > 0) ? `
   <div class="presup-num"><h2 style="font-size:13px">Análisis técnico — Pres. ${esc(nro)}</h2><p>Documento complementario</p></div>
 </div>
 
+${(busquedaMCA || busquedaLitros || profInput > 0) ? `
 <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#1a6b3c;border-bottom:2px solid #1a6b3c;padding-bottom:5px;margin:18px 0 12px">Necesidad relevada del sistema</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 20px;margin-bottom:16px">
   ${busquedaMCA ? `<div style="background:#f0f9f4;border-radius:8px;padding:10px 14px"><div style="font-size:9px;text-transform:uppercase;color:#4a7a5a;letter-spacing:.06em;margin-bottom:3px">Altura manométrica total</div><div style="font-size:20px;font-weight:800;color:#1a6b3c">${busquedaMCA.toFixed(1)} <span style="font-size:13px">MCA</span></div></div>` : ''}
@@ -689,6 +692,7 @@ ${(busquedaMCA || busquedaLitros || profInput > 0) ? `
   con <strong>${esc(paneles)} panel${(paneles || 1) > 1 ? 'es' : ''} solar${(paneles || 1) > 1 ? 'es' : ''} de ${esc(panelKit?.potencia_w || panelKit?.nombre?.match(/(\d+)\s*[Ww]/)?.[1] || bomba?.watts || '?')}W</strong>
   en condiciones de irradiación solar típicas de la región.
 </div>
+` : ''}
 
 ${curvasHtml ? `
 <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#1a6b3c;border-bottom:2px solid #1a6b3c;padding-bottom:5px;margin:18px 0 12px">Curva de rendimiento del equipo (L/día por altura)</h3>
@@ -703,7 +707,7 @@ ${curvasHtml ? `
   </tr></thead>
   <tbody>${curvasHtml}</tbody>
 </table>
-<div style="margin-top:8px;font-size:10px;color:#888">◄ Fila resaltada = altura más cercana a la profundidad del pozo (${profInput}m)</div>
+${profInput > 0 ? `<div style="margin-top:8px;font-size:10px;color:#888">◄ Fila resaltada = altura más cercana a la profundidad del pozo (${profInput}m)</div>` : ''}
 ` : ''}
 
 <div class="footer" style="margin-top:24px">
