@@ -53,7 +53,9 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
             if (r.ok) { const dd = await r.json(); bomba = dd.bomba; kit = dd.kit || []; curvas = dd.curvas || [] }
           } catch { /* sin datos extra */ }
         }
-        if (p?.numero) document.title = p.numero
+        // Nombre del archivo al guardar PDF = "Cliente - NÚMERO"
+        const _cli = (p?.cliente_razon_social || [p?.cliente_nombre, p?.cliente_apellido].filter(Boolean).join(' ') || '').trim()
+        if (p?.numero) document.title = (_cli ? _cli + ' - ' : '') + p.numero
         setPresupData(p)
         // Campo único: fusiona nombre + apellido de presupuestos viejos.
         setCliNombre([p.cliente_nombre, p.cliente_apellido].filter(Boolean).join(' '))
@@ -211,7 +213,8 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
       precio_ofrecido: calc.nuevoPrecio,
       precio_publico: calc.precioListaBase,
     }
-    document.title = presupData.numero
+    const _cli = (presupData.cliente_razon_social || [presupData.cliente_nombre, presupData.cliente_apellido].filter(Boolean).join(' ') || '').trim()
+    document.title = (_cli ? _cli + ' - ' : '') + presupData.numero
     setHtml(construirPDF(pModificado, bombaData, kitData, curvasData))
   }
 
@@ -448,6 +451,11 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
   }
   const tieneCliente = !!(cd.nombre || cd.apellido || cd.telefono || cd.razonSocial)
 
+  // Tipo de alimentación: híbrida (solar + red/generador) o solar puro.
+  // Prioriza el campo energia; cae al código (incluye -AC/DC de las WEGA).
+  const esHibridaPDF = /hibrid|híbrid/i.test(String(bomba?.energia || ''))
+    || /A\/D|AC\/?DC|220v|hibrida|híbrida/i.test(String(bomba?.codigo || p.bomba_codigo || ''))
+
   const profInput: number = p.profundidad_m ? Number(p.profundidad_m) : 0
   const distanciaTablero: number | null = p.longitud_total_m != null ? Number(p.longitud_total_m) : null
   const busquedaMCA: number | null = p.altura_m != null ? Number(p.altura_m) : null
@@ -613,6 +621,7 @@ ${tieneCliente ? `<div class="cliente-box">
   <div class="cliente-detalle">${cd.cuit ? `🏢 CUIT ${esc(cd.cuit)}&nbsp;&nbsp;·&nbsp;&nbsp;` : ''}${cd.telefono ? `📱 ${esc(cd.telefono)}` : ''}${cd.zona ? `&nbsp;&nbsp;·&nbsp;&nbsp;📍 ${esc(cd.zona)}` : ''}</div>
 </div>` : ''}
 <h3>Equipo de bombeo solar</h3>
+<div style="margin:-4px 0 10px"><span style="display:inline-block;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.03em;${esHibridaPDF ? 'background:#fff7ed;color:#b45309;border:1px solid #fdba74' : 'background:#f0f9f4;color:#1a6b3c;border:1px solid #b7e8c7'}">${esHibridaPDF ? '⚡🌞 BOMBA HÍBRIDA — Solar + Red/Generador *' : '☀️ BOMBA SOLAR *'}</span></div>
 <div class="specs-grid">
   <div class="spec"><span class="spec-label">Marca</span><span class="spec-val">${esc(bomba?.marca || p.bomba_marca || '—')}</span></div>
   <div class="spec"><span class="spec-label">Tipo</span><span class="spec-val">${esc(bomba?.impulsor || '—')}</span></div>
@@ -622,6 +631,11 @@ ${tieneCliente ? `<div class="cliente-box">
   <div class="spec"><span class="spec-label">Diám. bomba</span><span class="spec-val">${esc(bomba?.diam_bomba || '—')}"</span></div>
   <div class="spec"><span class="spec-label">Diám. perf. mín.</span><span class="spec-val">${esc(bomba?.diam_perf || '—')}</span></div>
   <div class="spec"><span class="spec-label">Disponibilidad</span><span class="spec-val ${stock != null && stock > 0 ? 'stock-ok' : 'stock-no'}">${stock != null && stock > 0 ? `✅ ${stock} en stock` : '⚠ Sin stock'}</span></div>
+</div>
+<div style="${esHibridaPDF ? 'background:#fff7ed;border:1px solid #fde0bf' : 'background:#f0f9f4;border:1px solid #cdeede'};border-radius:8px;padding:9px 14px;margin:6px 0 14px;font-size:10.5px;line-height:1.55;color:#444">
+  ${esHibridaPDF
+    ? `<strong>* Equipo HÍBRIDO:</strong> la bomba funciona con la energía de los paneles solares <strong>y/o</strong> con corriente alterna (red eléctrica o generador). Permite bombear con sol durante el día y, cuando haga falta —días nublados, de noche o ante mayor demanda— conectarla a un generador o a la red, asegurando el suministro de agua durante todo el año.`
+    : `<strong>* Equipo SOLAR:</strong> la bomba funciona exclusivamente con la energía de los paneles solares, durante las horas de sol. No requiere conexión a la red eléctrica ni a un generador.`}
 </div>
 ${precioPDF ? `<div class="precio-box">
   <div>
