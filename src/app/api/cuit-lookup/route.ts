@@ -28,6 +28,9 @@ export async function GET(req: NextRequest) {
       localidad: dom.localidad || null,
       domicilio: dom.direccion || null,
       codPostal: dom.codPostal || null,
+      // La constancia básica (A13) NO expone IVA/Monotributo → suele venir null.
+      // Se incluye por si el endpoint lo expone a futuro; si no, el vendedor la elige.
+      condicionFiscal: d.condicionFiscal || null,
     })
   } catch {
     return NextResponse.json({ error: 'Error consultando ARCA' }, { status: 500 })

@@ -64,7 +64,16 @@ export async function POST(req: NextRequest) {
       cuit: b.cuit || null,
       empresa: b.razonSocial || b.empresa || null,
       razon_social: b.razonSocial || b.razon_social || null,
+      // Domicilio fiscal SEPARADO (Gestión lo usa para AFIP). provincia = zona.
+      domicilio: b.domicilio || null,
+      localidad: b.localidad || null,
+      cod_postal: b.cod_postal || b.codPostal || null,
+      condicion_fiscal: b.condicion_fiscal || b.condicionFiscal || null,
       provincia: b.zona || b.provincia || null,
+      // Vínculo de contacto: cliente_id = actualizar ese contacto; forzar = crear contacto
+      // nuevo con CUIT repetido (confirmado por el vendedor). Sin esto, dedup por CUIT.
+      cliente_id: b.cliente_id || null,
+      forzar: b.forzar || false,
       origen: b.origen || 'presupuesto_bombas',
       bump: b.bump || 'presupuesto',
       monto: b.monto || 0,

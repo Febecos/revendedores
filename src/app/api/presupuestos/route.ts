@@ -35,6 +35,10 @@ async function ensureTable(sql: any) {
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS public_token TEXT`
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_id INT`
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS profundidad_m NUMERIC`
+  await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_domicilio TEXT`
+  await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_localidad TEXT`
+  await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_cod_postal TEXT`
+  await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_condicion_fiscal TEXT`
   await sql`CREATE INDEX IF NOT EXISTS idx_presupuestos_token ON presupuestos(public_token)`
 }
 
@@ -47,7 +51,8 @@ export async function POST(req: NextRequest) {
       litros_dia, altura_m, longitud_total_m, profundidad_m,
       tipo_precio, precio_publico, precio_ofrecido, descuento_pct,
       cliente_nombre, cliente_apellido, cliente_telefono, cliente_email, cliente_zona,
-      cliente_razon_social, cliente_cuit, cliente_id, public_token,
+      cliente_razon_social, cliente_cuit, cliente_domicilio,
+      cliente_localidad, cliente_cod_postal, cliente_condicion_fiscal, cliente_id, forzar, public_token,
     } = body
 
     if (!numero) return NextResponse.json({ error: 'numero requerido' }, { status: 400 })
@@ -62,7 +67,8 @@ export async function POST(req: NextRequest) {
         litros_dia, altura_m, longitud_total_m, profundidad_m,
         tipo_precio, precio_publico, precio_ofrecido, descuento_pct,
         cliente_nombre, cliente_apellido, cliente_telefono, cliente_email, cliente_zona,
-        cliente_razon_social, cliente_cuit, cliente_id, public_token
+        cliente_razon_social, cliente_cuit, cliente_domicilio,
+        cliente_localidad, cliente_cod_postal, cliente_condicion_fiscal, cliente_id, public_token
       ) VALUES (
         ${numero},
         ${revendedor_token || null}, ${revendedor_nombre || null}, ${revendedor_email || null},
@@ -73,7 +79,8 @@ export async function POST(req: NextRequest) {
         ${precio_publico || null}, ${precio_ofrecido || null}, ${descuento_pct || null},
         ${cliente_nombre || null}, ${cliente_apellido || null},
         ${cliente_telefono || null}, ${cliente_email || null}, ${cliente_zona || null},
-        ${cliente_razon_social || null}, ${cliente_cuit || null}, ${cliente_id || null}, ${public_token || null}
+        ${cliente_razon_social || null}, ${cliente_cuit || null}, ${cliente_domicilio || null},
+        ${cliente_localidad || null}, ${cliente_cod_postal || null}, ${cliente_condicion_fiscal || null}, ${cliente_id || null}, ${public_token || null}
       )
       RETURNING id, numero, created_at
     `
@@ -96,7 +103,15 @@ export async function POST(req: NextRequest) {
           whatsapp: cliente_telefono || null,
           cuit: cliente_cuit || null,
           razon_social: cliente_razon_social || null,
+          domicilio: cliente_domicilio || null,
+          localidad: cliente_localidad || null,
+          cod_postal: cliente_cod_postal || null,
+          condicion_fiscal: cliente_condicion_fiscal || null,
           provincia: cliente_zona || null,
+          // Vínculo de contacto: cliente_id = actualizar ese contacto; forzar = crear nuevo
+          // con CUIT repetido (confirmado en el front). Sin esto, upsert dedup por CUIT.
+          cliente_id: cliente_id || null,
+          forzar: forzar || false,
           origen: 'cotizador_bombas',
           bump: 'presupuesto',
         }),
@@ -115,7 +130,8 @@ export async function PATCH(req: NextRequest) {
     const {
       public_token, numero, descuento_pct, precio_ofrecido, precio_publico, tipo_precio,
       cliente_nombre, cliente_apellido, cliente_telefono, cliente_email,
-      cliente_zona, cliente_razon_social, cliente_cuit, cliente_id,
+      cliente_zona, cliente_razon_social, cliente_cuit, cliente_domicilio,
+      cliente_localidad, cliente_cod_postal, cliente_condicion_fiscal, cliente_id,
     } = await req.json()
     if (!public_token && !numero) return NextResponse.json({ error: 'public_token o numero requerido' }, { status: 400 })
 
@@ -139,6 +155,10 @@ export async function PATCH(req: NextRequest) {
             cliente_zona         = COALESCE(${cliente_zona ?? null}, cliente_zona),
             cliente_razon_social = COALESCE(${cliente_razon_social ?? null}, cliente_razon_social),
             cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit),
+            cliente_domicilio    = COALESCE(${cliente_domicilio ?? null}, cliente_domicilio),
+            cliente_localidad    = COALESCE(${cliente_localidad ?? null}, cliente_localidad),
+            cliente_cod_postal   = COALESCE(${cliente_cod_postal ?? null}, cliente_cod_postal),
+            cliente_condicion_fiscal = COALESCE(${cliente_condicion_fiscal ?? null}, cliente_condicion_fiscal),
             cliente_id           = COALESCE(${cliente_id ?? null}, cliente_id)
           WHERE public_token = ${public_token}
           RETURNING id, numero, cliente_id, cliente_nombre, cliente_apellido
@@ -156,6 +176,10 @@ export async function PATCH(req: NextRequest) {
             cliente_zona         = COALESCE(${cliente_zona ?? null}, cliente_zona),
             cliente_razon_social = COALESCE(${cliente_razon_social ?? null}, cliente_razon_social),
             cliente_cuit         = COALESCE(${cliente_cuit ?? null}, cliente_cuit),
+            cliente_domicilio    = COALESCE(${cliente_domicilio ?? null}, cliente_domicilio),
+            cliente_localidad    = COALESCE(${cliente_localidad ?? null}, cliente_localidad),
+            cliente_cod_postal   = COALESCE(${cliente_cod_postal ?? null}, cliente_cod_postal),
+            cliente_condicion_fiscal = COALESCE(${cliente_condicion_fiscal ?? null}, cliente_condicion_fiscal),
             cliente_id           = COALESCE(${cliente_id ?? null}, cliente_id)
           WHERE numero = ${numero}
           RETURNING id, numero, cliente_id, cliente_nombre, cliente_apellido
@@ -167,6 +191,19 @@ export async function PATCH(req: NextRequest) {
     // Bidireccional: si se cambió el descuento, propagarlo al cliente del CRM (predeterminado).
     if (descuento_pct != null && updated[0].cliente_id) {
       await sql`UPDATE clientes SET descuento_pct = ${descuento_pct}, updated_at = now() WHERE id = ${updated[0].cliente_id}`.catch(() => {})
+    }
+    // Datos fiscales (domicilio/localidad/CP/provincia/condición fiscal): si se editaron acá,
+    // sincronizarlos al CRM por cliente_id. COALESCE → no pisa con null lo que ya esté cargado.
+    if (updated[0].cliente_id && (cliente_domicilio || cliente_localidad || cliente_cod_postal || cliente_condicion_fiscal || cliente_zona)) {
+      await sql`
+        UPDATE clientes SET
+          domicilio        = COALESCE(${cliente_domicilio ?? null}, domicilio),
+          localidad        = COALESCE(${cliente_localidad ?? null}, localidad),
+          cod_postal       = COALESCE(${cliente_cod_postal ?? null}, cod_postal),
+          condicion_fiscal = COALESCE(${cliente_condicion_fiscal ?? null}, condicion_fiscal),
+          provincia        = COALESCE(${cliente_zona ?? null}, provincia),
+          updated_at = now()
+        WHERE id = ${updated[0].cliente_id}`.catch(() => {})
     }
     return NextResponse.json({ ok: true, rows_updated: updated.length, presupuesto: updated[0] })
   } catch (err: any) {

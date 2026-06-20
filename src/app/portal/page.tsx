@@ -34,6 +34,26 @@ function esBombaHibrida(b: any): boolean {
   return /A\/D|AC\/?DC|220v|hibrida|híbrida/i.test(String(b?.codigo || ''))
 }
 
+// Condición fiscal — enum CANÓNICO del CRM/Gestión (define la letra del comprobante AFIP).
+// Gestión.letraFacturaPara es tolerante, pero mandamos el enum para que el CRM no muestre valores raros.
+const COND_FISCAL_OPCIONES: { v: string; label: string }[] = [
+  { v: 'responsable_inscripto', label: 'Responsable Inscripto (Factura A)' },
+  { v: 'monotributista', label: 'Monotributo (Factura A — RG 5003)' },
+  { v: 'exento', label: 'Exento (Factura B)' },
+  { v: 'consumidor_final', label: 'Consumidor Final (Factura B)' },
+  { v: 'exterior', label: 'Exterior / Exportación (Factura E)' },
+]
+function mapCondFiscalCanonica(raw: string | null | undefined): string {
+  const s = String(raw || '').toLowerCase()
+  if (!s) return ''
+  if (s.includes('monotrib')) return 'monotributista'
+  if (s.includes('inscript') || s === 'ri') return 'responsable_inscripto'
+  if (s.includes('exento')) return 'exento'
+  if (s.includes('exterior') || s.includes('export')) return 'exterior'
+  if (s.includes('final') || s === 'cf') return 'consumidor_final'
+  return ''
+}
+
 // Dominio NEUTRO para los links que ve el cliente final (oculta "revendedores").
 // Configurable por env; default coti.febecos.com (apunta al mismo proyecto Vercel).
 const PUBLIC_BASE = process.env.NEXT_PUBLIC_PUBLIC_URL || 'https://coti.febecos.com'
@@ -529,6 +549,20 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   const [clienteZona, setClienteZona] = useState(clienteInicial?.zona || '')
   const [clienteRazonSocial, setClienteRazonSocial] = useState(clienteInicial?.razonSocial || '')
   const [clienteCuit, setClienteCuit] = useState(clienteInicial?.cuit || '')
+  // Domicilio fiscal SEPARADO (lo pide Gestión así para facturar AFIP): calle, localidad, CP.
+  // provincia = clienteZona. condición fiscal = enum canónico (ARCA A13 no la expone → la elige el vendedor).
+  const [clienteDomicilio, setClienteDomicilio] = useState(clienteInicial?.domicilio || '')
+  const [clienteLocalidad, setClienteLocalidad] = useState(clienteInicial?.localidad || '')
+  const [clienteCodPostal, setClienteCodPostal] = useState(clienteInicial?.codPostal || '')
+  const [clienteCondFiscal, setClienteCondFiscal] = useState(clienteInicial?.condicionFiscal || '')
+  // Datos de ARCA que DIFIEREN de lo ya cargado: se ofrecen con un botón "Usar"
+  // (no se pisa lo tipeado sin confirmar). Los campos vacíos se autocompletan directo.
+  const [arcaSug, setArcaSug] = useState<{ nombre?: string; zona?: string; domicilio?: string } | null>(null)
+  // CRM: ¿este CUIT ya existe? → lista de CONTACTOS relacionados (mismo CUIT, distintos
+  // nombre/email/tel). Se elige uno (vincula cliente_id) o se crea uno nuevo (forzar).
+  const [crmContactos, setCrmContactos] = useState<any[]>([])
+  const [mostrarContactos, setMostrarContactos] = useState(false)
+  const [forzarNuevoContacto, setForzarNuevoContacto] = useState(false)
   // ID del cliente del CRM cuando se eligió del buscador → relación EXACTA (sirve incluso
   // para "Consumidor Final" sin cuit/teléfono). Si se tipea a mano, queda null.
   const [clienteId, setClienteId] = useState<number | null>(clienteInicial?.id || null)
@@ -554,41 +588,81 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   const [buscandoCliente, setBuscandoCliente] = useState(false)
   const [sugerenciaIdx, setSugerenciaIdx] = useState(-1)
 
-  async function buscarCuit(raw: string) {
+  // skipPanel: no abrir el panel de contactos (al seleccionar un cliente del buscador
+  // ya elegimos contacto; solo refrescamos la razón social autoritativa de ARCA).
+  async function buscarCuit(raw: string, { skipPanel = false }: { skipPanel?: boolean } = {}) {
     const cuit = raw.replace(/\D/g, '')
     if (cuit.length !== 11) return
     setClienteCuitLoading(true)
     try {
-      // 1) CRM primero — SOLO vendedores internos (no exponer clientes de otros revendedores).
-      if (esVendInterno) {
-        try {
-          const rc = await fetch(`/api/clientes-buscar?q=${cuit}`)
-          if (rc.ok) {
-            const dc = await rc.json()
-            const m = (dc.clientes || []).find((c: any) => String(c.cuit || '').replace(/\D/g, '') === cuit)
-            if (m) {
-              const full = [m.nombre, m.apellido].filter(Boolean).join(' ')
-              if (full && !clienteNombre) setClienteNombre(full)
-              if (m.razon_social && !clienteRazonSocial) setClienteRazonSocial(m.razon_social)
-              if (m.telefono && !clienteTelefono) setClienteTelefono(m.telefono)
-              if (m.email && !clienteEmail) setClienteEmail(m.email)
-              if (m.zona && !clienteZona) setClienteZona(m.zona)
-              setClienteCuitLoading(false)
-              return // encontrado en CRM, no consultar ARCA
-            }
-          }
-        } catch { /* si falla el CRM, seguimos a ARCA */ }
-      }
-      // 2) ARCA (padrón) — vía /api/cuit-lookup (proxy al endpoint del selector que funciona).
+      // 1) ARCA (padrón) = identidad fiscal AUTORITATIVA. La razón social la manda ARCA
+      //    (read-only en el form). El resto (nombre/zona/domicilio) se sugiere con confirmación.
       const r = await fetch(`/api/cuit-lookup?cuit=${cuit}`)
       if (r.ok) {
         const d = await r.json()
-        if (d.denominacion && !clienteNombre) setClienteNombre(d.denominacion)
-        if (d.razonSocial && !clienteRazonSocial) setClienteRazonSocial(d.razonSocial)
-        if (d.provincia && !clienteZona) setClienteZona(d.provincia)
+        // Razón social = NOMBRE LEGAL de ARCA (read-only). Jurídica → razón social; persona
+        // física → su denominación (Gestión guarda el nombre legal en razon_social en TODAS
+        // las filas, físicas incluidas, para que facturación/PDF lo usen uniforme).
+        setClienteRazonSocial(d.razonSocial || d.denominacion || '')
+        const sug: { nombre?: string; zona?: string; domicilio?: string } = {}
+        // Vacío → autocompleta directo. Con valor distinto → se ofrece con botón "Usar".
+        const aplicar = (actual: string, valor: string | null, setter: (v: string) => void, key: keyof typeof sug) => {
+          if (!valor) return
+          if (!actual.trim()) setter(valor)
+          else if (actual.trim().toLowerCase() !== valor.trim().toLowerCase()) sug[key] = valor
+        }
+        // Persona física → su denominación es el nombre (editable, con confirmación).
+        if (!d.razonSocial && d.denominacion) aplicar(clienteNombre, d.denominacion, setClienteNombre, 'nombre')
+        aplicar(clienteZona, d.provincia, setClienteZona, 'zona')
+        aplicar(clienteDomicilio, d.domicilio, setClienteDomicilio, 'domicilio')
+        if (d.localidad && !clienteLocalidad.trim()) setClienteLocalidad(d.localidad)
+        if (d.codPostal && !clienteCodPostal.trim()) setClienteCodPostal(d.codPostal)
+        if (d.condicionFiscal && !clienteCondFiscal) setClienteCondFiscal(mapCondFiscalCanonica(d.condicionFiscal))
+        setArcaSug(Object.keys(sug).length ? sug : null)
+      }
+      // 2) CRM: ¿el CUIT ya existe? → lista de CONTACTOS para vincular (NO para razón social).
+      if (!skipPanel) {
+        try {
+          const rc = await fetch(`/api/clientes-por-cuit?cuit=${cuit}`)
+          if (rc.ok) {
+            const dc = await rc.json()
+            if (dc.existe && Array.isArray(dc.contactos) && dc.contactos.length) {
+              setCrmContactos(dc.contactos)
+              setMostrarContactos(true)
+            } else {
+              setCrmContactos([]); setMostrarContactos(false)
+            }
+          }
+        } catch { /* si falla el CRM, igual se puede cotizar con los datos de ARCA */ }
       }
     } catch { /* silencioso */ }
     setClienteCuitLoading(false)
+  }
+
+  // Elegir un contacto existente del CRM (vincula cliente_id; no toca la razón social de ARCA).
+  function seleccionarContacto(c: any) {
+    setClienteNombre([c.nombre, c.apellido].filter(Boolean).join(' '))
+    setClienteApellido('')
+    if (c.email) setClienteEmail(c.email)
+    if (c.whatsapp || c.telefono) setClienteTelefono(c.whatsapp || c.telefono)
+    setClienteId(c.id || null)
+    setForzarNuevoContacto(false)
+    setMostrarContactos(false)
+  }
+  // INTERNO: crear un contacto NUEVO con el mismo CUIT (confirmado → forzar:true en el upsert).
+  function crearContactoNuevo() {
+    setClienteId(null)
+    setForzarNuevoContacto(true)
+    setClienteNombre(''); setClienteApellido(''); setClienteTelefono(''); setClienteEmail('')
+    setMostrarContactos(false)
+  }
+  // Limpiar el cliente para cargar otro (o cambiar de CUIT) — usado por el externo.
+  function limpiarCliente() {
+    setClienteNombre(''); setClienteApellido(''); setClienteTelefono(''); setClienteEmail('')
+    setClienteRazonSocial(''); setClienteCuit(''); setClienteDomicilio(''); setClienteLocalidad('')
+    setClienteCodPostal(''); setClienteCondFiscal(''); setClienteZona('')
+    setClienteId(null); setForzarNuevoContacto(false)
+    setCrmContactos([]); setMostrarContactos(false); setArcaSug(null)
   }
 
   async function buscarClienteDB(q: string) {
@@ -608,13 +682,19 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
     setClienteTelefono(c.telefono || '')
     setClienteEmail(c.email || '')
     setClienteZona(c.zona || '')
+    // Razón social: NO la del CRM (puede estar vieja). Se refresca desde ARCA abajo.
     setClienteRazonSocial(c.razon_social || '')
     setClienteCuit(c.cuit || '')
     setClienteId(c.id || null)
+    setForzarNuevoContacto(false)
     if (c.descuento != null && Number(c.descuento) > 0) setDescuentoEfectivo(Number(c.descuento))
     setBusquedaCliente('')
     setSugerenciasCliente([])
     setSugerenciaIdx(-1)
+    setMostrarContactos(false)
+    // Refrescá la razón social/domicilio autoritativos de ARCA (sin abrir el panel de contactos:
+    // ya elegimos un contacto puntual de la base).
+    if (c.cuit && String(c.cuit).replace(/\D/g, '').length === 11) buscarCuit(String(c.cuit), { skipPanel: true })
   }
 
   async function obtenerNroPresupuesto(): Promise<string> {
@@ -635,7 +715,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   function guardarPresupuestoDB(
     nro: string,
     precio: number | null,
-    cdData: { nombre: string; apellido: string; telefono: string; zona: string; email?: string; razonSocial?: string; cuit?: string } | null,
+    cdData: { nombre: string; apellido: string; telefono: string; zona: string; email?: string; razonSocial?: string; cuit?: string; domicilio?: string; localidad?: string; codPostal?: string; condicionFiscal?: string } | null,
     publicToken?: string | null
   ) {
     const precioPublico = data?.bomba?.precio_full || null
@@ -667,7 +747,13 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
         cliente_zona: tieneCliente ? cdData?.zona : null,
         cliente_razon_social: cdData?.razonSocial || null,
         cliente_cuit: cdData?.cuit || null,
+        cliente_domicilio: cdData?.domicilio || null,
+        cliente_localidad: cdData?.localidad || null,
+        cliente_cod_postal: cdData?.codPostal || null,
+        cliente_condicion_fiscal: cdData?.condicionFiscal || null,
         cliente_id: (cdData as any)?.id ?? clienteId ?? null,
+        // forzar: crear un contacto NUEVO con un CUIT ya existente (confirmado por el vendedor).
+        forzar: forzarNuevoContacto || false,
         public_token: publicToken || null,
       }),
     }).catch(() => { /* silencioso */ })
@@ -685,7 +771,14 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
           telefono: cdData?.telefono || null,
           cuit: cdData?.cuit || null,
           razonSocial: cdData?.razonSocial || null,
+          domicilio: cdData?.domicilio || null,
+          localidad: cdData?.localidad || null,
+          cod_postal: cdData?.codPostal || null,
+          condicion_fiscal: cdData?.condicionFiscal || null,
           zona: cdData?.zona || null,
+          // Vínculo con el contacto elegido / alta forzada de contacto nuevo (mismo CUIT).
+          cliente_id: (cdData as any)?.id ?? clienteId ?? null,
+          forzar: forzarNuevoContacto || false,
           origen: 'presupuesto_bombas',
           bump: 'presupuesto',
           monto: precio || 0,
@@ -718,7 +811,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
     publicToken: string,
     precio: number | null,
     desc: number,
-    cdData: { nombre: string; apellido: string; telefono: string; zona: string; email?: string; razonSocial?: string; cuit?: string } | null
+    cdData: { nombre: string; apellido: string; telefono: string; zona: string; email?: string; razonSocial?: string; cuit?: string; domicilio?: string; localidad?: string; codPostal?: string; condicionFiscal?: string } | null
   ) {
     const precioPublico = data?.bomba?.precio_full || null
     fetch('/api/presupuestos', {
@@ -737,12 +830,16 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
         cliente_zona: cdData?.zona || null,
         cliente_razon_social: cdData?.razonSocial || null,
         cliente_cuit: cdData?.cuit || null,
+        cliente_domicilio: cdData?.domicilio || null,
+        cliente_localidad: cdData?.localidad || null,
+        cliente_cod_postal: cdData?.codPostal || null,
+        cliente_condicion_fiscal: cdData?.condicionFiscal || null,
         cliente_id: (cdData as any)?.id ?? clienteId ?? null,
       }),
     }).catch(() => {})
   }
 
-  async function generarPDF(forceClienteData?: { nombre: string; apellido: string; telefono: string; zona: string; razonSocial?: string; cuit?: string }) {
+  async function generarPDF(forceClienteData?: { nombre: string; apellido: string; telefono: string; zona: string; razonSocial?: string; cuit?: string; domicilio?: string; localidad?: string; codPostal?: string; condicionFiscal?: string }) {
     // Usar descuento del estado (puede haber sido modificado en el form)
     const descuento = descuentoEfectivo
     const mostrarPublico = descuento === 0
@@ -774,7 +871,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
     const precioPDF = precio != null ? precio + extrasTotal : null
 
     // Datos del cliente a usar (pueden venir del form en esta llamada o del state)
-    const cd = forceClienteData || (clienteReady ? { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit } : null)
+    const cd = forceClienteData || (clienteReady ? { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit, domicilio: clienteDomicilio, localidad: clienteLocalidad, codPostal: clienteCodPostal, condicionFiscal: clienteCondFiscal } : null)
     const tieneCliente = !!(cd?.nombre || cd?.apellido || cd?.telefono)
 
     // Guardar en DB solo la primera vez (evita duplicados al re-generar el PDF)
@@ -888,6 +985,7 @@ ${tieneCliente
       ? `<div class="cliente-box">
           ${cd?.razonSocial ? `<div class="cliente-nombre">${cd.razonSocial}</div>${(cd?.nombre||cd?.apellido) ? `<div class="cliente-detalle" style="margin-bottom:3px">Contacto: ${cd?.nombre||''} ${cd?.apellido||''}</div>` : ''}` : `<div class="cliente-nombre">Sr./Sra. ${cd?.nombre || ''} ${cd?.apellido || ''}</div>`}
           <div class="cliente-detalle">${cd?.cuit ? `🏢 CUIT ${cd.cuit}&nbsp;&nbsp;·&nbsp;&nbsp;` : ''}${cd?.telefono ? `📱 ${cd.telefono}` : ''}${cd?.zona ? `&nbsp;&nbsp;·&nbsp;&nbsp;📍 ${cd.zona}` : ''}</div>
+          ${(() => { const dom = [[cd?.domicilio, cd?.localidad].filter(Boolean).join(', '), cd?.codPostal ? `(CP ${cd.codPostal})` : ''].filter(Boolean).join(' '); return dom ? `<div class="cliente-detalle" style="font-weight:500;font-size:11px;color:#4a5a52;margin-top:2px">📍 ${dom}</div>` : '' })()}
         </div>`
       : ''
     }
@@ -1294,16 +1392,46 @@ ${curvasHtml ? `
                   ))}
                 </select>
               </div>
+              {/* Domicilio fiscal SEPARADO (lo trae ARCA por CUIT; editable). Gestión lo usa para AFIP. */}
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Domicilio fiscal — calle (opcional)</div>
+                <input value={clienteDomicilio} onChange={e => setClienteDomicilio(e.target.value)} placeholder="Av. San Martín 1234"
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Localidad</div>
+                <input value={clienteLocalidad} onChange={e => setClienteLocalidad(e.target.value)} placeholder="Localidad"
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Código postal</div>
+                <input value={clienteCodPostal} onChange={e => setClienteCodPostal(e.target.value)} placeholder="0000"
+                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
+              {/* Condición fiscal — define la letra del comprobante. ARCA (A13) NO la expone → la elige el vendedor. */}
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>Condición fiscal (IVA)</div>
+                <select value={clienteCondFiscal} onChange={e => setClienteCondFiscal(e.target.value)}
+                  style={{ width: '100%', background: '#0d1a2a', border: `1px solid ${(clienteCuit.replace(/\D/g, '').length === 11 && !clienteCondFiscal) ? '#b45309' : '#1e3248'}`, borderRadius: 6, padding: '8px 10px', color: clienteCondFiscal ? '#e8f0f8' : '#3a5a7a', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }}>
+                  <option value="">— Sin especificar —</option>
+                  {COND_FISCAL_OPCIONES.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                </select>
+                {clienteCuit.replace(/\D/g, '').length === 11 && !clienteCondFiscal && (
+                  <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 5, lineHeight: 1.4 }}>
+                    ⚠️ ARCA no informa la condición fiscal. Si no la cargás, la factura va a quedar <strong>trabada</strong> en Gestión hasta completarla.
+                  </div>
+                )}
+              </div>
               {/* Empresa (opcional) */}
               <div style={{ gridColumn: '1/-1', borderTop: '1px solid #1e3248', paddingTop: 10, marginTop: 2 }}>
                 <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 8 }}>🏢 Si el presupuesto es para una empresa, completá estos datos (opcional):</div>
               </div>
               <div style={{ gridColumn: '1/-1' }}>
                 <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>
-                  Razón social{clienteCuitLoading ? <span style={{ marginLeft: 6, color: '#7a9ab5', fontWeight: 400 }}>buscando en ARCA…</span> : ''}
+                  Razón social / nombre legal <span style={{ fontWeight: 400, textTransform: 'none' as const, color: '#5a7a9a' }}>· la trae ARCA, no editable</span>{clienteCuitLoading ? <span style={{ marginLeft: 6, color: '#7a9ab5', fontWeight: 400 }}>buscando en ARCA…</span> : ''}
                 </div>
-                <input value={clienteRazonSocial} onChange={e => setClienteRazonSocial(e.target.value)} placeholder="La Jota Group SRL"
-                  style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+                <input value={clienteRazonSocial} readOnly disabled placeholder="Se completa al ingresar el CUIT"
+                  style={{ width: '100%', background: '#0a1420', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#9fb3c8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const, cursor: 'not-allowed' }} />
               </div>
               <div style={{ gridColumn: '1/-1' }}>
                 <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>CUIT</div>
@@ -1312,6 +1440,91 @@ ${curvasHtml ? `
                   placeholder="30-12345678-9" type="text"
                   style={{ width: '100%', background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
               </div>
+              {/* CUIT ya existe en el CRM → elegir contacto / crear nuevo. Distinto interno vs externo. */}
+              {mostrarContactos && crmContactos.length > 0 && (
+                <div style={{ gridColumn: '1/-1', background: '#1a2436', border: '1px solid #3a5a7a', borderRadius: 8, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 12, color: '#9fc1e0', marginBottom: 8, fontWeight: 700 }}>
+                    {esVendInterno
+                      ? `⚠️ Este CUIT ya está en Febecos — ${crmContactos.length} contacto${crmContactos.length > 1 ? 's' : ''}. Elegí uno o creá uno nuevo.`
+                      : '👤 Este cliente ya está registrado en Febecos. Elegí un contacto, o seguí con otro cliente.'}
+                  </div>
+                  {crmContactos.map((c: any, i: number) => (
+                    <div key={c.id ?? i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '6px 0', borderTop: i > 0 ? '1px solid #24344a' : 'none' }}>
+                      <div style={{ fontSize: 12, color: '#cfe0f0', minWidth: 0 }}>
+                        <div style={{ fontWeight: 600 }}>{[c.nombre, c.apellido].filter(Boolean).join(' ') || c.razon_social || 'Contacto'}</div>
+                        {esVendInterno && (c.email || c.whatsapp || c.telefono) && (
+                          <div style={{ fontSize: 10.5, color: '#7a9ab5' }}>{[c.whatsapp || c.telefono, c.email].filter(Boolean).join(' · ')}</div>
+                        )}
+                      </div>
+                      <button type="button" onClick={() => seleccionarContacto(c)}
+                        style={{ flexShrink: 0, padding: '4px 12px', background: '#2f5a8a', border: 'none', borderRadius: 5, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        Usar
+                      </button>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 9, flexWrap: 'wrap' as const }}>
+                    {esVendInterno ? (
+                      <button type="button" onClick={crearContactoNuevo}
+                        style={{ padding: '5px 12px', background: '#1a6b3c', border: 'none', borderRadius: 5, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        ➕ Crear contacto nuevo con este CUIT
+                      </button>
+                    ) : (
+                      <button type="button" onClick={limpiarCliente}
+                        style={{ padding: '5px 12px', background: '#7a3a3a', border: 'none', borderRadius: 5, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        Cambiar de cliente / usar otro CUIT
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setMostrarContactos(false)}
+                      style={{ padding: '5px 12px', background: 'transparent', border: '1px solid #3a5a7a', borderRadius: 5, color: '#9fb3c8', fontSize: 11, cursor: 'pointer' }}>
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              )}
+              {/* Aviso: se va a crear un contacto NUEVO con este CUIT (interno, confirmado) */}
+              {forzarNuevoContacto && (
+                <div style={{ gridColumn: '1/-1', background: '#16291d', border: '1px solid #2f6b3c', borderRadius: 8, padding: '7px 12px', fontSize: 11, color: '#9fd6b0' }}>
+                  ➕ Se creará un <strong>contacto nuevo</strong> con este CUIT (los datos fiscales se comparten; nombre/teléfono/email son los que cargues).
+                </div>
+              )}
+              {/* Sugerencias de ARCA cuando difieren de lo ya cargado (pisa con confirmación) */}
+              {arcaSug && (
+                <div style={{ gridColumn: '1/-1', background: '#162a1d', border: '1px solid #2f6b3c', borderRadius: 8, padding: '9px 12px' }}>
+                  <div style={{ fontSize: 11, color: '#9fd6b0', marginBottom: 7, fontWeight: 600 }}>📋 ARCA tiene otros datos para este CUIT — ¿usarlos?</div>
+                  {(['nombre', 'zona', 'domicilio'] as const).filter(k => arcaSug[k]).map(k => {
+                    const label = { nombre: 'Nombre', zona: 'Provincia', domicilio: 'Domicilio' }[k]
+                    const setter = { nombre: setClienteNombre, zona: setClienteZona, domicilio: setClienteDomicilio }[k]
+                    return (
+                      <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 5 }}>
+                        <div style={{ fontSize: 11.5, color: '#cfe6d6', minWidth: 0 }}>
+                          <span style={{ color: '#7a9ab5' }}>{label}:</span> {arcaSug[k]}
+                        </div>
+                        <button type="button"
+                          onClick={() => { setter(arcaSug[k]!); setArcaSug(prev => { if (!prev) return null; const n = { ...prev }; delete n[k]; return Object.keys(n).length ? n : null }) }}
+                          style={{ flexShrink: 0, padding: '3px 10px', background: '#2f6b3c', border: 'none', borderRadius: 5, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                          Usar
+                        </button>
+                      </div>
+                    )
+                  })}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 7 }}>
+                    <button type="button"
+                      onClick={() => {
+                        if (arcaSug.nombre) setClienteNombre(arcaSug.nombre)
+                        if (arcaSug.zona) setClienteZona(arcaSug.zona)
+                        if (arcaSug.domicilio) setClienteDomicilio(arcaSug.domicilio)
+                        setArcaSug(null)
+                      }}
+                      style={{ padding: '4px 12px', background: '#1a6b3c', border: 'none', borderRadius: 5, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                      Usar todos
+                    </button>
+                    <button type="button" onClick={() => setArcaSug(null)}
+                      style={{ padding: '4px 12px', background: 'transparent', border: '1px solid #1e3248', borderRadius: 5, color: '#7a9ab5', fontSize: 11, cursor: 'pointer' }}>
+                      Descartar
+                    </button>
+                  </div>
+                </div>
+              )}
               {/* Descuento — editable solo para vendedor interno. El externo lo
                   tiene fijo segun la solapa (Mayorista = su %, Publico = 0). */}
               <div style={{ gridColumn: '1/-1', borderTop: '1px solid #1e3248', paddingTop: 10, marginTop: 2 }}>
@@ -1337,7 +1550,7 @@ ${curvasHtml ? `
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => {
-                  const cd = { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, email: clienteEmail, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit }
+                  const cd = { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, email: clienteEmail, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit, domicilio: clienteDomicilio, localidad: clienteLocalidad, codPostal: clienteCodPostal, condicionFiscal: clienteCondFiscal }
                   setClienteReady(true)
                   setShowClienteForm(false)
                   generarPDF(cd)
@@ -1668,6 +1881,8 @@ export default function Portal() {
         nombre: c.cliente_nombre || '', apellido: c.cliente_apellido || '',
         telefono: c.cliente_telefono || '', zona: c.cliente_zona || '',
         razonSocial: c.cliente_razon_social || '', cuit: c.cliente_cuit || '',
+        domicilio: c.cliente_domicilio || '', localidad: c.cliente_localidad || '',
+        codPostal: c.cliente_cod_postal || '', condicionFiscal: c.cliente_condicion_fiscal || '',
       })
     } else {
       setClienteInicial(null)

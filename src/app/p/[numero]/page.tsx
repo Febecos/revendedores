@@ -33,6 +33,10 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const [cliZona, setCliZona] = useState('')
   const [cliRazonSocial, setCliRazonSocial] = useState('')
   const [cliCuit, setCliCuit] = useState('')
+  const [cliDomicilio, setCliDomicilio] = useState('')
+  const [cliLocalidad, setCliLocalidad] = useState('')
+  const [cliCodPostal, setCliCodPostal] = useState('')
+  const [cliCondFiscal, setCliCondFiscal] = useState('')
   const [guardandoCli, setGuardandoCli] = useState(false)
   const [guardadoCliOk, setGuardadoCliOk] = useState(false)
   const [busquedaCli, setBusquedaCli] = useState('')
@@ -65,6 +69,10 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
         setCliZona(p.cliente_zona || '')
         setCliRazonSocial(p.cliente_razon_social || '')
         setCliCuit(p.cliente_cuit || '')
+        setCliDomicilio(p.cliente_domicilio || '')
+        setCliLocalidad(p.cliente_localidad || '')
+        setCliCodPostal(p.cliente_cod_postal || '')
+        setCliCondFiscal(p.cliente_condicion_fiscal || '')
         setBombaData(bomba)
         setKitData(kit)
         setCurvasData(curvas)
@@ -110,6 +118,9 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
         if (d.denominacion && !cliNombre) setCliNombre(d.denominacion)
         if (d.razonSocial && !cliRazonSocial) setCliRazonSocial(d.razonSocial)
         if (d.provincia && !cliZona) setCliZona(d.provincia)
+        if (d.domicilio && !cliDomicilio) setCliDomicilio(d.domicilio)
+        if (d.localidad && !cliLocalidad) setCliLocalidad(d.localidad)
+        if (d.codPostal && !cliCodPostal) setCliCodPostal(d.codPostal)
       }
     } catch { /* silencioso */ }
     setCuitLoading(false)
@@ -130,6 +141,10 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
           cliente_zona: cliZona || null,
           cliente_razon_social: cliRazonSocial || null,
           cliente_cuit: cliCuit || null,
+          cliente_domicilio: cliDomicilio || null,
+          cliente_localidad: cliLocalidad || null,
+          cliente_cod_postal: cliCodPostal || null,
+          cliente_condicion_fiscal: cliCondFiscal || null,
         }),
       })
       const data = await r.json()
@@ -146,9 +161,13 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
         cliente_zona: cliZona || null,
         cliente_razon_social: cliRazonSocial || null,
         cliente_cuit: cliCuit || null,
+        cliente_domicilio: cliDomicilio || null,
+        cliente_localidad: cliLocalidad || null,
+        cliente_cod_postal: cliCodPostal || null,
+        cliente_condicion_fiscal: cliCondFiscal || null,
       }))
       setHtml(construirPDF(
-        { ...presupData, cliente_nombre: cliNombre || null, cliente_apellido: cliApellido || null, cliente_telefono: cliTelefono || null, cliente_email: cliEmail || null, cliente_zona: cliZona || null, cliente_razon_social: cliRazonSocial || null, cliente_cuit: cliCuit || null },
+        { ...presupData, cliente_nombre: cliNombre || null, cliente_apellido: cliApellido || null, cliente_telefono: cliTelefono || null, cliente_email: cliEmail || null, cliente_zona: cliZona || null, cliente_razon_social: cliRazonSocial || null, cliente_cuit: cliCuit || null, cliente_domicilio: cliDomicilio || null, cliente_localidad: cliLocalidad || null, cliente_cod_postal: cliCodPostal || null, cliente_condicion_fiscal: cliCondFiscal || null },
         bombaData, kitData, curvasData
       ))
       setGuardadoCliOk(true)
@@ -373,7 +392,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
             </div>
             {/* Campos manuales (sin el nombre) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              {([['Teléfono / WhatsApp', cliTelefono, setCliTelefono], ['Email', cliEmail, setCliEmail], ['Zona / Provincia', cliZona, setCliZona]] as [string, string, (v: string) => void][]).map(([label, val, setter]) => (
+              {([['Teléfono / WhatsApp', cliTelefono, setCliTelefono], ['Email', cliEmail, setCliEmail], ['Zona / Provincia', cliZona, setCliZona], ['Domicilio fiscal — calle', cliDomicilio, setCliDomicilio], ['Localidad', cliLocalidad, setCliLocalidad], ['Código postal', cliCodPostal, setCliCodPostal]] as [string, string, (v: string) => void][]).map(([label, val, setter]) => (
                 <div key={label}>
                   <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>{label}</div>
                   <input value={val} onChange={e => setter(e.target.value)}
@@ -385,6 +404,24 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
                 <input value={cliCuit} onChange={e => setCliCuit(e.target.value)} onBlur={e => buscarCuitARCA(e.target.value)}
                   placeholder="30-12345678-9"
                   style={{ width: '100%', background: '#132233', border: '1px solid #2a4a6a', borderRadius: 6, padding: '7px 10px', color: '#e8f0f8', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+              </div>
+              {/* Condición fiscal — define la letra del comprobante. ARCA no la expone → la elige el vendedor. */}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <div style={{ fontSize: 10, color: '#7a9ab5', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const }}>Condición fiscal (IVA)</div>
+                <select value={cliCondFiscal} onChange={e => setCliCondFiscal(e.target.value)}
+                  style={{ width: '100%', background: '#132233', border: `1px solid ${(cliCuit.replace(/\D/g, '').length === 11 && !cliCondFiscal) ? '#b45309' : '#2a4a6a'}`, borderRadius: 6, padding: '7px 10px', color: cliCondFiscal ? '#e8f0f8' : '#7a9ab5', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }}>
+                  <option value="">— Sin especificar —</option>
+                  <option value="responsable_inscripto">Responsable Inscripto (Factura A)</option>
+                  <option value="monotributista">Monotributo (Factura A — RG 5003)</option>
+                  <option value="exento">Exento (Factura B)</option>
+                  <option value="consumidor_final">Consumidor Final (Factura B)</option>
+                  <option value="exterior">Exterior / Exportación (Factura E)</option>
+                </select>
+                {cliCuit.replace(/\D/g, '').length === 11 && !cliCondFiscal && (
+                  <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 5, lineHeight: 1.4 }}>
+                    ⚠️ ARCA no informa la condición fiscal. Sin ella, la factura queda <strong>trabada</strong> en Gestión hasta completarla.
+                  </div>
+                )}
               </div>
             </div>
             <div style={{ marginBottom: 12 }}>
@@ -448,6 +485,7 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
   const cd = {
     nombre: p.cliente_nombre, apellido: p.cliente_apellido, telefono: p.cliente_telefono,
     zona: p.cliente_zona, razonSocial: p.cliente_razon_social, cuit: p.cliente_cuit,
+    domicilio: p.cliente_domicilio, localidad: p.cliente_localidad, codPostal: p.cliente_cod_postal,
   }
   const tieneCliente = !!(cd.nombre || cd.apellido || cd.telefono || cd.razonSocial)
 
@@ -619,6 +657,7 @@ ${revLogo ? `
 ${tieneCliente ? `<div class="cliente-box">
   ${cd.razonSocial ? `<div class="cliente-nombre">${esc(cd.razonSocial)}</div>${(cd.nombre || cd.apellido) ? `<div class="cliente-detalle" style="margin-bottom:3px">Contacto: ${esc(cd.nombre || '')} ${esc(cd.apellido || '')}</div>` : ''}` : `<div class="cliente-nombre">Sr./Sra. ${esc(cd.nombre || '')} ${esc(cd.apellido || '')}</div>`}
   <div class="cliente-detalle">${cd.cuit ? `🏢 CUIT ${esc(cd.cuit)}&nbsp;&nbsp;·&nbsp;&nbsp;` : ''}${cd.telefono ? `📱 ${esc(cd.telefono)}` : ''}${cd.zona ? `&nbsp;&nbsp;·&nbsp;&nbsp;📍 ${esc(cd.zona)}` : ''}</div>
+  ${(() => { const dom = [[cd.domicilio, cd.localidad].filter(Boolean).join(', '), cd.codPostal ? `(CP ${cd.codPostal})` : ''].filter(Boolean).join(' '); return dom ? `<div class="cliente-detalle" style="font-weight:500;font-size:11px;color:#4a5a52;margin-top:2px">📍 ${esc(dom)}</div>` : '' })()}
 </div>` : ''}
 <h3>Equipo de bombeo solar</h3>
 <div style="margin:-4px 0 10px"><span style="display:inline-block;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.03em;${esHibridaPDF ? 'background:#fff7ed;color:#b45309;border:1px solid #fdba74' : 'background:#f0f9f4;color:#1a6b3c;border:1px solid #b7e8c7'}">${esHibridaPDF ? '⚡🌞 BOMBA HÍBRIDA — Solar + Red/Generador *' : '☀️ BOMBA SOLAR *'}</span></div>

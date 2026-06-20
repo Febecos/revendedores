@@ -16,7 +16,8 @@ export async function GET(req: NextRequest) {
         p.litros_dia, p.altura_m, p.profundidad_m, p.longitud_total_m,
         p.tipo_precio, p.precio_publico, p.precio_ofrecido, p.descuento_pct,
         p.cliente_nombre, p.cliente_apellido, p.cliente_telefono, p.cliente_zona,
-        p.cliente_razon_social, p.cliente_cuit,
+        p.cliente_razon_social, p.cliente_cuit, p.cliente_domicilio,
+        p.cliente_localidad, p.cliente_cod_postal, p.cliente_condicion_fiscal,
         sr.tipo_usuario AS rev_tipo, sr.provincia AS rev_provincia,
         -- Branding del revendedor (solo si tiene marca propia habilitada Y logo cargado)
         CASE WHEN sr.puede_cotizar_con_marca = true AND sr.logo_base64 IS NOT NULL
