@@ -687,7 +687,9 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
     setClienteCuit(c.cuit || '')
     setClienteId(c.id || null)
     setForzarNuevoContacto(false)
-    if (c.descuento != null && Number(c.descuento) > 0) setDescuentoEfectivo(Number(c.descuento))
+    // Solo el vendedor INTERNO aplica el descuento personal del cliente.
+    // El externo tiene su precio de nivel fijo (descuento_pct del revendedor).
+    if (esVendInterno && c.descuento != null && Number(c.descuento) > 0) setDescuentoEfectivo(Number(c.descuento))
     setBusquedaCliente('')
     setSugerenciasCliente([])
     setSugerenciaIdx(-1)
@@ -1002,7 +1004,7 @@ ${tieneCliente
 </div>
 ${precioPDF ? `<div class="precio-box">
   <div>
-    <div class="precio-label">${mostrarPublico ? 'Precio público' : `Precio especial (${descuento}% descuento)`}</div>
+    <div class="precio-label">${mostrarPublico ? 'Precio público' : 'Precio'}</div>
     <div class="precio-val">${fmt(precioPDF)}</div>
   </div>
   ${!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : ''}
@@ -1679,9 +1681,24 @@ ${curvasHtml ? `
               {precioConExtras != null && (
                 <div style={{ background: '#132233', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#7a9ab5', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 8 }}>
-                    {mostrarPublico ? 'Precio público' : `Precio mayorista (${descuento}% OFF)`}
+                    {mostrarPublico ? 'Precio público' : esVendInterno ? `Precio al cliente (${descuento}% OFF)` : 'Tu precio de costo'}
                   </div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: '#4ade80' }}>{fmt(precioConExtras)}</div>
+                  {/* Panel de margen: solo para externo en modo mayorista */}
+                  {!mostrarPublico && !esVendInterno && precioListaTotal != null && precioListaTotal > precioConExtras && (
+                    <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', background: '#0d1a2a', borderRadius: 8, padding: '10px 12px' }}>
+                      <div>
+                        <div style={{ fontSize: 9, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 2 }}>Precio público de lista</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#e8f0f8' }}>{fmt(precioListaTotal)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 9, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 2 }}>Margen bruto disponible</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#e8681a' }}>
+                          {fmt(precioListaTotal - precioConExtras)} <span style={{ fontSize: 11, fontWeight: 400, color: '#7a9ab5' }}>({descuento}%)</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {esPozosProfundo && (
                     <div style={{ marginTop: 10, borderTop: '1px solid #1e3248', paddingTop: 10 }}>
                       <div style={{ fontSize: 11, color: '#7a9ab5', marginBottom: 6 }}>
@@ -2416,7 +2433,7 @@ export default function Portal() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 13, color: '#7a9ab5' }}>Ver precios:</span>
             <div style={s.toggleBtns}>
-              <button onClick={() => setMostrarPublico(false)} style={{ ...s.toggleBtn, ...(mostrarPublico ? {} : s.toggleBtnActive) }}>Mayorista ({rev.descuento_pct}% OFF)</button>
+              <button onClick={() => setMostrarPublico(false)} style={{ ...s.toggleBtn, ...(mostrarPublico ? {} : s.toggleBtnActive) }}>{rev.tipo_usuario === 'interno' ? `Mayorista (${rev.descuento_pct}% OFF)` : `Mi precio de costo (${rev.descuento_pct}% OFF)`}</button>
               <button onClick={() => setMostrarPublico(true)} style={{ ...s.toggleBtn, ...(mostrarPublico ? s.toggleBtnActive : {}) }}>Precio público</button>
             </div>
           </div>
