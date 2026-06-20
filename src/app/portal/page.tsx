@@ -1004,7 +1004,7 @@ ${tieneCliente
 </div>
 ${precioPDF ? `<div class="precio-box">
   <div>
-    <div class="precio-label">${mostrarPublico ? 'Precio público' : 'Precio'}</div>
+    <div class="precio-label">${mostrarPublico ? 'Precio público' : descuento > 0 ? `Precio especial (${descuento}% descuento)` : 'Precio'}</div>
     <div class="precio-val">${fmt(precioPDF)}</div>
   </div>
   ${!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : ''}
