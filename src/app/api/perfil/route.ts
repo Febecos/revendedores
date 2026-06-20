@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Verificar token y traer valores actuales
     const rows = await sql`
-      SELECT id, empresa, provincia, localidad, cuit, whatsapp, transportista_1_id, transportista_2_id, domicilio, logo_base64
+      SELECT id, nombre, apellido, email, estado, empresa, provincia, localidad, cuit, whatsapp, transportista_1_id, transportista_2_id, domicilio, logo_base64
       FROM solicitudes_revendedor
       WHERE token_acceso = ${token} AND token_acceso_activo = true
       LIMIT 1
@@ -72,7 +72,9 @@ export async function POST(req: NextRequest) {
     const domicilio  = 'domicilio'  in body ? (body.domicilio  || null) : actual.domicilio
     const logo_base64 = 'logo_base64' in body ? (body.logo_base64 || null) : actual.logo_base64
 
-    // 3. Guardar
+    // 3. Guardar. Marca la fecha de actualización (recordatorio semestral) y,
+    //    si estaba 'aprobado', lo deja 'activo' (confirmó que está operativo).
+    const nuevoEstado = actual.estado === 'aprobado' ? 'activo' : actual.estado
     await sql`
       UPDATE solicitudes_revendedor
       SET
@@ -84,9 +86,49 @@ export async function POST(req: NextRequest) {
         transportista_1_id = ${transportista_1_id},
         transportista_2_id = ${transportista_2_id},
         domicilio          = ${domicilio},
-        logo_base64        = ${logo_base64}
+        logo_base64        = ${logo_base64},
+        estado             = ${nuevoEstado},
+        datos_actualizados_at = now()
       WHERE token_acceso = ${token}
     `
+
+    // 4. Sincronizar al CRM central (clientes). Se busca por revendedor_token; si no
+    //    existe, por email; si tampoco, se crea. No bloquea la respuesta si falla.
+    try {
+      const email = (actual.email || '').trim() || null
+      const emailLower = email ? email.toLowerCase() : null
+      const nombre = (actual.nombre || '').trim() || null
+      const apellido = (actual.apellido || '').trim() || null
+      // Sin fragmentos anidados (rompen neon serverless): dos queries según haya email o no.
+      const upd = emailLower
+        ? await sql`
+            UPDATE clientes SET
+              empresa = COALESCE(${empresa}, empresa), razon_social = COALESCE(${empresa}, razon_social),
+              cuit = COALESCE(${cuit}, cuit), provincia = COALESCE(${provincia}, provincia),
+              localidad = COALESCE(${localidad}, localidad), domicilio = COALESCE(${domicilio}, domicilio),
+              whatsapp = COALESCE(${whatsapp}, whatsapp), updated_at = now(), ultimo_contacto_at = now()
+            WHERE crm_eliminado IS NOT TRUE AND (revendedor_token = ${token} OR lower(email) = ${emailLower})
+            RETURNING id`
+        : await sql`
+            UPDATE clientes SET
+              empresa = COALESCE(${empresa}, empresa), razon_social = COALESCE(${empresa}, razon_social),
+              cuit = COALESCE(${cuit}, cuit), provincia = COALESCE(${provincia}, provincia),
+              localidad = COALESCE(${localidad}, localidad), domicilio = COALESCE(${domicilio}, domicilio),
+              whatsapp = COALESCE(${whatsapp}, whatsapp), updated_at = now(), ultimo_contacto_at = now()
+            WHERE crm_eliminado IS NOT TRUE AND revendedor_token = ${token}
+            RETURNING id`
+      if (!upd.length && (email || nombre)) {
+        await sql`
+          INSERT INTO clientes (tipo, nombre, apellido, empresa, razon_social, email, whatsapp, cuit, domicilio, localidad, provincia, origen, origenes, revendedor_token, revendedor_nombre, primer_contacto_at, ultimo_contacto_at)
+          VALUES ('empresa', ${nombre}, ${apellido}, ${empresa}, ${empresa}, ${email}, ${whatsapp}, ${cuit}, ${domicilio}, ${localidad}, ${provincia}, 'revendedor', ARRAY['revendedor'], ${token}, ${[nombre, apellido].filter(Boolean).join(' ') || null}, now(), now())
+        `
+      } else if (upd.length) {
+        // Asegura el vínculo del token para futuras sincronizaciones
+        await sql`UPDATE clientes SET revendedor_token = ${token} WHERE id = ${upd[0].id} AND (revendedor_token IS NULL OR revendedor_token = '')`
+      }
+    } catch (e: any) {
+      console.error('[perfil] sync CRM falló (no bloqueante):', e.message)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {

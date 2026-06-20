@@ -1,4 +1,4 @@
-// /api/recordatorio-perfil  — Mail a revendedores aprobados/activos para que
+// /api/recordatorio-perfil  - Mail a revendedores aprobados/activos para que
 // revisen y completen sus datos de perfil. Corre en Vercel (env vars resuelven ahí).
 //
 //   GET  ?key=GUARD                 -> dry-run: lista destinatarios (no envía)
@@ -20,7 +20,7 @@ function html(nombre: string, token: string): string {
   return `<!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Revisá tus datos — Portal Revendedores Febecos</title>
+<title>Revisá tus datos - Portal Revendedores Febecos</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f0f4f8;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a2a3a}
@@ -75,19 +75,33 @@ body{background:#f0f4f8;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a2
   </div>
   <div class="footer">
     <p>
-      <strong>Patricio Ratto</strong> · Febecos Bombas Solares<br/>
+      <strong>Guillermo Sandler</strong> · Febecos Bombas Solares<br/>
       <a href="mailto:revende@febecos.com">revende@febecos.com</a> ·
       <a href="https://febecos.com">febecos.com</a>
     </p>
-    <p style="margin-top:8px;">Lun a Vie 10–17 hs</p>
+    <p style="margin-top:8px;">Lun a Vie 10-17 hs</p>
   </div>
 </div></body></html>`
 }
 
-async function getDestinatarios() {
+// soloVencidos=true → solo revendedores cuyos datos nunca se actualizaron o
+// hace más de 6 meses (recordatorio semestral). false → todos los aprobados/activos.
+async function getDestinatarios(soloVencidos = false) {
   const sql = getDb()
+  if (soloVencidos) {
+    return await sql`
+      SELECT nombre, email, token_acceso, datos_actualizados_at
+      FROM solicitudes_revendedor
+      WHERE estado IN ('aprobado','activo')
+        AND token_acceso IS NOT NULL
+        AND token_acceso_activo = true
+        AND email IS NOT NULL AND email <> ''
+        AND (datos_actualizados_at IS NULL OR datos_actualizados_at < now() - interval '6 months')
+      ORDER BY datos_actualizados_at ASC NULLS FIRST, created_at DESC
+    `
+  }
   return await sql`
-    SELECT nombre, email, token_acceso
+    SELECT nombre, email, token_acceso, datos_actualizados_at
     FROM solicitudes_revendedor
     WHERE estado IN ('aprobado','activo')
       AND token_acceso IS NOT NULL
@@ -101,7 +115,8 @@ export async function GET(req: NextRequest) {
   if (req.nextUrl.searchParams.get('key') !== GUARD) {
     return NextResponse.json({ ok: false, error: 'no autorizado' }, { status: 401 })
   }
-  const rows = await getDestinatarios()
+  const soloVencidos = req.nextUrl.searchParams.get('vencidos') === '1'
+  const rows = await getDestinatarios(soloVencidos)
   return NextResponse.json({
     ok: true,
     total: rows.length,
@@ -115,7 +130,9 @@ export async function POST(req: NextRequest) {
   }
 
   const testEmail = (req.nextUrl.searchParams.get('test') || '').toLowerCase().trim()
-  let rows = await getDestinatarios()
+  // En masivo, por defecto solo se manda a los vencidos (>6 meses). vencidos=0 fuerza a todos.
+  const soloVencidos = req.nextUrl.searchParams.get('vencidos') !== '0'
+  let rows = await getDestinatarios(testEmail ? false : soloVencidos)
   if (testEmail) {
     rows = rows.filter((r: any) => (r.email || '').toLowerCase() === testEmail)
     if (!rows.length) {

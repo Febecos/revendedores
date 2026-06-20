@@ -1,4 +1,4 @@
-// /api/seguimiento-demo — Follow-up a usuarios con estado='demo'
+// /api/seguimiento-demo - Follow-up a usuarios con estado='demo'
 //
 //   GET  ?key=GUARD                 → dry-run: lista destinatarios (no envía)
 //   POST ?key=GUARD                 → envía a TODOS los demos con token activo
@@ -17,7 +17,7 @@ function html(nombre: string, token: string): string {
   return `<!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Seguimiento demo — Portal Revendedores Febecos</title>
+<title>Seguimiento demo - Portal Revendedores Febecos</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f0f4f8;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a2a3a}
@@ -84,11 +84,11 @@ body{background:#f0f4f8;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a2
 
   <div class="footer">
     <p>
-      <strong>Patricio Ratto</strong> · Febecos Bombas Solares<br/>
+      <strong>Guillermo Sandler</strong> · Febecos Bombas Solares<br/>
       <a href="mailto:revende@febecos.com">revende@febecos.com</a> ·
       <a href="https://febecos.com">febecos.com</a>
     </p>
-    <p style="margin-top:6px">Lun a Vie 10–17 hs · Argentina</p>
+    <p style="margin-top:6px">Lun a Vie 10-17 hs · Argentina</p>
   </div>
 
 </div></body></html>`
