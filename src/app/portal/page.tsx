@@ -714,6 +714,61 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   }
 
   // Guarda el presupuesto en la base de datos en background (best-effort)
+  function buildFvItems(): any[] | null {
+    if (!data?.bomba || !data?.kit) return null
+    const SENSOR_MAX_M = 100
+    const esPozoP = profInput > 30 && (data.bomba.tipo || '').toLowerCase().includes('sumergi')
+    const cabItem  = data.kit.find((i: any) => i.familia === 'cable' && (i.nombre || '').toLowerCase().includes('sumergible'))
+    const sogaItem = data.kit.find((i: any) => (i.nombre || '').toLowerCase().includes('soga') || (i.nombre || '').toLowerCase().includes('anti-uv'))
+    const sensItem = data.kit.find((i: any) => i.familia === 'cable' && (i.nombre || '').toLowerCase().includes('sensor'))
+    const metrosBaseCable  = cabItem?.cantidad ?? 30
+    const metrosBaseSoga   = sogaItem?.cantidad ?? 30
+    const metrosBaseSensor = sensItem?.cantidad ?? 20
+    const metrosNecesarios = Math.ceil((profInput + 10) / 10) * 10
+    const metrosTotal      = esPozoP ? (cableMetros ?? metrosNecesarios) : 0
+    const sensorFuera      = distanciaTablero != null && distanciaTablero > SENSOR_MAX_M
+    const metrosSensor     = (!sensorFuera && distanciaTablero != null && distanciaTablero > metrosBaseSensor)
+      ? distanciaTablero : metrosBaseSensor
+    const esMC4     = (n: string) => /\bmc4\b|ficha mc/i.test(n || '')
+    const esCableSub = (it: any) => it.familia === 'cable' && (it.nombre || '').toLowerCase().includes('sumergible')
+    const esSoga     = (it: any) => (it.nombre || '').toLowerCase().includes('soga') || (it.nombre || '').toLowerCase().includes('anti-uv')
+    const esSensor   = (it: any) => it.familia === 'cable' && (it.nombre || '').toLowerCase().includes('sensor')
+
+    const items: any[] = []
+    items.push({
+      codigo:      data.bomba.codigo,
+      descripcion: `${data.bomba.marca} ${data.bomba.watts}W — ${data.bomba.impulsor || 'centrifuga'}`,
+      cantidad:    1,
+      unidad:      'unidad',
+      proveedor:   '',
+      iva_pct:     21,
+    })
+    for (const item of data.kit) {
+      if (esMC4(item.nombre)) continue
+      if (sensorFuera && esSensor(item)) continue
+      const esPanel = (item.familia || '').toLowerCase() === 'panel'
+      let cant = item.cantidad
+      if (esPanel && data.bomba.cant_paneles) {
+        cant = data.bomba.cant_paneles
+      } else if (esPozoP && (esCableSub(item) || esSoga(item))) {
+        cant = Math.max(item.cantidad, metrosTotal)
+      } else if (esSensor(item) && distanciaTablero != null && distanciaTablero > item.cantidad) {
+        cant = metrosSensor
+      }
+      const entry: any = {
+        codigo:      item.codigo || '',
+        descripcion: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''),
+        cantidad:    cant,
+        unidad:      item.unidad || 'unidad',
+        proveedor:   '',
+        iva_pct:     21,
+      }
+      if (item.notas) entry.notas = item.notas
+      items.push(entry)
+    }
+    return items
+  }
+
   function guardarPresupuestoDB(
     nro: string,
     precio: number | null,
@@ -757,6 +812,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
         // forzar: crear un contacto NUEVO con un CUIT ya existente (confirmado por el vendedor).
         forzar: forzarNuevoContacto || false,
         public_token: publicToken || null,
+        fv_items: buildFvItems(),
       }),
     }).catch(() => { /* silencioso */ })
 

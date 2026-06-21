@@ -40,6 +40,7 @@ async function ensureTable(sql: any) {
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_cod_postal TEXT`
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_condicion_fiscal TEXT`
   await sql`CREATE INDEX IF NOT EXISTS idx_presupuestos_token ON presupuestos(public_token)`
+  await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS fv_items JSONB`
 }
 
 export async function POST(req: NextRequest) {
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
       cliente_nombre, cliente_apellido, cliente_telefono, cliente_email, cliente_zona,
       cliente_razon_social, cliente_cuit, cliente_domicilio,
       cliente_localidad, cliente_cod_postal, cliente_condicion_fiscal, cliente_id, forzar, public_token,
+      fv_items,
     } = body
 
     if (!numero) return NextResponse.json({ error: 'numero requerido' }, { status: 400 })
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
     const sql = getDb()
     await ensureTable(sql)
 
+    const fvItemsJson = fv_items ? JSON.stringify(fv_items) : null
     const rows = await sql`
       INSERT INTO presupuestos (
         numero, revendedor_token, revendedor_nombre, revendedor_email,
@@ -68,7 +71,8 @@ export async function POST(req: NextRequest) {
         tipo_precio, precio_publico, precio_ofrecido, descuento_pct,
         cliente_nombre, cliente_apellido, cliente_telefono, cliente_email, cliente_zona,
         cliente_razon_social, cliente_cuit, cliente_domicilio,
-        cliente_localidad, cliente_cod_postal, cliente_condicion_fiscal, cliente_id, public_token
+        cliente_localidad, cliente_cod_postal, cliente_condicion_fiscal, cliente_id, public_token,
+        fv_items
       ) VALUES (
         ${numero},
         ${revendedor_token || null}, ${revendedor_nombre || null}, ${revendedor_email || null},
@@ -80,7 +84,8 @@ export async function POST(req: NextRequest) {
         ${cliente_nombre || null}, ${cliente_apellido || null},
         ${cliente_telefono || null}, ${cliente_email || null}, ${cliente_zona || null},
         ${cliente_razon_social || null}, ${cliente_cuit || null}, ${cliente_domicilio || null},
-        ${cliente_localidad || null}, ${cliente_cod_postal || null}, ${cliente_condicion_fiscal || null}, ${cliente_id || null}, ${public_token || null}
+        ${cliente_localidad || null}, ${cliente_cod_postal || null}, ${cliente_condicion_fiscal || null}, ${cliente_id || null}, ${public_token || null},
+        ${fvItemsJson}::jsonb
       )
       RETURNING id, numero, created_at
     `
