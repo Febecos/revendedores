@@ -62,7 +62,22 @@ export async function POST(req: NextRequest) {
     const sql = getDb()
     await ensureTable(sql)
 
-    const fvItemsJson = fv_items ? JSON.stringify(fv_items) : null
+    // Fallback server-side: si el cliente no mandó fv_items (data.kit no estaba cargado)
+    // pero hay bomba_codigo, lo buscamos desde el endpoint de ROI que ya tiene la lógica de metros.
+    let resolvedFvItems = fv_items || null
+    if (!resolvedFvItems && bomba_codigo) {
+      try {
+        const params = new URLSearchParams({ codigo: bomba_codigo })
+        if (profundidad_m)    params.set('profundidad',       String(profundidad_m))
+        if (longitud_total_m) params.set('distancia_sensor',  String(longitud_total_m))
+        const kitRes = await fetch(`https://roi.febecos.com/api/kit-items?${params}`)
+        if (kitRes.ok) {
+          const kitData = await kitRes.json().catch(() => null)
+          if (Array.isArray(kitData?.fv_items)) resolvedFvItems = kitData.fv_items
+        }
+      } catch { /* silencioso — el presupuesto se guarda igual, Gestión lo marca "kit sin desglosar" */ }
+    }
+    const fvItemsJson = resolvedFvItems ? JSON.stringify(resolvedFvItems) : null
     const rows = await sql`
       INSERT INTO presupuestos (
         numero, revendedor_token, revendedor_nombre, revendedor_email,
