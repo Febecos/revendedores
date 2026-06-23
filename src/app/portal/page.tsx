@@ -761,7 +761,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
         cantidad:    cant,
         unidad:      item.unidad || 'unidad',
         proveedor:   '',
-        iva_pct:     21,
+        // Panel solar = IVA reducido 10,5% (igual que el desglose del PDF); el resto 21%.
+        iva_pct:     esPanel ? 10.5 : 21,
       }
       if (item.notas) entry.notas = item.notas
       items.push(entry)

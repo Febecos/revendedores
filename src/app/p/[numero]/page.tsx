@@ -527,8 +527,16 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
   const metrosExtraSensor = (!sensorFueraRango && distanciaTablero != null) ? Math.max(0, distanciaTablero - metrosBaseSensor) : 0
   const extraSensor = Math.round(precioSensorM * metrosExtraSensor * factorDesc)
   const extraSensorPub = Math.round(precioSensorM * metrosExtraSensor)
+  // Precio de lista = el precio ofrecido (CONGELADO al emitir) "des-descontado".
+  // NO recalcular desde bomba.precio_full LIVE: el catálogo cambia con el tiempo y un
+  // presupuesto viejo mostraría la lista de HOY contra el precio especial CONGELADO → el
+  // % no cierra (ej. "15% descuento" pero los números dan 27%). El precioPDF se generó como
+  // (1 - desc/100) * (precio_full + extras), así que /(1 - desc/100) recupera la lista exacta
+  // del día de emisión y el ratio lista→especial coincide siempre con el descuento mostrado.
   const precioListaConExtras = (bomba?.precio_full ? Number(bomba.precio_full) : (p.precio_publico ? Number(p.precio_publico) : null))
-  const precioListaTotal = precioListaConExtras != null ? precioListaConExtras + extraCablePub + extraSogaPub + extraSensorPub : null
+  const precioListaTotal = (descuento > 0 && precioPDF != null)
+    ? Math.round(precioPDF / (1 - descuento / 100))
+    : (precioListaConExtras != null ? precioListaConExtras + extraCablePub + extraSogaPub + extraSensorPub : null)
 
   // ── Kit (idéntico a generarPDF) ──────────────────────────────────────────
   const kitOrdenado: { nombre: string; notas: string; cantidad: number; unidad: string; _f: number }[] = []
