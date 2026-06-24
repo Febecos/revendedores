@@ -110,32 +110,40 @@ export async function POST(req: NextRequest) {
     // La atribución revendedor (interno/externo) la maneja el portal vía /api/registrar-cliente;
     // acá NO atribuimos para no falsear (solo aseguramos la existencia del cliente).
     if (cliente_nombre || cliente_email || cliente_telefono || cliente_cuit) {
-      fetch('https://febecos.com/api/admin?action=upsert_cliente', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.INTERNAL_SERVICE_SECRET || ''}`,
-        },
-        body: JSON.stringify({
-          tipo: 'cliente_final',
-          nombre: [cliente_nombre, cliente_apellido].filter(Boolean).join(' ') || null,
-          email: cliente_email || null,
-          whatsapp: cliente_telefono || null,
-          cuit: cliente_cuit || null,
-          razon_social: cliente_razon_social || null,
-          domicilio: cliente_domicilio || null,
-          localidad: cliente_localidad || null,
-          cod_postal: cliente_cod_postal || null,
-          condicion_fiscal: cliente_condicion_fiscal || null,
-          provincia: cliente_zona || null,
-          // Vínculo de contacto: cliente_id = actualizar ese contacto; forzar = crear nuevo
-          // con CUIT repetido (confirmado en el front). Sin esto, upsert dedup por CUIT.
-          cliente_id: cliente_id || null,
-          forzar: forzar || false,
-          origen: 'cotizador_bombas',
-          bump: 'presupuesto',
-        }),
-      }).catch(() => {})
+      try {
+        const up = await fetch('https://febecos.com/api/admin?action=upsert_cliente', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.INTERNAL_SERVICE_SECRET || ''}`,
+          },
+          body: JSON.stringify({
+            tipo: 'cliente_final',
+            nombre: [cliente_nombre, cliente_apellido].filter(Boolean).join(' ') || null,
+            email: cliente_email || null,
+            whatsapp: cliente_telefono || null,
+            cuit: cliente_cuit || null,
+            razon_social: cliente_razon_social || null,
+            domicilio: cliente_domicilio || null,
+            localidad: cliente_localidad || null,
+            cod_postal: cliente_cod_postal || null,
+            condicion_fiscal: cliente_condicion_fiscal || null,
+            provincia: cliente_zona || null,
+            // Vínculo de contacto: cliente_id = actualizar ese contacto; forzar = crear nuevo
+            // con CUIT repetido (confirmado en el front). Sin esto, upsert dedup por CUIT.
+            cliente_id: cliente_id || null,
+            forzar: forzar || false,
+            origen: 'cotizador_bombas',
+            bump: 'presupuesto',
+          }),
+        })
+        // CRM = fuente única: si el presupuesto se guardó SIN cliente_id, vincularlo con el id
+        // que devolvió el upsert (antes quedaba null → no aparecía la ficha 👤 en gestión).
+        const d = await up.json().catch(() => ({} as any))
+        if (!cliente_id && d && d.ok && d.id) {
+          await sql`UPDATE presupuestos SET cliente_id = ${d.id} WHERE numero = ${numero} AND cliente_id IS NULL`.catch(() => {})
+        }
+      } catch { /* el presupuesto ya quedó guardado; el match difuso de gestión lo resuelve igual */ }
     }
 
     return NextResponse.json({ ok: true, presupuesto: rows[0] })
