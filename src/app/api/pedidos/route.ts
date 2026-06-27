@@ -26,6 +26,7 @@ function fmt(n: number) {
 const METODO_LABEL: Record<string, string> = {
   transferencia: '🏦 Transferencia bancaria',
   nave:          '📅 6 cuotas NAVE',
+  tc:            '💳 6 cuotas con tarjeta de crédito',
   mercadopago:   '💳 Mercado Pago',
 }
 const TIPO_LABEL: Record<string, string> = {

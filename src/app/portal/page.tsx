@@ -1066,6 +1066,7 @@ ${precioPDF ? `<div class="precio-box">
   </div>
   ${!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : ''}
 </div>
+${(data?.bomba?.cuota_mensual || data?.bomba?.precio_6cuotas) ? `<div style="font-size:11px;color:#1a6b3c;background:#f0f9f4;border:1px solid #cdeede;border-radius:8px;padding:7px 14px;margin:-4px 0 12px">💳 <strong>6 cuotas con tarjeta de crédito:</strong> ${data.bomba.cuota_mensual ? `${fmt(data.bomba.cuota_mensual)}/mes` : ''}${data.bomba.precio_6cuotas ? ` <span style="color:#666">(total ${fmt(data.bomba.precio_6cuotas)} en 6 cuotas)</span>` : ''}</div>` : ''}
 ${(() => {
   // Mostrar desglose IVA cuando hay descuento aplicado O cliente con CUIT
   const mostrarDesglose = descuento > 0 || !!cd?.cuit
@@ -2705,7 +2706,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
   const [provincia, setProvincia] = useState('')
   const [sistemaActual, setSistemaActual] = useState('')
   const [mostrarPago, setMostrarPago] = useState(false)
-  const [pagoTab, setPagoTab] = useState<'transferencia'|'nave'|'mp'>('transferencia')
+  const [pagoTab, setPagoTab] = useState<'transferencia'|'nave'|'tc'|'mp'>('transferencia')
   const [pedidoLoading, setPedidoLoading] = useState(false)
   const [pedidoEnviado, setPedidoEnviado] = useState(false)
   const [pedidoError, setPedidoError] = useState('')
@@ -2732,7 +2733,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
     return `https://roi.febecos.com?${params.toString()}`
   }
 
-  async function enviarPedido(metodo: 'transferencia' | 'nave' | 'mercadopago') {
+  async function enviarPedido(metodo: 'transferencia' | 'nave' | 'tc' | 'mercadopago') {
     if (!aceptaTCPago) {
       setPedidoError('Debés aceptar los Términos y Condiciones para continuar.')
       return
@@ -2895,6 +2896,7 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
                   ? [
                       { key:'transferencia' as const, label:'🏦 Transferencia', sub:'Precio público' },
                       { key:'nave' as const, label:'📅 6 cuotas NAVE', sub:'Precio público' },
+                      { key:'tc' as const, label:'💳 6 cuotas con TC', sub:'Precio público' },
                       { key:'mp' as const, label:'💳 Mercado Pago', sub:'Precio público + tasas' },
                     ]
                   : [
@@ -3007,6 +3009,32 @@ function BombaCard({ bomba, caudal, nota, descuento, mostrarPublico, precioMostr
                     <button onClick={() => enviarPedido('nave')} disabled={pedidoLoading}
                       style={{ width:'100%', padding:'12px', background: pedidoLoading ? '#1e3248' : '#4ade80', color:'#0a1520', borderRadius:8, border:'none', fontSize:14, fontWeight:800, cursor: pedidoLoading ? 'not-allowed' : 'pointer' }}>
                       {pedidoLoading ? '⏳ Enviando...' : '📅 Solicitar pago en 6 cuotas NAVE'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Tab: 6 cuotas con Tarjeta de Crédito */}
+                {effectivePagoTab === 'tc' && (
+                  <div>
+                    <div style={{ background:'rgba(74,222,128,0.07)', border:'1px solid rgba(74,222,128,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:12 }}>
+                      <div style={{ fontSize:10, color:'#7a9ab5', textTransform:'uppercase' as const, letterSpacing:'0.06em', marginBottom:4 }}>Precio público — 6 cuotas con tarjeta de crédito</div>
+                      {cuotaNave ? (
+                        <>
+                          <div style={{ fontSize:22, fontWeight:800, color:'#4ade80', fontFamily:'monospace' }}>{fmt(cuotaNave)}<span style={{ fontSize:13, fontWeight:400, color:'#7a9ab5' }}>/mes</span></div>
+                          {totalNave && <div style={{ fontSize:11, color:'#7a9ab5', marginTop:2 }}>Total: {fmt(totalNave)} en 6 cuotas</div>}
+                        </>
+                      ) : (
+                        <div style={{ fontSize:14, fontWeight:700, color:'#7a9ab5' }}>Consultá la cuota</div>
+                      )}
+                    </div>
+                    <div style={{ fontSize:11, color:'#e8681a', background:'rgba(232,104,26,0.08)', borderRadius:8, padding:'8px 12px', marginBottom:12, display:'flex', gap:8 }}>
+                      <span>ℹ️</span>
+                      <span>6 cuotas fijas con tarjeta de crédito. Al confirmar, un vendedor te enviará el link de pago. Precio público sin descuento mayorista.</span>
+                    </div>
+                    {pedidoError && <div style={{ fontSize:12, color:'#ff6b6b', marginBottom:8 }}>{pedidoError}</div>}
+                    <button onClick={() => enviarPedido('tc')} disabled={pedidoLoading}
+                      style={{ width:'100%', padding:'12px', background: pedidoLoading ? '#1e3248' : '#4ade80', color:'#0a1520', borderRadius:8, border:'none', fontSize:14, fontWeight:800, cursor: pedidoLoading ? 'not-allowed' : 'pointer' }}>
+                      {pedidoLoading ? '⏳ Enviando...' : '💳 Solicitar pago en 6 cuotas con TC'}
                     </button>
                   </div>
                 )}

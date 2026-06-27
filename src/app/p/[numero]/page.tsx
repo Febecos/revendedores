@@ -691,6 +691,7 @@ ${precioPDF ? `<div class="precio-box">
   </div>
   ${!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : ''}
 </div>
+${(bomba?.cuota_mensual || bomba?.precio_6cuotas) ? `<div style="font-size:11px;color:#1a6b3c;background:#f0f9f4;border:1px solid #cdeede;border-radius:8px;padding:7px 14px;margin:-4px 0 12px">💳 <strong>6 cuotas con tarjeta de crédito:</strong> ${bomba.cuota_mensual ? `${fmt(bomba.cuota_mensual)}/mes` : ''}${bomba.precio_6cuotas ? ` <span style="color:#666">(total ${fmt(bomba.precio_6cuotas)} en 6 cuotas)</span>` : ''}</div>` : ''}
 ${desgloseHtml}` : ''}
 ${(esPozosProfundo || extraSensor > 0) ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px">
   <strong>⚠️ Extras de instalación incluidos en el precio:</strong><br>
