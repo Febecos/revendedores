@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { antiSpam } from '@/lib/anti-spam'
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
@@ -274,6 +275,7 @@ function htmlAdmin(nombre: string, email: string, whatsapp: string, localidad: s
 
 export async function POST(req: NextRequest) {
   let nombre = '', email = '', whatsapp = '', localidad = '', via = 'formulario'
+  let website: unknown = ''
 
   try {
     const body = await req.json()
@@ -282,6 +284,7 @@ export async function POST(req: NextRequest) {
     whatsapp  = (body.whatsapp  || '').trim()
     localidad = (body.localidad || '').trim()
     via       = (body.via       || 'formulario').trim()
+    website   = body.website    || ''   // honeypot anti-bot (lo manda FormularioWA)
   } catch {
     return NextResponse.json({ ok: false, error: 'body inválido' }, { status: 400 })
   }
@@ -289,6 +292,12 @@ export async function POST(req: NextRequest) {
   if (!email) {
     return NextResponse.json({ ok: false, error: 'email requerido' }, { status: 400 })
   }
+
+  // Anti-abuso: honeypot + rate-limit por IP + dominios descartables.
+  // Evita que el endpoint se use como open-relay para spam con el dominio Febecos.
+  // El bot/abuso recibe un 200 falso (okBody) o 429; el lead legítimo (1 envío) pasa siempre.
+  const blocked = antiSpam(req, { honeypot: website, email })
+  if (blocked) return blocked
 
   try {
     const resend = getResend()
