@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { upsertClienteGestion } from '@/lib/crm-upsert'
+import { emitEvento } from '@/lib/eventos'
 
 async function ensureTable(sql: any) {
   await sql`
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
     // Fire & forget — garantiza que TODO presupuesto de bombas tenga su cliente en el CRM.
     // La atribución revendedor (interno/externo) la maneja el portal vía /api/registrar-cliente;
     // acá NO atribuimos para no falsear (solo aseguramos la existencia del cliente).
+    let clienteIdResuelto: number | null = cliente_id || null
     if (cliente_nombre || cliente_email || cliente_telefono || cliente_cuit) {
       try {
         const up = await fetch('https://febecos.com/api/admin?action=upsert_cliente', {
@@ -142,10 +144,35 @@ export async function POST(req: NextRequest) {
         // que devolvió el upsert (antes quedaba null → no aparecía la ficha 👤 en gestión).
         const d = await up.json().catch(() => ({} as any))
         if (!cliente_id && d && d.ok && d.id) {
+          clienteIdResuelto = d.id
           await sql`UPDATE presupuestos SET cliente_id = ${d.id} WHERE numero = ${numero} AND cliente_id IS NULL`.catch(() => {})
         }
       } catch { /* el presupuesto ya quedó guardado; el match difuso de gestión lo resuelve igual */ }
     }
+
+    // C2 (OBJETIVO-99): emitir cotizacion.creada al bus de eventos (origen='revendedores').
+    // Habilita el seguimiento de cotización abandonada (consumidor: Envíos). Fire-and-forget.
+    const esClienteFinal = !!(cliente_nombre || cliente_apellido || cliente_email || cliente_telefono || cliente_razon_social)
+    await emitEvento(sql, {
+      tipo: 'cotizacion.creada',
+      entidad: 'presupuesto',
+      entidadId: numero,
+      clienteId: clienteIdResuelto,
+      idempotencyKey: `revendedores:cotizacion.creada:${numero}`,
+      payload: {
+        presupuesto_numero: numero,
+        public_token: public_token || null,
+        cliente_id: clienteIdResuelto,
+        email: cliente_email || null,
+        telefono: cliente_telefono || null,
+        bomba_codigo: bomba_codigo || null,
+        precio: precio_ofrecido ?? null,
+        revendedor_token: revendedor_token || null,   // identificador del revendedor (no hay id numérico en el portal)
+        revendedor_nombre: revendedor_nombre || null,
+        audiencia: esClienteFinal ? 'cliente_final' : 'revendedor',
+        ts: rows[0].created_at,
+      },
+    })
 
     return NextResponse.json({ ok: true, presupuesto: rows[0] })
   } catch (err: any) {

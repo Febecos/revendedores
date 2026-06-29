@@ -46,7 +46,10 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
   const [cuitLoading, setCuitLoading] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/presupuesto-publico?t=${encodeURIComponent(params.numero)}`)
+    // rev = token del revendedor (cuando abre su propio preview/edición). Se lo pasamos a la API
+    // para que NO cuente como "vista del cliente" en el bus de eventos (C2/abandono).
+    const revParam = searchParams.get('rev')
+    fetch(`/api/presupuesto-publico?t=${encodeURIComponent(params.numero)}${revParam ? `&rev=${encodeURIComponent(revParam)}` : ''}`)
       .then(r => (r.ok ? r.json() : Promise.reject()))
       .then(async d => {
         const p = d.presupuesto
