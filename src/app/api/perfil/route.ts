@@ -2,6 +2,7 @@
 // POST /api/perfil             — actualiza campos permitidos del perfil
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { upsertClienteGestion } from '@/lib/crm-upsert'
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token')
@@ -92,42 +93,40 @@ export async function POST(req: NextRequest) {
       WHERE token_acceso = ${token}
     `
 
-    // 4. Sincronizar al CRM central (clientes). Se busca por revendedor_token; si no
-    //    existe, por email; si tampoco, se crea. No bloquea la respuesta si falla.
+    // 4. Sincronizar al CRM central (clientes) — D1 (OBJETIVO-99): la ESCRITURA va por el
+    //    endpoint único de Gestión (dueño del dato), NO por SQL directo. Resolvemos el
+    //    cliente_id con un READ por revendedor_token OR email (misma resolución que antes,
+    //    porque el endpoint resuelve por cuit/email/wa pero no por token) y se lo pasamos.
+    //    No bloquea la respuesta si falla.
     try {
       const email = (actual.email || '').trim() || null
       const emailLower = email ? email.toLowerCase() : null
       const nombre = (actual.nombre || '').trim() || null
       const apellido = (actual.apellido || '').trim() || null
-      // Sin fragmentos anidados (rompen neon serverless): dos queries según haya email o no.
-      const upd = emailLower
-        ? await sql`
-            UPDATE clientes SET
-              empresa = COALESCE(${empresa}, empresa), razon_social = COALESCE(${empresa}, razon_social),
-              cuit = COALESCE(${cuit}, cuit), provincia = COALESCE(${provincia}, provincia),
-              localidad = COALESCE(${localidad}, localidad), domicilio = COALESCE(${domicilio}, domicilio),
-              whatsapp = COALESCE(${whatsapp}, whatsapp), updated_at = now(), ultimo_contacto_at = now()
-            WHERE crm_eliminado IS NOT TRUE AND (revendedor_token = ${token} OR lower(email) = ${emailLower})
-            RETURNING id`
-        : await sql`
-            UPDATE clientes SET
-              empresa = COALESCE(${empresa}, empresa), razon_social = COALESCE(${empresa}, razon_social),
-              cuit = COALESCE(${cuit}, cuit), provincia = COALESCE(${provincia}, provincia),
-              localidad = COALESCE(${localidad}, localidad), domicilio = COALESCE(${domicilio}, domicilio),
-              whatsapp = COALESCE(${whatsapp}, whatsapp), updated_at = now(), ultimo_contacto_at = now()
-            WHERE crm_eliminado IS NOT TRUE AND revendedor_token = ${token}
-            RETURNING id`
-      if (!upd.length && (email || nombre)) {
-        await sql`
-          INSERT INTO clientes (tipo, nombre, apellido, empresa, razon_social, email, whatsapp, cuit, domicilio, localidad, provincia, origen, origenes, revendedor_token, revendedor_nombre, primer_contacto_at, ultimo_contacto_at)
-          VALUES ('empresa', ${nombre}, ${apellido}, ${empresa}, ${empresa}, ${email}, ${whatsapp}, ${cuit}, ${domicilio}, ${localidad}, ${provincia}, 'revendedor', ARRAY['revendedor'], ${token}, ${[nombre, apellido].filter(Boolean).join(' ') || null}, now(), now())
-        `
-      } else if (upd.length) {
-        // Asegura el vínculo del token para futuras sincronizaciones
-        await sql`UPDATE clientes SET revendedor_token = ${token} WHERE id = ${upd[0].id} AND (revendedor_token IS NULL OR revendedor_token = '')`
-      }
+      // READ (no write): resolver el contacto existente igual que antes.
+      const found = emailLower
+        ? await sql`SELECT id FROM clientes WHERE crm_eliminado IS NOT TRUE AND (revendedor_token = ${token} OR lower(email) = ${emailLower}) LIMIT 1`
+        : await sql`SELECT id FROM clientes WHERE crm_eliminado IS NOT TRUE AND revendedor_token = ${token} LIMIT 1`
+      await upsertClienteGestion({
+        cliente_id: found.length ? found[0].id : undefined,
+        tipo: 'empresa',
+        nombre: nombre ?? undefined,
+        apellido: apellido ?? undefined,
+        empresa: empresa ?? undefined,
+        razon_social: empresa ?? undefined,
+        email: email ?? undefined,
+        whatsapp: whatsapp ?? undefined,
+        cuit: cuit ?? undefined,
+        domicilio: domicilio ?? undefined,
+        localidad: localidad ?? undefined,
+        provincia: provincia ?? undefined,
+        origen: 'revendedor',
+        origenes: ['revendedor'],
+        revendedor_token: token,
+        revendedor_nombre: [nombre, apellido].filter(Boolean).join(' ') || null,
+      })
     } catch (e: any) {
-      console.error('[perfil] sync CRM falló (no bloqueante):', e.message)
+      console.error('[perfil] sync CRM (endpoint Gestión) falló (no bloqueante):', e.message)
     }
 
     return NextResponse.json({ ok: true })

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { upsertClienteGestion } from '@/lib/crm-upsert'
 
 async function ensureTable(sql: any) {
   await sql`
@@ -216,22 +217,19 @@ export async function PATCH(req: NextRequest) {
       console.error('PATCH /api/presupuestos: no rows matched', { public_token, numero })
       return NextResponse.json({ ok: false, error: 'Presupuesto no encontrado', rows_updated: 0 }, { status: 404 })
     }
-    // Bidireccional: si se cambió el descuento, propagarlo al cliente del CRM (predeterminado).
-    if (descuento_pct != null && updated[0].cliente_id) {
-      await sql`UPDATE clientes SET descuento_pct = ${descuento_pct}, updated_at = now() WHERE id = ${updated[0].cliente_id}`.catch(() => {})
-    }
-    // Datos fiscales (domicilio/localidad/CP/provincia/condición fiscal): si se editaron acá,
-    // sincronizarlos al CRM por cliente_id. COALESCE → no pisa con null lo que ya esté cargado.
-    if (updated[0].cliente_id && (cliente_domicilio || cliente_localidad || cliente_cod_postal || cliente_condicion_fiscal || cliente_zona)) {
-      await sql`
-        UPDATE clientes SET
-          domicilio        = COALESCE(${cliente_domicilio ?? null}, domicilio),
-          localidad        = COALESCE(${cliente_localidad ?? null}, localidad),
-          cod_postal       = COALESCE(${cliente_cod_postal ?? null}, cod_postal),
-          condicion_fiscal = COALESCE(${cliente_condicion_fiscal ?? null}, condicion_fiscal),
-          provincia        = COALESCE(${cliente_zona ?? null}, provincia),
-          updated_at = now()
-        WHERE id = ${updated[0].cliente_id}`.catch(() => {})
+    // D1 (OBJETIVO-99): la escritura a `clientes` va por el endpoint único de Gestión
+    // (dueño del dato), NO por SQL directo. Propaga descuento (bidireccional) + datos
+    // fiscales por cliente_id. COALESCE del lado del endpoint → no pisa con null. Best-effort.
+    if (updated[0].cliente_id && (descuento_pct != null || cliente_domicilio || cliente_localidad || cliente_cod_postal || cliente_condicion_fiscal || cliente_zona)) {
+      await upsertClienteGestion({
+        cliente_id: updated[0].cliente_id,
+        descuento_pct: descuento_pct ?? undefined,
+        domicilio: cliente_domicilio ?? undefined,
+        localidad: cliente_localidad ?? undefined,
+        cod_postal: cliente_cod_postal ?? undefined,
+        condicion_fiscal: cliente_condicion_fiscal ?? undefined,
+        provincia: cliente_zona ?? undefined,
+      })
     }
     return NextResponse.json({ ok: true, rows_updated: updated.length, presupuesto: updated[0] })
   } catch (err: any) {
