@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
         p.numero, p.created_at, p.cliente_id, p.revendedor_token, p.revendedor_nombre, p.revendedor_email,
         p.bomba_codigo, p.bomba_descripcion, p.bomba_watts, p.bomba_marca,
         p.litros_dia, p.altura_m, p.profundidad_m, p.longitud_total_m,
-        p.tipo_precio, p.precio_publico, p.precio_ofrecido, p.descuento_pct,
+        p.tipo_precio, p.precio_publico, p.precio_ofrecido, p.descuento_pct, p.fv_items,
         p.cliente_nombre, p.cliente_apellido, p.cliente_telefono, p.cliente_zona,
         p.cliente_razon_social, p.cliente_cuit, p.cliente_domicilio,
         p.cliente_localidad, p.cliente_cod_postal, p.cliente_condicion_fiscal,

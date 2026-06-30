@@ -481,6 +481,14 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
   const descuento = p.descuento_pct ? Number(p.descuento_pct) : 0
   const mostrarPublico = descuento === 0
   const precioPDF: number | null = p.precio_ofrecido != null ? Number(p.precio_ofrecido) : (p.precio_publico != null ? Number(p.precio_publico) : null)
+  // Multi-equipo: N = cantidad de equipos iguales (de fv_items: máximo `equipo`). Default 1.
+  const nEquipos: number = (() => {
+    try {
+      const its = Array.isArray(p.fv_items) ? p.fv_items : (typeof p.fv_items === 'string' ? JSON.parse(p.fv_items) : [])
+      const max = Math.max(1, ...its.map((i: any) => Number(i?.equipo) || 1))
+      return Number.isFinite(max) ? max : 1
+    } catch { return 1 }
+  })()
 
   const revLogo = p.rev_logo, revEmpresa = p.rev_empresa, revCuit = p.rev_cuit, revDomicilio = p.rev_domicilio
   const revendedor = p.revendedor_nombre, revProvincia = p.rev_provincia, revEmail = p.revendedor_email, revTipo = p.rev_tipo
@@ -597,7 +605,7 @@ function construirPDF(p: any, bomba: any, kit: any[], curvas: any[]): string {
     if (!mostrarDesglose || !precioPDF) return ''
     const factorPrecio = mostrarPublico ? 1 : (1 - descuento / 100)
     const panelPublico = kit.filter((i: any) => (i.familia || '').toLowerCase() === 'panel').reduce((s: number, i: any) => s + (i.precio_ars || 0) * (i.cantidad || 1), 0)
-    const panelEnPrecio = panelPublico * factorPrecio
+    const panelEnPrecio = panelPublico * factorPrecio * nEquipos   // ×N equipos (split IVA escala con el total)
     const netoPanel = Math.round(panelEnPrecio / 1.105)
     const ivaPanel  = Math.round(netoPanel * 0.105)
     const netoResto = Math.round((precioPDF - panelEnPrecio) / 1.21)
@@ -691,6 +699,7 @@ ${precioPDF ? `<div class="precio-box">
   <div>
     <div class="precio-label">${mostrarPublico ? 'Precio público' : `Precio especial (${descuento}% descuento)`}</div>
     <div class="precio-val">${fmt(precioPDF)}</div>
+    ${nEquipos > 1 ? `<div style="font-size:11px;color:#e8681a;font-weight:700">${nEquipos} equipos × ${fmt(Math.round(precioPDF / nEquipos))} c/u (total)</div>` : ''}
   </div>
   ${!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : ''}
 </div>
@@ -707,7 +716,7 @@ ${sensorFueraRango ? `<div style="background:#fef2f2;border:1px solid #fecaca;bo
   <strong>⚠️ NOTA TÉCNICA:</strong> La distancia al tablero (${distanciaTablero}m) supera el rango máximo del cable de sensor estándar (${SENSOR_MAX_M}m).<br>
   Se requiere un <strong>sistema de control de sensor a distancia</strong> — cotizar por separado. El cable de sensor no está incluido en este presupuesto.
 </div>` : ''}
-${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
+${kitOrdenado.length > 0 ? `<h3>Kit completo incluido${nEquipos > 1 ? ` <span style="font-weight:400;color:#888;text-transform:none">— por equipo (× ${nEquipos} equipos)</span>` : ''}</h3>
 <table style="table-layout:fixed;width:100%"><thead><tr><th style="width:88%">Componente</th><th style="width:12%;text-align:center">Cant.</th></tr></thead>
 <tbody>${kitHtml2Col}</tbody></table>` : ''}
 <div class="footer">

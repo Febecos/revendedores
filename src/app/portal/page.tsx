@@ -539,6 +539,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   // Distancia al sensor de nivel (desde el controlador hasta el tanque donde va el sensor)
   // Pre-llenado con el valor calculado por la MCA (longitud cañería + altura tanque)
   const [distanciaTablero, setDistanciaTablero] = useState<number | null>(distSensorInicial > 0 ? distSensorInicial : null)
+  // Multi-equipo (solo vendedor interno): cantidad de equipos IGUALES (misma bomba+kit) en el presupuesto.
+  const [cantEquipos, setCantEquipos] = useState<number>(1)
 
   // ── Datos del cliente (solo cuando mostrarPublico=true) ───────────────────
   const [showClienteForm, setShowClienteForm] = useState(false)
@@ -576,6 +578,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
   // revendedor externo tiene su descuento FIJO: lo define la solapa
   // (Mayorista = su % asignado, Precio público = 0). No lo puede editar.
   const esVendInterno = revTipo === 'interno'
+  // N = cantidad de equipos iguales (solo interno). Para el resto, siempre 1.
+  const nEquipos = esVendInterno ? Math.max(1, Math.min(20, Math.round(cantEquipos) || 1)) : 1
   useEffect(() => {
     // "Precio público" = SIN descuento, para TODOS (interno y externo).
     if (mostrarPublico) { setDescuentoEfectivo(0); return }
@@ -734,12 +738,11 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
     const esSoga     = (it: any) => (it.nombre || '').toLowerCase().includes('soga') || (it.nombre || '').toLowerCase().includes('anti-uv')
     const esSensor   = (it: any) => it.familia === 'cable' && (it.nombre || '').toLowerCase().includes('sensor')
 
-    // Multi-equipo (OBJETIVO-99): cada ítem lleva `equipo` (1..N). Hoy 1 bomba = equipo 1.
-    // Formato confirmado por DEV Gestión: array plano + equipo + es_bomba; bomba con `bomba_codigo` (SKU).
-    const equipoNum = 1
-    const items: any[] = []
-    items.push({
-      equipo:      equipoNum,
+    // Multi-equipo (OBJETIVO-99): cada ítem lleva `equipo` (1..N). Formato confirmado por DEV
+    // Gestión: array plano + equipo + es_bomba; la bomba con `bomba_codigo` (SKU). Construyo
+    // los ítems de UN equipo (base) y los replico N veces (N=nEquipos, equipos IGUALES).
+    const baseItems: any[] = []
+    baseItems.push({
       es_bomba:    true,
       codigo:      data.bomba.codigo,
       bomba_codigo: data.bomba.codigo,   // SKU explícito (condición de Gestión para el pedido a proveedor)
@@ -762,7 +765,6 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
         cant = metrosSensor
       }
       const entry: any = {
-        equipo:      equipoNum,
         codigo:      item.codigo || '',
         descripcion: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''),
         cantidad:    cant,
@@ -772,8 +774,11 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
         iva_pct:     esPanel ? 10.5 : 21,
       }
       if (item.notas) entry.notas = item.notas
-      items.push(entry)
+      baseItems.push(entry)
     }
+    // Replicar a N equipos iguales: cada equipo = bomba+kit completos, tag equipo 1..N.
+    const items: any[] = []
+    for (let e = 1; e <= nEquipos; e++) for (const it of baseItems) items.push({ ...it, equipo: e })
     return items
   }
 
@@ -934,7 +939,8 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
     const precio = data?.bomba?.precio_full
       ? (mostrarPublico ? data.bomba.precio_full : precioMayorista(data.bomba.precio_full, descuento))
       : null
-    const precioPDF = precio != null ? precio + extrasTotal : null
+    // ×N equipos iguales (interno): el total del presupuesto es N veces el de un equipo.
+    const precioPDF = precio != null ? (precio + extrasTotal) * nEquipos : null
 
     // Datos del cliente a usar (pueden venir del form en esta llamada o del state)
     const cd = forceClienteData || (clienteReady ? { nombre: clienteNombre, apellido: clienteApellido, telefono: clienteTelefono, zona: clienteZona, razonSocial: clienteRazonSocial, cuit: clienteCuit, domicilio: clienteDomicilio, localidad: clienteLocalidad, codPostal: clienteCodPostal, condicionFiscal: clienteCondFiscal } : null)
@@ -1070,6 +1076,7 @@ ${precioPDF ? `<div class="precio-box">
   <div>
     <div class="precio-label">${mostrarPublico ? 'Precio público' : descuento > 0 ? `Precio especial (${descuento}% descuento)` : 'Precio'}</div>
     <div class="precio-val">${fmt(precioPDF)}</div>
+    ${nEquipos > 1 ? `<div style="font-size:11px;color:#e8681a;font-weight:700">${nEquipos} equipos × ${fmt(Math.round(precioPDF / nEquipos))} c/u (total)</div>` : ''}
   </div>
   ${!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : ''}
 </div>
@@ -1082,7 +1089,7 @@ ${(() => {
   const panelPublico = (data?.kit || [])
     .filter((i: any) => (i.familia || '').toLowerCase() === 'panel')
     .reduce((s: number, i: any) => s + (i.precio_ars || 0) * (i.cantidad || 1), 0)
-  const panelEnPrecio = panelPublico * factorPrecio
+  const panelEnPrecio = panelPublico * factorPrecio * nEquipos   // ×N equipos (split IVA escala con el total)
   const netoPanel = Math.round(panelEnPrecio / 1.105)
   const ivaPanel  = Math.round(netoPanel * 0.105)
   const netoResto = Math.round((precioPDF - panelEnPrecio) / 1.21)
@@ -1133,7 +1140,7 @@ ${sensorFueraRango ? `<div style="background:#fef2f2;border:1px solid #fecaca;bo
   <strong>⚠️ NOTA TÉCNICA:</strong> La distancia al tablero (${distanciaTablero}m) supera el rango máximo del cable de sensor estándar (${SENSOR_MAX_M}m).<br>
   Se requiere un <strong>sistema de control de sensor a distancia</strong> — cotizar por separado. El cable de sensor no está incluido en este presupuesto.
 </div>` : ''}
-${kitOrdenado.length > 0 ? `<h3>Kit completo incluido</h3>
+${kitOrdenado.length > 0 ? `<h3>Kit completo incluido${nEquipos > 1 ? ` <span style="font-weight:400;color:#888;text-transform:none">— por equipo (× ${nEquipos} equipos)</span>` : ''}</h3>
 <table style="table-layout:fixed;width:100%"><thead><tr><th style="width:88%">Componente</th><th style="width:12%;text-align:center">Cant.</th></tr></thead>
 <tbody>${kitHtml2Col}${!mostrarPublico && descuento > 0 && data?.bomba?.precio_full ? `<tr style="background:#f0faf4;border-top:2px solid #1a6b3c">
   <td style="padding:6px 8px;font-size:11px;color:#1a6b3c;font-weight:700">✂ Descuento revendedor (${descuento}%) — Ahorro sobre precio de lista ${fmt(data.bomba.precio_full)}</td>
@@ -1277,12 +1284,12 @@ ${curvasHtml ? `
   const extraSensor  = Math.round(precioSensorM * metrosExtraSensor * factorDesc)
 
   const extrasTotal  = extraCable + extraSoga + extraSensor
-  const precioConExtras = precio != null ? precio + extrasTotal : null
+  const precioConExtras = precio != null ? (precio + extrasTotal) * nEquipos : null   // ×N equipos
   // Extras a precio público (sin descuento) para mostrar "Precio de lista" correcto
   const extrasListaPublico = Math.round(precioCableM * metrosExtraCable)
     + Math.round(precioSogaM * metrosExtraSoga)
     + Math.round(precioSensorM * metrosExtraSensor)
-  const precioListaTotal = data?.bomba?.precio_full ? data.bomba.precio_full + extrasListaPublico : null
+  const precioListaTotal = data?.bomba?.precio_full ? (data.bomba.precio_full + extrasListaPublico) * nEquipos : null  // ×N equipos
 
   // Helpers para identificar items especiales en el kit
   const esMC4 = (n: string) => /\bmc4\b|ficha mc/i.test(n || '')
@@ -1613,6 +1620,22 @@ ${curvasHtml ? `
                   ) : <span style={{ fontSize: 11, color: '#3a5a7a' }}>Precio público</span>}
                 </div>
               </div>
+              {/* Cantidad de equipos — SOLO vendedor interno. N equipos IGUALES (misma bomba+kit). */}
+              {esVendInterno && (
+                <div style={{ gridColumn: '1/-1', borderTop: '1px solid #1e3248', paddingTop: 10, marginTop: 2 }}>
+                  <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4, fontWeight: 600 }}>
+                    Cantidad de equipos <span style={{ fontWeight: 400, color: '#7a9ab5', textTransform: 'none' as const }}>— equipos iguales (misma bomba + kit) en este presupuesto</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input value={cantEquipos} onChange={e => setCantEquipos(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                      type="number" min="1" max="20" step="1"
+                      style={{ width: 90, background: '#0d1a2a', border: '1px solid #1e3248', borderRadius: 6, padding: '8px 10px', color: '#e8f0f8', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+                    {nEquipos > 1
+                      ? <span style={{ fontSize: 12, color: '#e8681a', fontWeight: 700 }}>× {nEquipos} equipos — el total y el kit se multiplican por {nEquipos}</span>
+                      : <span style={{ fontSize: 11, color: '#3a5a7a' }}>1 equipo</span>}
+                  </div>
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
