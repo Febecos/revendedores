@@ -734,9 +734,15 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
     const esSoga     = (it: any) => (it.nombre || '').toLowerCase().includes('soga') || (it.nombre || '').toLowerCase().includes('anti-uv')
     const esSensor   = (it: any) => it.familia === 'cable' && (it.nombre || '').toLowerCase().includes('sensor')
 
+    // Multi-equipo (OBJETIVO-99): cada ítem lleva `equipo` (1..N). Hoy 1 bomba = equipo 1.
+    // Formato confirmado por DEV Gestión: array plano + equipo + es_bomba; bomba con `bomba_codigo` (SKU).
+    const equipoNum = 1
     const items: any[] = []
     items.push({
+      equipo:      equipoNum,
+      es_bomba:    true,
       codigo:      data.bomba.codigo,
+      bomba_codigo: data.bomba.codigo,   // SKU explícito (condición de Gestión para el pedido a proveedor)
       descripcion: `${data.bomba.marca} ${data.bomba.watts}W — ${data.bomba.impulsor || 'centrifuga'}`,
       cantidad:    1,
       unidad:      'unidad',
@@ -756,6 +762,7 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
         cant = metrosSensor
       }
       const entry: any = {
+        equipo:      equipoNum,
         codigo:      item.codigo || '',
         descripcion: item.nombre + (item.potencia_w ? ` ${item.potencia_w}W` : ''),
         cantidad:    cant,
