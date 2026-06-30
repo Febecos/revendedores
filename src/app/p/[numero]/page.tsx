@@ -701,9 +701,14 @@ ${precioPDF ? `<div class="precio-box">
     <div class="precio-val">${fmt(precioPDF)}</div>
     ${nEquipos > 1 ? `<div style="font-size:11px;color:#e8681a;font-weight:700">${nEquipos} equipos × ${fmt(Math.round(precioPDF / nEquipos))} c/u (total)</div>` : ''}
   </div>
-  ${!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : ''}
+  ${!mostrarPublico && precioListaTotal && precioPDF && precioListaTotal > precioPDF
+    ? `<div style="text-align:right">
+        <div style="font-size:11px;color:#999;text-decoration:line-through">Lista: ${fmt(precioListaTotal)}</div>
+        <div style="display:inline-block;background:#1a6b3c;color:#fff;font-weight:800;font-size:13px;padding:4px 12px;border-radius:8px;margin-top:4px">💰 Ahorrás ${fmt(precioListaTotal - precioPDF)}${descuento > 0 ? ` (${descuento}%)` : ''}</div>
+      </div>`
+    : (!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : '')}
 </div>
-${(bomba?.cuota_mensual || bomba?.precio_6cuotas) ? `<div style="font-size:11px;color:#1a6b3c;background:#f0f9f4;border:1px solid #cdeede;border-radius:8px;padding:7px 14px;margin:-4px 0 12px">💳 <strong>6 cuotas con tarjeta de crédito:</strong> ${bomba.cuota_mensual ? `${fmt(bomba.cuota_mensual)}/mes` : ''}${bomba.precio_6cuotas ? ` <span style="color:#666">(total ${fmt(bomba.precio_6cuotas)} en 6 cuotas)</span>` : ''}</div>` : ''}
+${(bomba?.cuota_mensual || bomba?.precio_6cuotas) ? `<div style="font-size:11px;color:#1a6b3c;background:#f0f9f4;border:1px solid #cdeede;border-radius:8px;padding:7px 14px;margin:-4px 0 12px">💳 <strong>6 cuotas con tarjeta de crédito:</strong> ${bomba.cuota_mensual ? `${fmt(bomba.cuota_mensual * nEquipos)}/mes` : ''}${bomba.precio_6cuotas ? ` <span style="color:#666">(total ${fmt(bomba.precio_6cuotas * nEquipos)} en 6 cuotas${nEquipos > 1 ? ` · ${nEquipos} equipos` : ''})</span>` : ''}</div>` : ''}
 ${desgloseHtml}` : ''}
 ${(esPozosProfundo || extraSensor > 0) ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:11px">
   <strong>⚠️ Extras de instalación incluidos en el precio:</strong><br>

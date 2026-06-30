@@ -1078,9 +1078,14 @@ ${precioPDF ? `<div class="precio-box">
     <div class="precio-val">${fmt(precioPDF)}</div>
     ${nEquipos > 1 ? `<div style="font-size:11px;color:#e8681a;font-weight:700">${nEquipos} equipos × ${fmt(Math.round(precioPDF / nEquipos))} c/u (total)</div>` : ''}
   </div>
-  ${!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : ''}
+  ${!mostrarPublico && precioListaTotal && precioPDF && precioListaTotal > precioPDF
+    ? `<div style="text-align:right">
+        <div style="font-size:11px;color:#999;text-decoration:line-through">Lista: ${fmt(precioListaTotal)}</div>
+        <div style="display:inline-block;background:#1a6b3c;color:#fff;font-weight:800;font-size:13px;padding:4px 12px;border-radius:8px;margin-top:4px">💰 Ahorrás ${fmt(precioListaTotal - precioPDF)}${descuento > 0 ? ` (${descuento}%)` : ''}</div>
+      </div>`
+    : (!mostrarPublico && precioListaTotal ? `<div style="font-size:11px;color:#666">Precio de lista: ${fmt(precioListaTotal)}</div>` : '')}
 </div>
-${(data?.bomba?.cuota_mensual || data?.bomba?.precio_6cuotas) ? `<div style="font-size:11px;color:#1a6b3c;background:#f0f9f4;border:1px solid #cdeede;border-radius:8px;padding:7px 14px;margin:-4px 0 12px">💳 <strong>6 cuotas con tarjeta de crédito:</strong> ${data.bomba.cuota_mensual ? `${fmt(data.bomba.cuota_mensual)}/mes` : ''}${data.bomba.precio_6cuotas ? ` <span style="color:#666">(total ${fmt(data.bomba.precio_6cuotas)} en 6 cuotas)</span>` : ''}</div>` : ''}
+${(data?.bomba?.cuota_mensual || data?.bomba?.precio_6cuotas) ? `<div style="font-size:11px;color:#1a6b3c;background:#f0f9f4;border:1px solid #cdeede;border-radius:8px;padding:7px 14px;margin:-4px 0 12px">💳 <strong>6 cuotas con tarjeta de crédito:</strong> ${data.bomba.cuota_mensual ? `${fmt(data.bomba.cuota_mensual * nEquipos)}/mes` : ''}${data.bomba.precio_6cuotas ? ` <span style="color:#666">(total ${fmt(data.bomba.precio_6cuotas * nEquipos)} en 6 cuotas${nEquipos > 1 ? ` · ${nEquipos} equipos` : ''})</span>` : ''}</div>` : ''}
 ${(() => {
   // Mostrar desglose IVA cuando hay descuento aplicado O cliente con CUIT
   const mostrarDesglose = descuento > 0 || !!cd?.cuit
