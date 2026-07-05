@@ -1070,7 +1070,7 @@ ${tieneCliente
   <div class="spec"><span class="spec-label">Paneles solares</span><span class="spec-val">${data?.bomba?.cant_paneles || '—'}</span></div>
   <div class="spec"><span class="spec-label">Diám. bomba</span><span class="spec-val">${data?.bomba?.diam_bomba || '—'}"</span></div>
   <div class="spec"><span class="spec-label">Diám. perf. mín.</span><span class="spec-val">${data?.bomba?.diam_perf || '—'}</span></div>
-  <div class="spec"><span class="spec-label">Disponibilidad</span><span class="spec-val ${data?.bomba?.stock > 0 ? 'stock-ok' : 'stock-no'}">${data?.bomba?.stock > 0 ? `✅ ${data.bomba.stock} en stock` : '⚠ Sin stock'}</span></div>
+  <div class="spec"><span class="spec-label">Disponibilidad</span><span class="spec-val ${data?.bomba?.stock > 0 ? 'stock-ok' : 'stock-no'}">${data?.bomba?.stock > 0 ? `✅ ${data.bomba.stock} en stock` : '📦 Stock a confirmar'}</span></div>
 </div>
 ${precioPDF ? `<div class="precio-box">
   <div>
@@ -1684,7 +1684,7 @@ ${curvasHtml ? `
                     ['Diámetro bomba', `${data.bomba.diam_bomba}"`],
                     ['Diám. perforación mín.', data.bomba.diam_perf],
                     ['Panel solar', panelDesc || `${data.bomba.cant_paneles} panel${data.bomba.cant_paneles > 1 ? 'es' : ''}`],
-                    ['Stock disponible', data.bomba.stock > 0 ? `✅ ${data.bomba.stock} unidades` : '❌ Sin stock'],
+                    ['Stock disponible', data.bomba.stock > 0 ? `✅ ${data.bomba.stock} unidades` : '📦 Stock a confirmar'],
                   ].map(([k, v]) => (
                     <div key={k}>
                       <div style={{ fontSize: 10, color: '#3a5a7a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 2 }}>{k}</div>

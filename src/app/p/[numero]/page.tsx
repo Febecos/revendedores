@@ -688,7 +688,7 @@ ${tieneCliente ? `<div class="cliente-box">
   <div class="spec"><span class="spec-label">Paneles solares</span><span class="spec-val">${esc(bomba?.cant_paneles ?? '—')}</span></div>
   <div class="spec"><span class="spec-label">Diám. bomba</span><span class="spec-val">${esc(bomba?.diam_bomba || '—')}"</span></div>
   <div class="spec"><span class="spec-label">Diám. perf. mín.</span><span class="spec-val">${esc(bomba?.diam_perf || '—')}</span></div>
-  <div class="spec"><span class="spec-label">Disponibilidad</span><span class="spec-val ${stock != null && stock > 0 ? 'stock-ok' : 'stock-no'}">${stock != null && stock > 0 ? `✅ ${stock} en stock` : '⚠ Sin stock'}</span></div>
+  <div class="spec"><span class="spec-label">Disponibilidad</span><span class="spec-val ${stock != null && stock > 0 ? 'stock-ok' : 'stock-no'}">${stock != null && stock > 0 ? `✅ ${stock} en stock` : '📦 Stock a confirmar'}</span></div>
 </div>
 <div style="${esHibridaPDF ? 'background:#fff7ed;border:1px solid #fde0bf' : 'background:#f0f9f4;border:1px solid #cdeede'};border-radius:8px;padding:9px 14px;margin:6px 0 14px;font-size:10.5px;line-height:1.55;color:#444">
   ${esHibridaPDF
