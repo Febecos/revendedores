@@ -95,6 +95,8 @@ const ASUNTO = (nombre: string) => `${(nombre || '').split(' ')[0] || 'Hola'}, �
 
 async function getElegibles() {
   const sql = getDb()
+  // No mandar a quien ya solicitó ser revendedor (pendiente) o ya está aprobado — evita el
+  // seguimiento demo a alguien que ya avanzó (pedido coordinador, punto 2).
   return await sql`
     SELECT s.nombre, s.email, s.token_acceso
     FROM solicitudes_revendedor s
@@ -106,6 +108,10 @@ async function getElegibles() {
       AND s.created_at <= NOW() - make_interval(days => ${DIAS_SIN_USO})
       AND NOT EXISTS (
         SELECT 1 FROM calculos_mca c WHERE c.revendedor_token = s.token_acceso
+      )
+      AND lower(s.email) NOT IN (
+        SELECT lower(email) FROM solicitudes_revendedor
+        WHERE estado IN ('pendiente', 'aprobado') AND email IS NOT NULL AND email <> ''
       )
     ORDER BY s.created_at ASC
   `

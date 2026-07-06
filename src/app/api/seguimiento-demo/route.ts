@@ -96,6 +96,8 @@ body{background:#f0f4f8;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a2
 
 async function getDestinatarios() {
   const sql = getDb()
+  // No mandar a quien ya solicitó ser revendedor (pendiente) o ya está aprobado — evita el
+  // seguimiento demo a alguien que ya avanzó (pedido coordinador, punto 2).
   return await sql`
     SELECT nombre, email, token_acceso
     FROM solicitudes_revendedor
@@ -103,6 +105,10 @@ async function getDestinatarios() {
       AND token_acceso IS NOT NULL
       AND token_acceso_activo = true
       AND email IS NOT NULL AND email <> ''
+      AND lower(email) NOT IN (
+        SELECT lower(email) FROM solicitudes_revendedor
+        WHERE estado IN ('pendiente', 'aprobado') AND email IS NOT NULL AND email <> ''
+      )
     ORDER BY created_at DESC
   `
 }

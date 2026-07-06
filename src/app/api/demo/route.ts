@@ -63,9 +63,12 @@ export async function POST(req: NextRequest) {
   if (nombre || email) {
     try {
       const sql = getDb()
+      // No crear una fila demo nueva si el email ya solicitó o está aprobado (evita las 2
+      // filas del mismo revendedor: pedido coordinador, punto 3). Antes solo excluía
+      // aprobado/activo — le faltaba 'pendiente'.
       const existing = await sql`
         SELECT id FROM solicitudes_revendedor
-        WHERE email = ${email} AND estado IN ('aprobado','activo')
+        WHERE lower(email) = ${email.toLowerCase()} AND estado IN ('aprobado','activo','pendiente')
         LIMIT 1
       `
       if (existing.length === 0) {

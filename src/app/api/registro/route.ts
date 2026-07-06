@@ -36,6 +36,13 @@ export async function POST(req: NextRequest) {
     const token = randomBytes(32).toString('hex')
     const sql = getDb()
 
+    // Si ese email ya tenía una demo activa, archivarla — deja de trackear como demo
+    // (evita duplicar en seguimiento-demo y en la vista Demos del admin). No se borra nada.
+    await sql`
+      UPDATE solicitudes_revendedor SET estado = 'demo_convertido'
+      WHERE lower(email) = ${email.toLowerCase()} AND estado = 'demo'
+    `.catch(() => {})
+
     await sql`
       INSERT INTO solicitudes_revendedor
         (nombre, apellido, email, whatsapp, empresa, provincia, localidad, cuit,
