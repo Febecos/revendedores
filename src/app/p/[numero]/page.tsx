@@ -12,6 +12,15 @@ const FEBECOS_LOGO = 'https://selector.febecos.com/images/febecos-logo.png'
 
 const esc = (s: any) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
+// NORMA-NOMBRE-PDF-PRESUPUESTO.md: "{NÚMERO} - {cliente}" — número primero, sanitizado
+// para Windows (usado como document.title, que el navegador sugiere al "Guardar PDF").
+function nombrePdfPresupuesto(numero: string, cliente: string): string {
+  const limpio = (s: string) => s.replace(/[\/\\:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim()
+  const num = limpio(numero || '')
+  const cli = limpio(cliente || '')
+  return cli ? `${num} - ${cli}` : num
+}
+
 export default function PresupuestoPublico({ params }: { params: { numero: string } }) {
   const searchParams = useSearchParams()
   const [html, setHtml] = useState<string | null>(null)
@@ -60,9 +69,9 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
             if (r.ok) { const dd = await r.json(); bomba = dd.bomba; kit = dd.kit || []; curvas = dd.curvas || [] }
           } catch { /* sin datos extra */ }
         }
-        // Nombre del archivo al guardar PDF = "Cliente - NÚMERO"
+        // Nombre del archivo al guardar PDF (NORMA-NOMBRE-PDF-PRESUPUESTO.md) = "NÚMERO - Cliente"
         const _cli = (p?.cliente_razon_social || [p?.cliente_nombre, p?.cliente_apellido].filter(Boolean).join(' ') || '').trim()
-        if (p?.numero) document.title = (_cli ? _cli + ' - ' : '') + p.numero
+        if (p?.numero) document.title = nombrePdfPresupuesto(p.numero, _cli)
         setPresupData(p)
         // Campo único: fusiona nombre + apellido de presupuestos viejos.
         setCliNombre([p.cliente_nombre, p.cliente_apellido].filter(Boolean).join(' '))
@@ -236,7 +245,7 @@ export default function PresupuestoPublico({ params }: { params: { numero: strin
       precio_publico: calc.precioListaBase,
     }
     const _cli = (presupData.cliente_razon_social || [presupData.cliente_nombre, presupData.cliente_apellido].filter(Boolean).join(' ') || '').trim()
-    document.title = (_cli ? _cli + ' - ' : '') + presupData.numero
+    document.title = nombrePdfPresupuesto(presupData.numero, _cli)
     setHtml(construirPDF(pModificado, bombaData, kitData, curvasData))
   }
 
