@@ -177,18 +177,17 @@ export async function GET(req: NextRequest) {
   const emails = (rows as any[]).map(r => ({
     email: r.email, nombre: r.nombre, asunto: ASUNTO(r.nombre), html_body: html(r.nombre, r.token_acceso),
   }))
-  const q = await fetch(`${BASE}/api/email-queue`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key: GUARD, job_id, tipo: 'demo-sin-uso', emails }),
-  })
-  const qj = await q.json().catch(() => ({}))
-  if (!qj?.ok) {
-    return NextResponse.json({ ok: false, error: 'fallo al encolar', detalle: qj }, { status: 500 })
+  // INSERT directo en email_queue (antes: self-fetch HTTP a /api/email-queue que fallaba en
+  // Vercel sin que nadie lo notara — la UI decía "encolado" pero no llegaba nada a la tabla).
+  const sql = getDb()
+  for (const e of emails) {
+    await sql`
+      INSERT INTO email_queue (job_id, tipo, email, nombre, asunto, html_body)
+      VALUES (${job_id}, 'demo-sin-uso', ${e.email}, ${e.nombre || null}, ${e.asunto}, ${e.html_body})
+    `
   }
 
   // ── Marcar como enviado (control para no reenviar) ────────────────────────
-  const sql = getDb()
   for (const r of rows as any[]) {
     await sql`
       UPDATE solicitudes_revendedor

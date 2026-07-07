@@ -134,12 +134,15 @@ export async function POST(req: NextRequest) {
     email: r.email, nombre: r.nombre,
     asunto: asuntoDe(r.nombre), html_body: render(cuerpoTpl, r.nombre, r.token_acceso),
   }))
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://revendedores.febecos.com'
-  await fetch(`${baseUrl}/api/email-queue`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key: GUARD, job_id, tipo: 'seguimiento-activos', emails: emailsParaEncolar }),
-  })
+  // INSERT directo en email_queue (antes: self-fetch HTTP a /api/email-queue que fallaba en
+  // Vercel sin que nadie lo notara — la UI decía "encolado" pero no llegaba nada a la tabla).
+  const sqlIns = getDb()
+  for (const e of emailsParaEncolar) {
+    await sqlIns`
+      INSERT INTO email_queue (job_id, tipo, email, nombre, asunto, html_body)
+      VALUES (${job_id}, 'seguimiento-activos', ${e.email}, ${e.nombre || null}, ${e.asunto}, ${e.html_body})
+    `
+  }
   return NextResponse.json({
     ok: true, modo: 'cola', job_id, encolados: emailsParaEncolar.length,
     msg: `${emailsParaEncolar.length} emails encolados. ~${Math.ceil(emailsParaEncolar.length / 3) * 3} min en total.`,
