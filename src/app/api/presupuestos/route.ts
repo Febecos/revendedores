@@ -43,6 +43,8 @@ async function ensureTable(sql: any) {
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS cliente_condicion_fiscal TEXT`
   await sql`CREATE INDEX IF NOT EXISTS idx_presupuestos_token ON presupuestos(public_token)`
   await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS fv_items JSONB`
+  await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS vendedor TEXT`
+  await sql`ALTER TABLE presupuestos ADD COLUMN IF NOT EXISTS vendedor_email TEXT`
 }
 
 export async function POST(req: NextRequest) {
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
       cliente_nombre, cliente_apellido, cliente_telefono, cliente_email, cliente_zona,
       cliente_razon_social, cliente_cuit, cliente_domicilio,
       cliente_localidad, cliente_cod_postal, cliente_condicion_fiscal, cliente_id, forzar, public_token,
-      fv_items,
+      fv_items, vendedor, vendedor_email,
     } = body
 
     if (!numero) return NextResponse.json({ error: 'numero requerido' }, { status: 400 })
@@ -89,7 +91,7 @@ export async function POST(req: NextRequest) {
         cliente_nombre, cliente_apellido, cliente_telefono, cliente_email, cliente_zona,
         cliente_razon_social, cliente_cuit, cliente_domicilio,
         cliente_localidad, cliente_cod_postal, cliente_condicion_fiscal, cliente_id, public_token,
-        fv_items
+        fv_items, vendedor, vendedor_email
       ) VALUES (
         ${numero},
         ${revendedor_token || null}, ${revendedor_nombre || null}, ${revendedor_email || null},
@@ -102,7 +104,7 @@ export async function POST(req: NextRequest) {
         ${cliente_telefono || null}, ${cliente_email || null}, ${cliente_zona || null},
         ${cliente_razon_social || null}, ${cliente_cuit || null}, ${cliente_domicilio || null},
         ${cliente_localidad || null}, ${cliente_cod_postal || null}, ${cliente_condicion_fiscal || null}, ${cliente_id || null}, ${public_token || null},
-        ${fvItemsJson}::jsonb
+        ${fvItemsJson}::jsonb, ${vendedor || revendedor_nombre || null}, ${vendedor_email || revendedor_email || null}
       )
       RETURNING id, numero, created_at
     `

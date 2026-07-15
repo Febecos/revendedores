@@ -826,6 +826,10 @@ function ModalDetalle({ codigo, descuento, mostrarPublico, onClose, onPresupCrea
         forzar: forzarNuevoContacto || false,
         public_token: publicToken || null,
         fv_items: buildFvItems(),
+        // Quién generó el presupuesto (columna VENDEDOR en la lista de Gestión) — mismos
+        // datos ya resueltos server-side que revendedor_nombre/revendedor_email.
+        vendedor: revendedor || null,
+        vendedor_email: revEmail || null,
       }),
     }).catch(() => { /* silencioso */ })
 
