@@ -1950,6 +1950,7 @@ ${curvasHtml ? `
 
 export default function Portal() {
   const [token, setToken] = useState<string | null>(null)
+  const [puedeCoticarga, setPuedeCoticarga] = useState(false)
   const [rev, setRev] = useState<Revendedor | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -2157,6 +2158,12 @@ export default function Portal() {
       const data = await res.json()
       if (!data?.ok || !data.revendedor) { setError('token_invalido'); return }
       setRev(data.revendedor)
+      // Visibilidad del botón "Cotizar instalación de cargador" — fuente única =
+      // el mismo endpoint que valida COTICARGA (no leemos el flag por nuestra cuenta).
+      fetch(`/api/validar-coticarga?token=${encodeURIComponent(t)}`)
+        .then(r => r.json())
+        .then(d => setPuedeCoticarga(!!d?.habilitado))
+        .catch(() => setPuedeCoticarga(false))
       // Reset de PIN ordenado por el admin (one-shot): borrar el PIN viejo de este
       // dispositivo y la sesión, para que el rev configure uno nuevo al entrar.
       if (data.revendedor.pin_reset) {
@@ -2497,6 +2504,16 @@ export default function Portal() {
               style={{ padding: '7px 16px', background: 'rgba(234,179,8,0.15)', border: '1px solid #eab308', borderRadius: 8, color: '#eab308', fontSize: 13, fontWeight: 700, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' as const }}
             >
               ☀️ Cotizador FV
+            </a>
+          )}
+          {puedeCoticarga && (
+            <a
+              href={`https://coticarga.vercel.app/#rev=${encodeURIComponent(token || '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ padding: '7px 16px', background: 'rgba(96,165,250,0.15)', border: '1px solid #60a5fa', borderRadius: 8, color: '#60a5fa', fontSize: 13, fontWeight: 700, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' as const }}
+            >
+              🔌 Cotizar instalación de cargador
             </a>
           )}
           <span style={{ fontSize: 12, color: '#3a5a7a' }}>Tus presupuestos generados — compartí el link con tu cliente</span>
