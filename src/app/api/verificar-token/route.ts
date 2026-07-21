@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
       FROM solicitudes_revendedor
       WHERE token_acceso = ${token}
         AND token_acceso_activo = true
+        AND COALESCE(estado, 'pendiente') <> 'eliminado'
       LIMIT 1
     `
     if (!rows.length) return NextResponse.json({ ok: false, error: 'token_invalido' })

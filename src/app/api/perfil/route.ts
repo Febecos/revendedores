@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
       LEFT JOIN logistics.carriers c2 ON c2.id = sr.transportista_2_id
       WHERE sr.token_acceso = ${token}
         AND sr.token_acceso_activo = true
+        AND COALESCE(sr.estado, 'pendiente') <> 'eliminado'
       LIMIT 1
     `
     if (!rows.length) return NextResponse.json({ ok: false, error: 'token_invalido' }, { status: 401 })
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
       SELECT id, nombre, apellido, email, estado, empresa, provincia, localidad, cuit, whatsapp, transportista_1_id, transportista_2_id, domicilio, logo_base64
       FROM solicitudes_revendedor
       WHERE token_acceso = ${token} AND token_acceso_activo = true
+        AND COALESCE(estado, 'pendiente') <> 'eliminado'
       LIMIT 1
     `
     if (!rows.length) return NextResponse.json({ ok: false, error: 'token_invalido' }, { status: 401 })

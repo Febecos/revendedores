@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
         SELECT tipo_usuario, nombre, apellido
         FROM solicitudes_revendedor
         WHERE token_acceso = ${token} AND token_acceso_activo = true
+          AND COALESCE(estado, 'pendiente') <> 'eliminado'
         LIMIT 1`
       rev = rows[0] || null
     } catch (e: any) {

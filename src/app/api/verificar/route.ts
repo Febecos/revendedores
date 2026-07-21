@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     SELECT id, nombre, email, email_verificado, token_acceso, aprobado
     FROM solicitudes_revendedor
     WHERE token_verificacion = ${token}
+      AND COALESCE(estado, 'pendiente') <> 'eliminado'
     LIMIT 1
   `
 
